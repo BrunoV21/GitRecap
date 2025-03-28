@@ -154,25 +154,3 @@ class AzureFetcher(BaseFetcher):
                 if self._stop_fetching(created_date):
                     break
         return entries
-
-    def get_authored_messages(self) -> List[Dict[str, Any]]:
-        commit_entries = self.fetch_commits()
-        pr_entries = self.fetch_pull_requests()
-        issue_entries = self.fetch_issues()
-
-        all_entries = commit_entries + pr_entries + issue_entries
-
-        unique_entries = {}
-        for entry in all_entries:
-            if entry.get("type") in ["commit", "commit_from_pr"]:
-                sha = entry.get("sha")
-                if sha in unique_entries:
-                    continue
-                unique_entries[sha] = entry
-            else:
-                key = f"{entry['type']}_{entry['repo']}_{entry['timestamp']}"
-                unique_entries[key] = entry
-
-        final_entries = list(unique_entries.values())
-        final_entries.sort(key=lambda x: x["timestamp"])
-        return self.convert_timestamps_to_str(final_entries)

@@ -38,18 +38,35 @@ class BaseFetcher(ABC):
     def fetch_issues(self) -> List[str]:
         pass
 
-    def get_authored_messages(self, limit: Optional[int]=None) -> List[str]:
+    def get_authored_messages(self) -> List[Dict[str, Any]]:
         """
-        Aggregates all messages from commits, pull requests, issues,
-        and code reviews authored by the user, returning a limited list.
+        Aggregates all commit, pull request, and issue entries into a single list,
+        ensuring no duplicate commits (based on SHA) are present, and then sorts
+        them in chronological order based on their timestamp.
         """
-        if limit:
-            self.limit = limit
-        messages = []
-        # messages.extend(self.fetch_commits())
-        messages.extend(self.fetch_pull_requests())
-        # messages.extend(self.fetch_issues())
-        return messages
+        commit_entries = self.fetch_commits()
+        pr_entries = self.fetch_pull_requests()
+        issue_entries = self.fetch_issues()
+
+        all_entries = pr_entries + commit_entries + issue_entries
+
+        # For commit-related entries, remove duplicates (if any) based on SHA.
+        unique_entries = {}
+        for entry in all_entries:
+            if entry.get("type") in ["commit", "commit_from_pr"]:
+                sha = entry.get("sha")
+                if sha in unique_entries:
+                    continue
+                unique_entries[sha] = entry
+            else:
+                # For pull requests and issues, we can create a unique key.
+                key = f"{entry['type']}_{entry['repo']}_{entry['timestamp']}"
+                unique_entries[key] = entry
+
+        final_entries = list(unique_entries.values())
+        # Sort all entries by their timestamp.
+        final_entries.sort(key=lambda x: x["timestamp"])
+        return self.convert_timestamps_to_str(final_entries)
     
     @staticmethod
     def convert_timestamps_to_str(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
