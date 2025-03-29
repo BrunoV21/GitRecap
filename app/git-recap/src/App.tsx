@@ -1,13 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
-
 
 function App() {
   // Form inputs state
   const [pat, setPat] = useState('');
   const [codeHost, setCodeHost] = useState('github');
-  
+
   // Dates: default endDate today, startDate 7 days ago
   const today = new Date().toISOString().split('T')[0];
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -44,7 +43,7 @@ function App() {
       }
     }
     setSelectedRepos(selected);
-  };  
+  };
 
   // Handler to add author from input
   const addAuthor = () => {
@@ -56,22 +55,19 @@ function App() {
 
   // Handler for Recap button
   const handleRecap = async () => {
-    // Reset outputs and progress
     setCommitsOutput('');
     setDummyOutput('');
     setProgress(0);
     setIsExecuting(true);
-
-    // Simulate progress updates while waiting for API response
+  
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         const next = prev + 10;
         return next > 100 ? 100 : next;
       });
     }, 300);
-
-    try {
-      // Compose your request payload
+  
+    try {  
       const payload = {
         pat,
         codeHost,
@@ -80,18 +76,24 @@ function App() {
         repo_filter: selectedRepos,
         authors,
       };
-
-      // Make API call to your backend (assumed to be on localhost:8000)
+  
+      console.log("Sending recap request with payload:", payload);
+  
       const response = await fetch('http://localhost:8000/recap', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      
+  
+      console.log("Recap response status:", response.status);
+  
+      if (!response.ok) {
+        throw new Error(`Recap request failed! Status: ${response.status}`);
+      }
+  
       const data = await response.json();
-      // Assume the API returns { commits: string, dummy: string }
+      console.log("Recap response data:", data);
+  
       setCommitsOutput(data.commits);
       setDummyOutput(data.dummy);
     } catch (error) {
@@ -103,11 +105,34 @@ function App() {
       setProgress(100);
       setIsExecuting(false);
     }
-  };
+  };  
+
+  // useEffect to handle GitHub OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    console.log("OAuth code from URL:", code); // Debug log
+    if (!code) return;
+
+    const backendUrl = import.meta.env.VITE_AICORE_API; // e.g. http://localhost:8000
+    const appName = import.meta.env.VITE_APP_NAME;
+    const target = `${backendUrl}/external-signup?app=${appName}&accessToken=${code}&provider=github`;
+
+    console.log("Request target:", target); // Debug log
+
+    fetch(target, { method: "GET" })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("GitHub token response", data);
+      })
+      .catch((error) => {
+        console.error("Error processing GitHub login", error);
+      });
+  }, []);
 
   const handleGithubLogin = () => {
     const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
-    const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI;  
+    const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI;
     const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=read:user`;
     window.location.href = githubAuthUrl;
   };
@@ -135,10 +160,7 @@ function App() {
           </div>
           <div>
             <label>Code Host:</label>
-            <select
-              value={codeHost}
-              onChange={(e) => setCodeHost(e.target.value)}
-            >
+            <select value={codeHost} onChange={(e) => setCodeHost(e.target.value)}>
               <option value="github">GitHub</option>
               <option value="azure">Azure DevOps</option>
               <option value="gitlab">GitLab</option>
@@ -175,11 +197,7 @@ function App() {
               {/* Repo Multi-Select */}
               <div>
                 <label>Select Repositories:</label>
-                <select
-                  multiple
-                  value={selectedRepos}
-                  onChange={handleRepoSelectChange} // new handler for multi-select
-                >
+                <select multiple value={selectedRepos} onChange={handleRepoSelectChange}>
                   {availableRepos.map((repo) => (
                     <option key={repo} value={repo}>
                       {repo}
