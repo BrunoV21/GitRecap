@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import githubIcon from './assets/github-mark-white.png';
 import './App.css';
+
 
 function App() {
   // Form inputs state
@@ -103,11 +105,23 @@ function App() {
     }
   };
 
+  const handleGithubLogin = () => {
+    const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
+    const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI;  
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=read:user`;
+    window.location.href = githubAuthUrl;
+  };
+
   return (
     <div className="App">
       <h1>Git Recap</h1>
-
       <div className="form-container">
+        <div className="github-signin-container">
+          <button className="github-signin-btn" onClick={handleGithubLogin}>
+            <img src={githubIcon} alt="GitHub Icon" className="github-icon" />
+            Sign in with GitHub
+          </button>
+        </div>
         {/* PAT Input */}
         <div className="form-group pat-group">
           <div>

@@ -256,3 +256,42 @@ select[multiple] {
     margin-bottom: 2rem;
   }
 }
+
+.github-signin-container {
+  background-color: #333;
+  transition: background-color 0.3s ease;
+  border-radius: 6px;
+  border: none;
+}
+
+.github-signin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #333;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+  width: 100%;
+}
+
+.github-signin-btn:hover {
+  background-color: #333;
+}
+
+.github-signin-btn .github-icon {
+  width: 25px;
+  height: 25px;
+  margin-right: 8px;
+}
+
+.github-signin-btn span {
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+}
