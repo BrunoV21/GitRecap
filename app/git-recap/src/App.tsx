@@ -1,0 +1,226 @@
+import { useState } from 'react';
+import './App.css';
+
+function App() {
+  // Form inputs state
+  const [pat, setPat] = useState('');
+  const [codeHost, setCodeHost] = useState('github');
+  
+  // Dates: default endDate today, startDate 7 days ago
+  const today = new Date().toISOString().split('T')[0];
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+  const [startDate, setStartDate] = useState(sevenDaysAgo);
+  const [endDate, setEndDate] = useState(today);
+
+  // Accordion state for additional filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [availableRepos] = useState(['Repo1', 'Repo2', 'Repo3']); // example repos
+  const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
+  const [authorInput, setAuthorInput] = useState('');
+  const [authors, setAuthors] = useState<string[]>([]);
+
+  // Output state
+  const [commitsOutput, setCommitsOutput] = useState('');
+  const [dummyOutput, setDummyOutput] = useState('');
+  const [progress, setProgress] = useState(0);
+  const [isExecuting, setIsExecuting] = useState(false);
+
+  // Handler for toggling filters accordion
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
+  };
+
+  // Handlers for selecting repos (using checkboxes)
+  const handleRepoSelectChange = (event) => {
+    const options = event.target.options;
+    const selected = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        selected.push(options[i].value);
+      }
+    }
+    setSelectedRepos(selected);
+  };  
+
+  // Handler to add author from input
+  const addAuthor = () => {
+    if (authorInput && !authors.includes(authorInput)) {
+      setAuthors([...authors, authorInput]);
+      setAuthorInput('');
+    }
+  };
+
+  // Handler for Recap button
+  const handleRecap = async () => {
+    // Reset outputs and progress
+    setCommitsOutput('');
+    setDummyOutput('');
+    setProgress(0);
+    setIsExecuting(true);
+
+    // Simulate progress updates while waiting for API response
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + 10;
+        return next > 100 ? 100 : next;
+      });
+    }, 300);
+
+    try {
+      // Compose your request payload
+      const payload = {
+        pat,
+        codeHost,
+        start_date: startDate,
+        end_date: endDate,
+        repo_filter: selectedRepos,
+        authors,
+      };
+
+      // Make API call to your backend (assumed to be on localhost:8000)
+      const response = await fetch('http://localhost:8000/recap', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await response.json();
+      // Assume the API returns { commits: string, dummy: string }
+      setCommitsOutput(data.commits);
+      setDummyOutput(data.dummy);
+    } catch (error) {
+      console.error('Error during recap:', error);
+      setCommitsOutput('Error fetching commits.');
+      setDummyOutput('Error occurred.');
+    } finally {
+      clearInterval(progressInterval);
+      setProgress(100);
+      setIsExecuting(false);
+    }
+  };
+
+  return (
+    <div className="App">
+      <h1>Git Recap</h1>
+
+      <div className="form-container">
+        {/* PAT Input */}
+        <div className="form-group pat-group">
+          <div>
+            <label>Personal Access Token (PAT):</label>
+            <input
+              type="text"
+              value={pat}
+              onChange={(e) => setPat(e.target.value)}
+              placeholder="Enter your PAT"
+            />
+          </div>
+          <div>
+            <label>Code Host:</label>
+            <select
+              value={codeHost}
+              onChange={(e) => setCodeHost(e.target.value)}
+            >
+              <option value="github">GitHub</option>
+              <option value="azure">Azure DevOps</option>
+              <option value="gitlab">GitLab</option>
+            </select>
+          </div>
+        </div>
+        {/* Date Inputs */}
+        <div className="form-group date-group">
+          <div>
+            <label>Start Date:</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label>End Date:</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Accordion for Additional Filters */}
+        <div className="accordion">
+          <button onClick={toggleFilters}>
+            {showFilters ? 'Hide Additional Filters' : 'Show Additional Filters'}
+          </button>
+          {showFilters && (
+            <div className="accordion-content">
+              {/* Repo Multi-Select */}
+              <div>
+                <label>Select Repositories:</label>
+                <select
+                  multiple
+                  value={selectedRepos}
+                  onChange={handleRepoSelectChange} // new handler for multi-select
+                >
+                  {availableRepos.map((repo) => (
+                    <option key={repo} value={repo}>
+                      {repo}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Authors Section */}
+              <div className="authors-section">
+                <div>
+                  <label>Add Author:</label>
+                  <input
+                    type="text"
+                    value={authorInput}
+                    onChange={(e) => setAuthorInput(e.target.value)}
+                    placeholder="Enter author name"
+                  />
+                  <button type="button" onClick={addAuthor}>
+                    Add
+                  </button>
+                </div>
+                {authors.length > 0 && (
+                  <div className="form-group">
+                    <label>Authors Added:</label>
+                    <textarea readOnly value={authors.join(', ')} rows={2} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Output Section */}
+      <div className="output-section">
+        <div className="output-box">
+          <h2>Commits</h2>
+          <progress value={progress} max="100"></progress>
+          <textarea readOnly value={commitsOutput} rows={10} />
+        </div>
+        <div className="output-box">
+          <h2>Dummy Output</h2>
+          <progress value={progress} max="100"></progress>
+          <textarea readOnly value={dummyOutput} rows={10} />
+        </div>
+      </div>
+
+      {/* Recap Button */}
+      <div className="recap-button">
+        <button onClick={handleRecap} disabled={isExecuting}>
+          {isExecuting ? 'Processing...' : 'Recap'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default App;
