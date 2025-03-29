@@ -7,7 +7,8 @@ class GitHubFetcher(BaseFetcher):
     def __init__(self, pat: str, start_date=None, end_date=None, repo_filter=None, authors=None):
         super().__init__(pat, start_date, end_date, repo_filter, authors)
         self.github = Github(self.pat)
-        self.user = self.github.get_user()
+        self.user = self.github.get_user()        
+        self.repos = self.user.get_repos(affiliation="owner,collaborator,organization_member")
         self.authors.append(self.user.login)
 
     def _stop_fetching(self, date_obj: datetime) -> bool:
@@ -25,8 +26,7 @@ class GitHubFetcher(BaseFetcher):
     def fetch_commits(self) -> List[Dict[str, Any]]:
         entries = []
         processed_commits = set()
-        repos = self.user.get_repos()
-        for repo in repos:
+        for repo in self.repos:
             if self.repo_filter and repo.name not in self.repo_filter:
                 continue
             for author in self.authors:
@@ -53,13 +53,13 @@ class GitHubFetcher(BaseFetcher):
         entries = []
         # Maintain a local set to skip duplicate commits already captured in a PR.
         processed_pr_commits = set()
-        repos = self.user.get_repos()
-        for repo in repos:
+        # Retrieve repos where you're owner, a collaborator, or an organization member.
+        for repo in self.repos:
             if self.repo_filter and repo.name not in self.repo_filter:
                 continue
             pulls = repo.get_pulls(state='all')
             for i, pr in enumerate(pulls, start=1):
-                if pr.user.login not in  self.authors:
+                if pr.user.login not in self.authors:
                     continue
                 pr_date = pr.updated_at  # alternatively, use pr.created_at
                 if not self._filter_by_date(pr_date):
@@ -96,6 +96,7 @@ class GitHubFetcher(BaseFetcher):
                 if self._stop_fetching(pr_date):
                     break
         return entries
+
 
     def fetch_issues(self) -> List[Dict[str, Any]]:
         entries = []

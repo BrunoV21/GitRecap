@@ -8,6 +8,8 @@ class GitLabFetcher(BaseFetcher):
         super().__init__(pat, start_date, end_date, repo_filter, authors)
         self.gl = gitlab.Gitlab(url, private_token=self.pat)
         self.gl.auth()
+        # Instead of only owned projects, retrieve projects where you're a member.
+        self.projects = self.gl.projects.list(membership=True, all=True)
         # Default to the authenticated user's username if no authors are provided.
         if authors is None:
             self.authors = [self.gl.user.username]
@@ -31,8 +33,7 @@ class GitLabFetcher(BaseFetcher):
     def fetch_commits(self) -> List[Dict[str, Any]]:
         entries = []
         processed_commits = set()
-        projects = self.gl.projects.list(owned=True, all=True)
-        for project in projects:
+        for project in self.projects:
             if self.repo_filter and project.name not in self.repo_filter:
                 continue
             for author in self.authors:
@@ -59,11 +60,10 @@ class GitLabFetcher(BaseFetcher):
     def fetch_pull_requests(self) -> List[Dict[str, Any]]:
         entries = []
         processed_pr_commits = set()
-        projects = self.gl.projects.list(owned=True, all=True)
-        for project in projects:
+        for project in self.projects:
             if self.repo_filter and project.name not in self.repo_filter:
                 continue
-            # Fetch merge requests (the GitLab equivalent of pull requests)
+            # Fetch merge requests (GitLab's pull requests)
             merge_requests = project.mergerequests.list(state='all', all=True)
             for mr in merge_requests:
                 if mr.author['username'] not in self.authors:
@@ -105,8 +105,7 @@ class GitLabFetcher(BaseFetcher):
 
     def fetch_issues(self) -> List[Dict[str, Any]]:
         entries = []
-        projects = self.gl.projects.list(owned=True, all=True)
-        for project in projects:
+        for project in self.projects:
             if self.repo_filter and project.name not in self.repo_filter:
                 continue
             issues = project.issues.list(assignee_id=self.gl.user.id)

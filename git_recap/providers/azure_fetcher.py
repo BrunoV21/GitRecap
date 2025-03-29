@@ -13,10 +13,11 @@ class AzureFetcher(BaseFetcher):
         self.connection = Connection(base_url=self.organization_url, creds=credentials)
         self.core_client = self.connection.clients.get_core_client()
         self.git_client = self.connection.clients.get_git_client()
-        # If no authors provided, default to an empty list.
+        # Azure DevOps doesn't provide an affiliation filter;
+        # we'll iterate over all repos in each project.
         if authors is None:
             self.authors = []
-    
+
     def _filter_by_date(self, date_obj: datetime) -> bool:
         if self.start_date and date_obj < self.start_date:
             return False
@@ -32,13 +33,14 @@ class AzureFetcher(BaseFetcher):
     def fetch_commits(self) -> List[Dict[str, Any]]:
         entries = []
         processed_commits = set()
+        # Get all projects in the organization
         projects = self.core_client.get_projects().value
         for project in projects:
+            # Get all repositories in each project
             repos = self.git_client.get_repositories(project.id)
             for repo in repos:
                 if self.repo_filter and repo.name not in self.repo_filter:
                     continue
-                # Iterate over provided authors
                 for author in self.authors:
                     try:
                         commits = self.git_client.get_commits(
@@ -49,8 +51,8 @@ class AzureFetcher(BaseFetcher):
                     except Exception:
                         continue
                     for commit in commits:
-                        # Azure DevOps returns a commit with an 'author' property
-                        commit_date = commit.author.date  # type: datetime
+                        # Azure DevOps returns a commit with an 'author' property.
+                        commit_date = commit.author.date  # assumed datetime
                         if self._filter_by_date(commit_date):
                             sha = commit.commit_id
                             if sha not in processed_commits:
@@ -130,9 +132,8 @@ class AzureFetcher(BaseFetcher):
 
     def fetch_issues(self) -> List[Dict[str, Any]]:
         entries = []
-        # Azure DevOps issues are typically tracked as Work Items.
         wit_client = self.connection.clients.get_work_item_tracking_client()
-        # Query work items for each author; this is a simplified WIQL query.
+        # Query work items for each author using a simplified WIQL query.
         for author in self.authors:
             wiql = f"SELECT [System.Id], [System.Title], [System.CreatedDate] FROM WorkItems WHERE [System.AssignedTo] CONTAINS '{author}'"
             try:
@@ -141,7 +142,6 @@ class AzureFetcher(BaseFetcher):
                 continue
             for item_ref in query_result:
                 work_item = wit_client.get_work_item(item_ref.id)
-                # The created date is a string; convert it to a datetime.
                 created_date = datetime.fromisoformat(work_item.fields["System.CreatedDate"])
                 if self._filter_by_date(created_date):
                     entry = {
