@@ -11,6 +11,10 @@ class GitHubFetcher(BaseFetcher):
         self.repos = self.user.get_repos(affiliation="owner,collaborator,organization_member")
         self.authors.append(self.user.login)
 
+    @property
+    def repos_names(self)->List[str]:
+        return [repo.name for repo in self.repos]
+
     def _stop_fetching(self, date_obj: datetime) -> bool:
         if self.start_date and date_obj < self.start_date:
             return True

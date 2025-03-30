@@ -25,6 +25,11 @@ class BaseFetcher(ABC):
         self.repo_filter = repo_filter or []
         self.limit = -1
         self.authors = [] if authors is None else authors
+
+    @property
+    @abstractmethod
+    def repos_names(self)->List[str]:
+        pass
         
     @abstractmethod
     def fetch_commits(self) -> List[str]:
