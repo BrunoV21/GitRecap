@@ -33,7 +33,10 @@ function App() {
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
-  const [authError, setAuthError] = useState(false);
+  const [authError, setAuthError] = useState(false);  
+
+  // Add a new state variable at the top with your other states
+  const [oauthCodeProcessed, setOauthCodeProcessed] = useState(false);
 
   // Authorization states for GitHub/session
   const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
@@ -140,26 +143,53 @@ function App() {
     }
   };
 
-  // OAuth: retrieve session_id from external-signup
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    console.log("OAuth code from URL:", code);
+    
     if (!code) return;
-
+    
+    // Check if we've already processed this specific code
+    const processedCode = sessionStorage.getItem('processedOAuthCode');
+    if (processedCode === code) {
+      console.log("This OAuth code was already processed");
+      // Check if we have a stored session from this code
+      const storedSession = sessionStorage.getItem('githubSessionId');
+      if (storedSession) {
+        console.log("Restoring session from storage:", storedSession);
+        setIsGithubAuthorized(true);
+        setSessionId(storedSession);
+      }
+      return;
+    }
+    
+    // Store the code we're processing
+    sessionStorage.setItem('processedOAuthCode', code);
+    
     const backendUrl = import.meta.env.VITE_AICORE_API; 
     const appName = import.meta.env.VITE_APP_NAME;
     const target = `${backendUrl}/external-signup?app=${appName}&accessToken=${code}&provider=GitHub`;
-
+    
     fetch(target, { method: "GET" })
-      .then((response) => response.json())
-      .then((data) => {
+      .then(response => response.json())
+      .then(data => {
         console.log("GitHub token response", data);
         setIsGithubAuthorized(true);
         setSessionId(data.session_id);
+        
+        // Store the session ID in sessionStorage for future use
+        sessionStorage.setItem('githubSessionId', data.session_id);
+        
+        // Clean up the URL after successful processing
+        if (window.history.replaceState) {
+          const newUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState(null, '', newUrl);
+        }
       })
-      .catch((error) => {
-        console.error("Error processing GitHub login", error);
+      .catch(error => {
+        console.error("OAuth processing error:", error);
+        // Only remove the stored code on error to allow retry
+        sessionStorage.removeItem('processedOAuthCode');
       });
   }, []);
 
@@ -284,7 +314,7 @@ function App() {
             </>
           ) : (
             <button className="authorized-btn" disabled>
-              Authorized
+              ✔ Authorized
             </button>
           )}
         </div>
