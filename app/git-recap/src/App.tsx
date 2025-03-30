@@ -72,56 +72,43 @@ function App() {
   // Handler for Recap button
   const handleRecap = async () => {
     setCommitsOutput('');
-    setDummyOutput('');
     setProgress(0);
     setIsExecuting(true);
   
     const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + 10;
-        return next > 100 ? 100 : next;
-      });
-    }, 300);
+      setProgress((prev) => (prev < 95 ? prev + 1 : prev)); // Cap at 90%
+    }, 500);
   
-    try {  
-      const payload = {
-        pat,
-        codeHost,
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const queryParams = new URLSearchParams({
+        session_id: sessionId,
         start_date: startDate,
         end_date: endDate,
-        repo_filter: selectedRepos,
-        authors,
-      };
+        ...(selectedRepos.length ? { repo_filter: selectedRepos.join(",") } : {}),
+        ...(authors.length ? { authors: authors.join(",") } : {}),
+      }).toString();
   
-      console.log("Sending recap request with payload:", payload);
-  
-      const response = await fetch('http://localhost:8000/recap', {
-        method: 'POST',
+      const response = await fetch(`${backendUrl}/actions?${queryParams}`, {
+        method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
       });
   
-      console.log("Recap response status:", response.status);
-  
       if (!response.ok) {
-        throw new Error(`Recap request failed! Status: ${response.status}`);
+        throw new Error(`Request failed! Status: ${response.status}`);
       }
   
       const data = await response.json();
-      console.log("Recap response data:", data);
-  
-      setCommitsOutput(data.commits);
-      setDummyOutput(data.dummy);
+      setCommitsOutput(data.actions);
     } catch (error) {
-      console.error('Error during recap:', error);
-      setCommitsOutput('Error fetching commits.');
-      setDummyOutput('Error occurred.');
+      console.error('Error fetching actions:', error);
+      setCommitsOutput('Error retrieving actions.');
     } finally {
       clearInterval(progressInterval);
-      setProgress(100);
+      setProgress(100); // Set to 100% when done
       setIsExecuting(false);
     }
-  };  
+  };
 
   // OAuth: retrieve session_id from external-signup
   useEffect(() => {
@@ -344,7 +331,7 @@ function App() {
       {/* Output Section */}
       <div className="output-section">
         <div className="output-box">
-          <h2>Commits</h2>
+          <h2>Actions Log</h2>
           <progress value={progress} max="100"></progress>
           <textarea readOnly value={commitsOutput} rows={10} />
         </div>
