@@ -33,6 +33,10 @@ function App() {
   // When authorized, we switch the PAT input to be masked
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
 
+    // At the top of your App component
+  const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
+  const isAuthorized = isGithubAuthorized || isPATAuthorized;
+
   // Handler for toggling filters accordion
   const toggleFilters = () => {
     setShowFilters(!showFilters);
@@ -112,28 +116,27 @@ function App() {
     }
   };  
 
-  // useEffect to handle GitHub OAuth redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    console.log("OAuth code from URL:", code); // Debug log
+    console.log("OAuth code from URL:", code);
     if (!code) return;
-
-    const backendUrl = import.meta.env.VITE_AICORE_API; // e.g. http://localhost:8000
+  
+    const backendUrl = import.meta.env.VITE_AICORE_API; 
     const appName = import.meta.env.VITE_APP_NAME;
     const target = `${backendUrl}/external-signup?app=${appName}&accessToken=${code}&provider=github`;
-
-    console.log("Request target:", target); // Debug log
-
+  
     fetch(target, { method: "GET" })
       .then((response) => response.json())
       .then((data) => {
         console.log("GitHub token response", data);
+        // Set GitHub authorized flag when OAuth is successful:
+        setIsGithubAuthorized(true);
       })
       .catch((error) => {
         console.error("Error processing GitHub login", error);
       });
-  }, []);
+  }, []);  
 
   const handleGithubLogin = () => {
     const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
@@ -181,41 +184,49 @@ function App() {
       <h1>Git Recap</h1>
       <div className="form-container">
         <div className="github-signin-container">
-          <button className="github-signin-btn" onClick={handleGithubLogin}>
-            <img src={githubIcon} alt="GitHub Icon" className="github-icon" />
-            Sign in with GitHub
-          </button>
-        </div>
-        {/* PAT Accordion Section */}
-        <div className="pat-accordion">
-          <button className="accordion-toggle" onClick={togglePATAccordion}>
-            or authorize with a PAT
-          </button>
-          {showPATAccordion && (
-            <div className="accordion-content">
-              <div className="form-group pat-group">
-                <div>
-                  <label>Personal Access Token (PAT):</label>
-                  <input
-                    type={isPATAuthorized ? "password" : "text"}
-                    value={pat}
-                    onChange={(e) => setPat(e.target.value)}
-                    placeholder="Enter your PAT"
-                  />
-                </div>
-                <div>
-                  <label>Code Host:</label>
-                  <select value={codeHost} onChange={(e) => setCodeHost(e.target.value)}>
-                    <option value="github">GitHub</option>
-                    <option value="azure">Azure DevOps</option>
-                    <option value="gitlab">GitLab</option>
-                  </select>
-                </div>
-              </div>
-              <button className="authorize-btn" onClick={handlePATAuthorize}>
-                Authorize
+          { !isAuthorized ? (
+            <>
+              <button className="github-signin-btn" onClick={handleGithubLogin}>
+                <img src={githubIcon} alt="GitHub Icon" className="github-icon" />
+                Sign in with GitHub
               </button>
-            </div>
+              {/* PAT Accordion Section */}
+              <div className="pat-accordion">
+                <button className="accordion-toggle" onClick={togglePATAccordion}>
+                  or authorize with a PAT
+                </button>
+                {showPATAccordion && (
+                  <div className="accordion-content">
+                    <div className="form-group pat-group">
+                      <div>
+                        <label>Personal Access Token (PAT):</label>
+                        <input
+                          type={isPATAuthorized ? "password" : "text"}
+                          value={pat}
+                          onChange={(e) => setPat(e.target.value)}
+                          placeholder="Enter your PAT"
+                        />
+                      </div>
+                      <div>
+                        <label>Code Host:</label>
+                        <select value={codeHost} onChange={(e) => setCodeHost(e.target.value)}>
+                          <option value="github">GitHub</option>
+                          <option value="azure">Azure DevOps</option>
+                          <option value="gitlab">GitLab</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button className="authorize-btn" onClick={handlePATAuthorize}>
+                      Authorize
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <button className="authorized-btn" disabled>
+              Authorized
+            </button>
           )}
         </div>
         {/* Date Inputs */}

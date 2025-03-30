@@ -324,8 +324,8 @@ select[multiple] {
 }
 
 /* Authorize button: harmonized with other buttons, full width */
-.authorize-btn {
-  background-color: #ff7f50;  /* Matching accent color */
+.authorized-btn {
+  background-color: #333; /* Green to indicate success */
   color: #fff;
   border: none;
   width: 100%;
@@ -334,10 +334,9 @@ select[multiple] {
   padding: 1rem 2rem;
   font-size: 1.2rem;
   border-radius: 8px;
-  cursor: pointer;
-  margin-top: 1rem;
-  transition: background-color 0.3s ease;
+  cursor: default;
 }
+
 
 .authorize-btn:hover {
   background-color: #e06e42; /* Slightly darker on hover */
