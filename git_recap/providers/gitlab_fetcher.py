@@ -16,6 +16,11 @@ class GitLabFetcher(BaseFetcher):
         else:
             self.authors = authors
 
+    @property
+    def repos_names(self)->List[str]:
+        "to be implemented later"
+        return [project.name for project in self.projects]
+
     def _filter_by_date(self, date_str: str) -> bool:
         date_obj = datetime.fromisoformat(date_str)
         if self.start_date and date_obj < self.start_date:

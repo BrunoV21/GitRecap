@@ -13,10 +13,22 @@ class AzureFetcher(BaseFetcher):
         self.connection = Connection(base_url=self.organization_url, creds=credentials)
         self.core_client = self.connection.clients.get_core_client()
         self.git_client = self.connection.clients.get_git_client()
+        self.repos = self.get_repos()
         # Azure DevOps doesn't provide an affiliation filter;
         # we'll iterate over all repos in each project.
         if authors is None:
             self.authors = []
+
+    def get_repos(self):
+        projects = self.core_client.get_projects().value
+        # Get all repositories in each project
+        repos = [self.git_client.get_repositories(project.id) for project in projects]
+        return repos
+
+    @property
+    def repos_names(self)->List[str]:
+        "to be implemented later"
+        ...
 
     def _filter_by_date(self, date_obj: datetime) -> bool:
         if self.start_date and date_obj < self.start_date:
@@ -33,40 +45,35 @@ class AzureFetcher(BaseFetcher):
     def fetch_commits(self) -> List[Dict[str, Any]]:
         entries = []
         processed_commits = set()
-        # Get all projects in the organization
-        projects = self.core_client.get_projects().value
-        for project in projects:
-            # Get all repositories in each project
-            repos = self.git_client.get_repositories(project.id)
-            for repo in repos:
-                if self.repo_filter and repo.name not in self.repo_filter:
+        for repo in self.repos:
+            if self.repo_filter and repo.name not in self.repo_filter:
+                continue
+            for author in self.authors:
+                try:
+                    commits = self.git_client.get_commits(
+                        project=project.id,
+                        repository_id=repo.id,
+                        search_criteria={"author": author}
+                    )
+                except Exception:
                     continue
-                for author in self.authors:
-                    try:
-                        commits = self.git_client.get_commits(
-                            project=project.id,
-                            repository_id=repo.id,
-                            search_criteria={"author": author}
-                        )
-                    except Exception:
-                        continue
-                    for commit in commits:
-                        # Azure DevOps returns a commit with an 'author' property.
-                        commit_date = commit.author.date  # assumed datetime
-                        if self._filter_by_date(commit_date):
-                            sha = commit.commit_id
-                            if sha not in processed_commits:
-                                entry = {
-                                    "type": "commit",
-                                    "repo": repo.name,
-                                    "message": commit.comment.strip(),
-                                    "timestamp": commit_date,
-                                    "sha": sha,
-                                }
-                                entries.append(entry)
-                                processed_commits.add(sha)
-                        if self._stop_fetching(commit_date):
-                            break
+                for commit in commits:
+                    # Azure DevOps returns a commit with an 'author' property.
+                    commit_date = commit.author.date  # assumed datetime
+                    if self._filter_by_date(commit_date):
+                        sha = commit.commit_id
+                        if sha not in processed_commits:
+                            entry = {
+                                "type": "commit",
+                                "repo": repo.name,
+                                "message": commit.comment.strip(),
+                                "timestamp": commit_date,
+                                "sha": sha,
+                            }
+                            entries.append(entry)
+                            processed_commits.add(sha)
+                    if self._stop_fetching(commit_date):
+                        break
         return entries
 
     def fetch_pull_requests(self) -> List[Dict[str, Any]]:
