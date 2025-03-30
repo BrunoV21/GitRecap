@@ -28,6 +28,11 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
 
+  // New state to control accordion visibility for PAT input
+  const [showPATAccordion, setShowPATAccordion] = useState(false);
+  // When authorized, we switch the PAT input to be masked
+  const [isPATAuthorized, setIsPATAuthorized] = useState(false);
+
   // Handler for toggling filters accordion
   const toggleFilters = () => {
     setShowFilters(!showFilters);
@@ -137,6 +142,40 @@ function App() {
     window.location.href = githubAuthUrl;
   };
 
+  // Toggle PAT accordion visibility
+  const togglePATAccordion = () => {
+    setShowPATAccordion((prev) => !prev);
+  };
+
+  // Handler for the PAT authorize button
+  const handlePATAuthorize = async () => {
+    try {
+      const payload = {
+        pat,
+        codeHost,
+      };
+
+      const response = await fetch('http://localhost:8000/pat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('PAT authorization failed.');
+      }
+
+      // Mask the PAT field by setting the flag to true
+      setIsPATAuthorized(true);
+      // Optionally, you could also clear or replace the PAT with asterisks:
+      // setPat('**********');
+    } catch (error) {
+      console.error('Error authorizing PAT:', error);
+    }
+  };
+
   return (
     <div className="App">
       <h1>Git Recap</h1>
@@ -147,25 +186,37 @@ function App() {
             Sign in with GitHub
           </button>
         </div>
-        {/* PAT Input */}
-        <div className="form-group pat-group">
-          <div>
-            <label>Personal Access Token (PAT):</label>
-            <input
-              type="text"
-              value={pat}
-              onChange={(e) => setPat(e.target.value)}
-              placeholder="Enter your PAT"
-            />
-          </div>
-          <div>
-            <label>Code Host:</label>
-            <select value={codeHost} onChange={(e) => setCodeHost(e.target.value)}>
-              <option value="github">GitHub</option>
-              <option value="azure">Azure DevOps</option>
-              <option value="gitlab">GitLab</option>
-            </select>
-          </div>
+        {/* PAT Accordion Section */}
+        <div className="pat-accordion">
+          <button className="accordion-toggle" onClick={togglePATAccordion}>
+            or authorize with a PAT
+          </button>
+          {showPATAccordion && (
+            <div className="accordion-content">
+              <div className="form-group pat-group">
+                <div>
+                  <label>Personal Access Token (PAT):</label>
+                  <input
+                    type={isPATAuthorized ? "password" : "text"}
+                    value={pat}
+                    onChange={(e) => setPat(e.target.value)}
+                    placeholder="Enter your PAT"
+                  />
+                </div>
+                <div>
+                  <label>Code Host:</label>
+                  <select value={codeHost} onChange={(e) => setCodeHost(e.target.value)}>
+                    <option value="github">GitHub</option>
+                    <option value="azure">Azure DevOps</option>
+                    <option value="gitlab">GitLab</option>
+                  </select>
+                </div>
+              </div>
+              <button className="authorize-btn" onClick={handlePATAuthorize}>
+                Authorize
+              </button>
+            </div>
+          )}
         </div>
         {/* Date Inputs */}
         <div className="form-group date-group">

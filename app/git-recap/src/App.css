@@ -32,8 +32,9 @@ body {
 
 /* Center individual components while preserving width */
 .form-container, 
-.accordion, 
+/* .accordion,  */
 .output-section, 
+.authorize-btn,
 .recap-button {
   width: 100%;
   max-width: 100%;
@@ -294,4 +295,50 @@ select[multiple] {
 .github-signin-btn span {
   font-family: Arial, sans-serif;
   font-size: 16px;
+}
+
+/* PAT Accordion Container with light gray background, full width */
+.pat-accordion {
+  /* background-color: #f0f0f0; */
+  padding: 1rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+/* Accordion toggle button: full width, centered text, matching accent color */
+.accordion-toggle {
+  background-color: #ccc;
+  color: #333;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Authorize button: harmonized with other buttons, full width */
+.authorize-btn {
+  background-color: #ff7f50;  /* Matching accent color */
+  color: #fff;
+  border: none;
+  width: 100%;
+  height: 55px;
+  text-align: center;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.authorize-btn:hover {
+  background-color: #e06e42; /* Slightly darker on hover */
 }
