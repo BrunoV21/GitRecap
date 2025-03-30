@@ -3,6 +3,24 @@ import githubIcon from './assets/github-mark-white.png';
 import './App.css';
 import ReactMarkdown from 'react-markdown';
 
+import { 
+  Button, 
+  Card, 
+  Input, 
+  TextArea, 
+  ProgressBar, 
+  Accordion, 
+  AccordionItem, 
+  AccordionTrigger, 
+  AccordionContent,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  Popup
+} from 'pixel-retroui';
+
 function App() {
   // ... existing states ...
   const [pat, setPat] = useState('');
@@ -36,13 +54,14 @@ function App() {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [authError, setAuthError] = useState(false);  
 
-  // Add a new state variable at the top with your other states
-  const [oauthCodeProcessed, setOauthCodeProcessed] = useState(false);
-
   // Authorization states for GitHub/session
   const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
   const [sessionId, setSessionId] = useState('');
   const isAuthorized = isGithubAuthorized || isPATAuthorized;
+
+  // Add popup state
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
 
   // Handlers for toggling filters and selecting repos/authors
   const toggleFilters = () => setShowFilters(!showFilters);
@@ -139,6 +158,8 @@ function App() {
     } catch (error) {
       console.error('Error during recap:', error);
       setCommitsOutput('Error retrieving actions.');
+      setPopupMessage('Error retrieving actions. Please try again.');
+      setIsPopupOpen(true);
     } finally {
       setIsExecuting(false);
     }
@@ -257,7 +278,8 @@ function App() {
     } catch (error) {
       console.error('Error authorizing PAT:', error);
       setAuthError(true);
-      window.alert("PAT authorization failed. Please check your PAT and try again.");
+      setPopupMessage("PAT authorization failed. Please check your PAT and try again.");
+      setIsPopupOpen(true);
     } finally {
       clearInterval(progressInterval);
       setAuthProgress(100);
@@ -267,79 +289,131 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Git Recap</h1>
-      <div className="form-container">
+      <Card className="app-title p-4">
+        <h1>Git Recap</h1>
+      </Card>
+      
+      <Card className="form-container p-4">
         <div className="github-signin-container">
-          { !isAuthorized ? (
+          {!isAuthorized ? (
             <>
-              <button className="github-signin-btn" onClick={handleGithubLogin}>
+              <Button 
+                className="github-signin-btn" 
+                onClick={handleGithubLogin}
+                color="dark"
+                // size="lg"
+              >
                 <img src={githubIcon} alt="GitHub Icon" className="github-icon" />
                 Sign in with GitHub
-              </button>
+              </Button>
+              
               {/* PAT Accordion Section */}
-              <div className="pat-accordion">
-                <button className="accordion-toggle" onClick={togglePATAccordion}>
-                  or authorize with a PAT
-                </button>
-                {showPATAccordion && (
-                  <div className="accordion-content">
+              <Accordion className="mt-4">
+                <AccordionItem value="pat-accordion">
+                  <AccordionTrigger>
+                    or authorize with a PAT
+                  </AccordionTrigger>
+                  <AccordionContent>
                     <div className="form-group pat-group">
                       <div>
                         <label>Personal Access Token (PAT):</label>
-                        <input
+                        <Input
                           type={isPATAuthorized ? "password" : "text"}
                           value={pat}
                           onChange={(e) => setPat(e.target.value)}
                           placeholder="Enter your PAT"
-                          style={{ color: authError ? 'red' : '#fff' }}
+                          className={authError ? 'error-input' : ''}
                         />
                       </div>
                       <div>
                         <label>Code Host:</label>
-                        <select value={codeHost} onChange={(e) => setCodeHost(e.target.value)}>
-                          <option value="github">GitHub</option>
-                          <option value="azure">Azure DevOps</option>
-                          <option value="gitlab">GitLab</option>
-                        </select>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="host-dropdown">
+                            {codeHost === 'github' ? 'GitHub' : 
+                             codeHost === 'azure' ? 'Azure DevOps' : 'GitLab'}
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem>
+                              GitHub
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              Azure DevOps
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              GitLab
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                     {isAuthorizing && (
-                      <progress value={authProgress} max="100" style={{ width: '100%' }}></progress>
+                      <ProgressBar
+                        progress={authProgress}
+                        size="md"
+                        color="orange"
+                        borderColor="black"
+                        className="w-full"
+                      />
                     )}
-                    <button className="authorize-btn" onClick={handlePATAuthorize}>
+                    <Button 
+                      className="authorize-btn"
+                      onClick={handlePATAuthorize}
+                      color="accent"
+                      // size="md"
+                    >
                       Authorize
-                    </button>
-                  </div>
-                )}
-              </div>
+                    </Button>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </>
           ) : (
-            <button className="authorized-btn" disabled>
+            <Button 
+              className="authorized-btn" 
+              disabled
+              color="dark"
+              // size="lg"
+            >
               ✔ Authorized
-            </button>
+            </Button>
           )}
         </div>
+        
         {/* Date Inputs */}
-        <div className="form-group date-group">
+        <div className="form-group date-group mt-4">
           <div>
             <label>Start Date:</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <Input 
+              type="date" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+            />
           </div>
           <div>
             <label>End Date:</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <Input 
+              type="date" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)} 
+            />
           </div>
         </div>
+        
         {/* Accordion for Additional Filters */}
-        <div className="accordion">
-          <button onClick={toggleFilters}>
-            {showFilters ? 'Hide Additional Filters' : 'Show Additional Filters'}
-          </button>
-          {showFilters && (
-            <div className="accordion-content">
+        <Accordion className="mt-4">
+          <AccordionItem value="filters-accordion">
+            <AccordionTrigger>
+              {showFilters ? 'Hide Additional Filters' : 'Show Additional Filters'}
+            </AccordionTrigger>
+            <AccordionContent>
               <div>
                 <label>Select Repositories:</label>
-                <select multiple value={selectedRepos} onChange={handleRepoSelectChange}>
+                <select 
+                  multiple 
+                  value={selectedRepos} 
+                  onChange={handleRepoSelectChange}
+                  className="repo-select"
+                >
                   {availableRepos.map((repo) => (
                     <option key={repo} value={repo}>
                       {repo}
@@ -350,46 +424,101 @@ function App() {
               <div className="authors-section">
                 <div>
                   <label>Add Author:</label>
-                  <input
-                    type="text"
-                    value={authorInput}
-                    onChange={(e) => setAuthorInput(e.target.value)}
-                    placeholder="Enter author name"
-                  />
-                  <button type="button" onClick={addAuthor}>Add</button>
+                  <div className="author-input-group">
+                    <Input
+                      type="text"
+                      value={authorInput}
+                      onChange={(e) => setAuthorInput(e.target.value)}
+                      placeholder="Enter author name"
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={addAuthor}
+                      color="accent"
+                      // size="sm"
+                    >
+                      Add
+                    </Button>
+                  </div>
                 </div>
                 {authors.length > 0 && (
                   <div className="form-group">
                     <label>Authors Added:</label>
-                    <textarea readOnly value={authors.join(', ')} rows={2} />
+                    <TextArea 
+                      readOnly 
+                      value={authors.join(', ')} 
+                      rows={2}
+                    />
                   </div>
                 )}
               </div>
-            </div>
-          )}
-        </div>
-      </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </Card>
+      
       {/* Output Section */}
       <div className="output-section">
-        <div className="output-box">
+        <Card className="output-box p-4">
           <h2>Actions Log</h2>
-          <progress value={progressActions} max="100"></progress>
-          <textarea readOnly value={commitsOutput} rows={10} />
-        </div>
-        <div className="output-box">
+          <ProgressBar
+            progress={progressActions}
+            size="md"
+            color="orange"
+            borderColor="black"
+            className="w-full"
+          />
+          <TextArea 
+            readOnly 
+            value={commitsOutput} 
+            rows={10}
+          />
+        </Card>
+        <Card className="output-box p-4">
           <h2>Summary</h2>
-          <progress value={progressWs} max="100"></progress>
+          <ProgressBar
+            progress={progressWs}
+            size="md"
+            color="orange"
+            borderColor="black"
+            className="w-full"
+          />
           <div className="markdown-output">
             <ReactMarkdown>{dummyOutput}</ReactMarkdown>
           </div>
-        </div>
+        </Card>
       </div>
+      
       {/* Recap Button */}
       <div className="recap-button">
-        <button onClick={handleRecap} disabled={isExecuting}>
+        <Button 
+          onClick={handleRecap} 
+          disabled={isExecuting || !isAuthorized}
+          color="accent"
+          // size="lg"
+        >
           {isExecuting ? 'Processing...' : 'Recap'}
-        </button>
+        </Button>
       </div>
+      
+      {/* Error Popup */}
+      <Popup
+        isOpen={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+      >
+        <Card className="popup-content p-4">
+          <h3>Notification</h3>
+          <p>{popupMessage}</p>
+          <Button 
+            onClick={() => setIsPopupOpen(false)}
+            color="accent"
+            // size="sm"
+            className="mt-4"
+          >
+            Close
+          </Button>
+        </Card>
+      </Popup>
     </div>
   );
 }
