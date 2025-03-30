@@ -2,7 +2,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import json
 from typing import Optional
 
-from services.llm_service import initialize_llm_session, trim_messages, run_concurrent_tasks
+from services.llm_service import initialize_llm_session, trim_messages, run_concurrent_tasks, get_llm
 from aicore.const import SPECIAL_TOKENS, STREAM_END_TOKEN
 import ulid
 
@@ -15,33 +15,23 @@ active_histories = {}
 @router.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id : Optional[str]=None):
     await websocket.accept()
-
-    if not session_id:
-        session_id = ulid.ulid()
     
     # Store the connection
     active_connections[session_id] = websocket
 
-    history  = []
     try:
         # Initialize LLM
-        llm = await initialize_llm_session(session_id)
-        if session_id not in active_histories:
-            active_histories[session_id] = history
-        else:
-            history = active_histories[session_id]
-        
+        llm = get_llm(session_id)
         while True:
-            data = await websocket.receive_text()
-            message = data
-            history.append(message)
-            history = trim_messages(history, llm.tokenizer)
+            message = await websocket.receive_text()
+            history = [message]
             response = []
             async for chunk in run_concurrent_tasks(
                 llm,
                 message=history
             ):
                 if chunk == STREAM_END_TOKEN:
+                    await websocket.send_text(json.dumps({"chunk": chunk}))
                     break
                 elif chunk in SPECIAL_TOKENS:
                     continue
