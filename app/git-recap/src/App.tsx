@@ -17,7 +17,8 @@ function App() {
 
   // Accordion state for additional filters
   const [showFilters, setShowFilters] = useState(false);
-  const [availableRepos] = useState(['Repo1', 'Repo2', 'Repo3']); // example repos
+  // Instead of hardcoding availableRepos, we now store it in state so it can be updated
+  const [availableRepos, setAvailableRepos] = useState<string[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
   const [authorInput, setAuthorInput] = useState('');
   const [authors, setAuthors] = useState<string[]>([]);
@@ -33,8 +34,9 @@ function App() {
   // When authorized, we switch the PAT input to be masked
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
 
-    // At the top of your App component
+  // Authorization state for GitHub
   const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
+  const [sessionId, setSessionId] = useState(''); // New state to hold the session ID
   const isAuthorized = isGithubAuthorized || isPATAuthorized;
 
   // Handler for toggling filters accordion
@@ -42,10 +44,10 @@ function App() {
     setShowFilters(!showFilters);
   };
 
-  // Handlers for selecting repos (using checkboxes)
-  const handleRepoSelectChange = (event) => {
+  // Handler for selecting repos
+  const handleRepoSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const options = event.target.options;
-    const selected = [];
+    const selected: string[] = [];
     for (let i = 0; i < options.length; i++) {
       if (options[i].selected) {
         selected.push(options[i].value);
@@ -116,6 +118,7 @@ function App() {
     }
   };  
 
+  // OAuth: retrieve session_id from external-signup
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
@@ -124,19 +127,35 @@ function App() {
   
     const backendUrl = import.meta.env.VITE_AICORE_API; 
     const appName = import.meta.env.VITE_APP_NAME;
-    const target = `${backendUrl}/external-signup?app=${appName}&accessToken=${code}&provider=github`;
+    const target = `${backendUrl}/external-signup?app=${appName}&accessToken=${code}&provider=GitHub`;
   
     fetch(target, { method: "GET" })
       .then((response) => response.json())
       .then((data) => {
         console.log("GitHub token response", data);
-        // Set GitHub authorized flag when OAuth is successful:
         setIsGithubAuthorized(true);
+        // Save the session ID returned by the backend
+        setSessionId(data.session_id);
       })
       .catch((error) => {
         console.error("Error processing GitHub login", error);
       });
   }, []);  
+
+  // Fetch repos using session_id when it is available
+  useEffect(() => {
+    if (!sessionId) return;
+    const backendUrl = import.meta.env.VITE_AICORE_API;
+    fetch(`${backendUrl}/repos?session_id=${sessionId}`)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Fetched repos:", data.repos);
+        setAvailableRepos(data.repos);
+      })
+      .catch((error) => {
+         console.error("Error fetching repos", error);
+      });
+  }, [sessionId]);
 
   const handleGithubLogin = () => {
     const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
@@ -152,32 +171,36 @@ function App() {
 
   // Handler for the PAT authorize button
   const handlePATAuthorize = async () => {
+    const backendUrl = import.meta.env.VITE_AICORE_API;
     try {
       const payload = {
-        pat,
-        codeHost,
+        pat, // the PAT token to be stored in backend
+        session_id: sessionId, // the session identifier
       };
-
-      const response = await fetch('http://localhost:8000/pat', {
+  
+      const response = await fetch(`${backendUrl}/pat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
-
+  
       if (!response.ok) {
         throw new Error('PAT authorization failed.');
       }
-
+  
+      const data = await response.json();
+      console.log("PAT stored for session:", data.session_id);
+  
       // Mask the PAT field by setting the flag to true
       setIsPATAuthorized(true);
-      // Optionally, you could also clear or replace the PAT with asterisks:
+      // Optionally, clear or mask the PAT input field:
       // setPat('**********');
     } catch (error) {
       console.error('Error authorizing PAT:', error);
     }
-  };
+  };  
 
   return (
     <div className="App">
