@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Query
 
 from models.schemas import ChatRequest
-from services.llm_service import initialize_llm_session, set_llm
+from services.llm_service import initialize_llm_session, set_llm, get_llm, trim_messages
 from services.fetcher_service import store_fetcher, get_fetcher
+from git_recap.utils import parse_entries_to_txt
 from aicore.llm.config import LlmConfig
-from typing import Optional
+from datetime import datetime, timezone
+from typing import Optional, List
 import requests
 import os
 
@@ -96,6 +98,34 @@ async def get_repos(session_id: str):
     """
     fetcher = get_fetcher(session_id)
     return {"repos": fetcher.repos_names}
+
+@router.get("/actions")
+async def get_actions(
+    session_id: str,
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    repo_filter: Optional[List[str]] = Query(None),
+    authors: Optional[List[str]] = Query(None)
+):
+    fetcher = get_fetcher(session_id)    
+    # Convert date strings to datetime objects
+    start_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)  if start_date else None
+    end_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)  if end_date else None
+
+    if start_dt:
+        fetcher.start_date = start_dt
+    if end_dt:
+        fetcher.end_dt = end_dt
+    if repo_filter is not None:
+        fetcher.repo_filter = repo_filter
+    if authors is not None:
+        fetcher.authors = authors
+
+    llm = get_llm(session_id)
+    actions = fetcher.get_authored_messages()
+    actions = trim_messages(actions, llm.tokenizer)
+    
+    return {"actions": parse_entries_to_txt(actions)}
 
 @router.post("/chat")
 async def chat(

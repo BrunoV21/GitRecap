@@ -64,9 +64,12 @@ async def set_llm(config: Optional[LlmConfig] = None) -> str:
         print(f"Error setting custom LLM: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to set custom LLM: {str(e)}")
     
+def get_llm(session_id :str)->Optional[Llm]:
+    return llm_sessions.get(session_id)
+    
 def trim_messages(messages, tokenizer_fn, max_tokens :Optional[int]=None):
     max_tokens = max_tokens or int(os.environ.get("MAX_HISTORY_TOKENS", 16000))
-    while messages and sum(len(tokenizer_fn(msg)) for msg in messages) > max_tokens:
+    while messages and sum(len(tokenizer_fn(str(msg))) for msg in messages) > max_tokens:
         messages.pop(0)  # Remove from the beginning
     return messages
     
