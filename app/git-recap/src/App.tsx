@@ -3,53 +3,45 @@ import githubIcon from './assets/github-mark-white.png';
 import './App.css';
 
 function App() {
-  // Form inputs state
+  // ... existing states ...
   const [pat, setPat] = useState('');
   const [codeHost, setCodeHost] = useState('github');
 
-  // Dates: default endDate today, startDate 7 days ago
+  // Date states
   const today = new Date().toISOString().split('T')[0];
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split('T')[0];
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const [startDate, setStartDate] = useState(sevenDaysAgo);
   const [endDate, setEndDate] = useState(today);
 
-  // Accordion state for additional filters
+  // Accordion and filter states
   const [showFilters, setShowFilters] = useState(false);
-  // Instead of hardcoding availableRepos, we now store it in state so it can be updated
   const [availableRepos, setAvailableRepos] = useState<string[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
   const [authorInput, setAuthorInput] = useState('');
   const [authors, setAuthors] = useState<string[]>([]);
 
-  // Output state
+  // Output states
   const [commitsOutput, setCommitsOutput] = useState('');
   const [dummyOutput, setDummyOutput] = useState('');
-  const [progress, setProgress] = useState(0);
+  // Two separate progress states:
+  const [progressActions, setProgressActions] = useState(0);
+  const [progressWs, setProgressWs] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
 
-  // New state to control accordion visibility for PAT input
+  // PAT accordion and authorization states
   const [showPATAccordion, setShowPATAccordion] = useState(false);
-  // When authorized, we switch the PAT input to be masked
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
-
-  // New state variables at the top of your App component:
   const [authProgress, setAuthProgress] = useState(0);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [authError, setAuthError] = useState(false);
 
-  // Authorization state for GitHub
+  // Authorization states for GitHub/session
   const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
-  const [sessionId, setSessionId] = useState(''); // New state to hold the session ID
+  const [sessionId, setSessionId] = useState('');
   const isAuthorized = isGithubAuthorized || isPATAuthorized;
 
-  // Handler for toggling filters accordion
-  const toggleFilters = () => {
-    setShowFilters(!showFilters);
-  };
-
-  // Handler for selecting repos
+  // Handlers for toggling filters and selecting repos/authors
+  const toggleFilters = () => setShowFilters(!showFilters);
   const handleRepoSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const options = event.target.options;
     const selected: string[] = [];
@@ -60,8 +52,6 @@ function App() {
     }
     setSelectedRepos(selected);
   };
-
-  // Handler to add author from input
   const addAuthor = () => {
     if (authorInput && !authors.includes(authorInput)) {
       setAuthors([...authors, authorInput]);
@@ -72,13 +62,16 @@ function App() {
   // Handler for Recap button
   const handleRecap = async () => {
     setCommitsOutput('');
-    setProgress(0);
+    setDummyOutput('');
+    setProgressActions(0);
+    setProgressWs(0);
     setIsExecuting(true);
-  
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => (prev < 95 ? prev + 1 : prev)); // Cap at 90%
+
+    // Start progress for actions endpoint (cap at ~95%)
+    const progressActionsInterval = setInterval(() => {
+      setProgressActions((prev) => (prev < 95 ? prev + 1 : prev));
     }, 500);
-  
+
     try {
       const backendUrl = import.meta.env.VITE_AICORE_API;
       const queryParams = new URLSearchParams({
@@ -88,24 +81,61 @@ function App() {
         ...(selectedRepos.length ? { repo_filter: selectedRepos.join(",") } : {}),
         ...(authors.length ? { authors: authors.join(",") } : {}),
       }).toString();
-  
+
       const response = await fetch(`${backendUrl}/actions?${queryParams}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
-  
+
       if (!response.ok) {
         throw new Error(`Request failed! Status: ${response.status}`);
       }
-  
+
       const data = await response.json();
       setCommitsOutput(data.actions);
+
+      // Actions progress is now complete:
+      clearInterval(progressActionsInterval);
+      setProgressActions(100);
+
+      // --- Now open the websocket ---
+      // Construct the websocket URL (assuming backend URL starts with http/https)
+      const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log("WebSocket connected.");
+        // Send the actions output via the websocket
+        ws.send(data.actions);
+      };
+
+      // Start a separate progress for websocket (simulate progress until <end> is received)
+      const progressWsInterval = setInterval(() => {
+        setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
+      }, 500);
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data.toString()).chunk;
+        if (message === "</end>") {
+          // When <end> is received, complete progress and close
+          clearInterval(progressWsInterval);
+          setProgressWs(100);
+          ws.close();
+        } else {
+          // Append received chunk to dummyOutput
+          setDummyOutput((prev) => prev + message);
+        }
+      };
+
+      ws.onerror = (event) => {
+        console.error("WebSocket error:", event);
+        clearInterval(progressWsInterval);
+        setProgressWs(100);
+      };
     } catch (error) {
-      console.error('Error fetching actions:', error);
+      console.error('Error during recap:', error);
       setCommitsOutput('Error retrieving actions.');
     } finally {
-      clearInterval(progressInterval);
-      setProgress(100); // Set to 100% when done
       setIsExecuting(false);
     }
   };
@@ -116,23 +146,22 @@ function App() {
     const code = params.get("code");
     console.log("OAuth code from URL:", code);
     if (!code) return;
-  
+
     const backendUrl = import.meta.env.VITE_AICORE_API; 
     const appName = import.meta.env.VITE_APP_NAME;
     const target = `${backendUrl}/external-signup?app=${appName}&accessToken=${code}&provider=GitHub`;
-  
+
     fetch(target, { method: "GET" })
       .then((response) => response.json())
       .then((data) => {
         console.log("GitHub token response", data);
         setIsGithubAuthorized(true);
-        // Save the session ID returned by the backend
         setSessionId(data.session_id);
       })
       .catch((error) => {
         console.error("Error processing GitHub login", error);
       });
-  }, []);  
+  }, []);
 
   // Fetch repos using session_id when it is available
   useEffect(() => {
@@ -161,22 +190,21 @@ function App() {
     setShowPATAccordion((prev) => !prev);
   };
 
-  // Handler for the PAT authorize button
+  // Handler for the PAT authorize button remains the same...
   const handlePATAuthorize = async () => {
     const backendUrl = import.meta.env.VITE_AICORE_API;
     setAuthError(false);
     setAuthProgress(0);
     setIsAuthorizing(true);
   
-    // Simulate progress bar increasing while waiting for the API call
     const progressInterval = setInterval(() => {
       setAuthProgress((prev) => (prev < 90 ? prev + 10 : prev));
     }, 300);
   
     try {
       const payload = {
-        pat, // the PAT token to be stored in backend
-        session_id: sessionId, // the session identifier (if already exists, or empty if not)
+        pat,
+        session_id: sessionId,
       };
   
       const response = await fetch(`${backendUrl}/pat`, {
@@ -193,10 +221,7 @@ function App() {
   
       const data = await response.json();
       console.log("PAT stored for session:", data.session_id);
-      // Update sessionId state so that repos fetch is triggered
       setSessionId(data.session_id);
-  
-      // Mask the PAT field by setting the flag to true
       setIsPATAuthorized(true);
     } catch (error) {
       console.error('Error authorizing PAT:', error);
@@ -247,7 +272,6 @@ function App() {
                         </select>
                       </div>
                     </div>
-                    {/* Show progress bar when authorizing */}
                     {isAuthorizing && (
                       <progress value={authProgress} max="100" style={{ width: '100%' }}></progress>
                     )}
@@ -268,22 +292,13 @@ function App() {
         <div className="form-group date-group">
           <div>
             <label>Start Date:</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
           <div>
             <label>End Date:</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </div>
         </div>
-
         {/* Accordion for Additional Filters */}
         <div className="accordion">
           <button onClick={toggleFilters}>
@@ -291,7 +306,6 @@ function App() {
           </button>
           {showFilters && (
             <div className="accordion-content">
-              {/* Repo Multi-Select */}
               <div>
                 <label>Select Repositories:</label>
                 <select multiple value={selectedRepos} onChange={handleRepoSelectChange}>
@@ -302,7 +316,6 @@ function App() {
                   ))}
                 </select>
               </div>
-              {/* Authors Section */}
               <div className="authors-section">
                 <div>
                   <label>Add Author:</label>
@@ -312,9 +325,7 @@ function App() {
                     onChange={(e) => setAuthorInput(e.target.value)}
                     placeholder="Enter author name"
                   />
-                  <button type="button" onClick={addAuthor}>
-                    Add
-                  </button>
+                  <button type="button" onClick={addAuthor}>Add</button>
                 </div>
                 {authors.length > 0 && (
                   <div className="form-group">
@@ -327,21 +338,19 @@ function App() {
           )}
         </div>
       </div>
-
       {/* Output Section */}
       <div className="output-section">
         <div className="output-box">
           <h2>Actions Log</h2>
-          <progress value={progress} max="100"></progress>
+          <progress value={progressActions} max="100"></progress>
           <textarea readOnly value={commitsOutput} rows={10} />
         </div>
         <div className="output-box">
-          <h2>Dummy Output</h2>
-          <progress value={progress} max="100"></progress>
+          <h2>Summary</h2>
+          <progress value={progressWs} max="100"></progress>
           <textarea readOnly value={dummyOutput} rows={10} />
         </div>
       </div>
-
       {/* Recap Button */}
       <div className="recap-button">
         <button onClick={handleRecap} disabled={isExecuting}>
