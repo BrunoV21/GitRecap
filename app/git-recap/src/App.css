@@ -3,11 +3,12 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Minecraft', sans-serif; /* Apply Minecraft font to all elements */
 }
 
 body {
-  font-family: 'Roboto', sans-serif;
-  background-color: #f5f0e6; /* Light beige background */
+  font-family: 'Minecraft', sans-serif; /* Ensure body uses the font */
+  background-color: #f9f4e8;
   color: #333;
   padding: 2rem;
   line-height: 1.6;
@@ -30,29 +31,47 @@ body {
   width: 100%;
 }
 
-/* Centering elements */
+/* Centering elements - including buttons */
 .form-container, 
 .output-section, 
 .authorize-btn,
-.recap-button {
-  width: 100%;
-  margin: 0 auto;
+.recap-button,
+.github-signin-btn,
+.authorized-btn,
+button, 
+.Button {
+  margin-left: auto;
+  margin-right: auto;
 }
 
+/* Headings styling with a dark brown tone */
 h1 {
   font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 1rem;
-  color: #333;
+  color: #5c4033; /* dark brown */
   text-align: center;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #5c4033;
+}
+
+h3 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  color: #5c4033;
 }
 
 /* Form Container */
 .form-container {
-  background-color: #fff;
-  padding: 2rem;
+  background-color: #fff8e1; /* light yellow-beige */
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid #e0cda9; /* subtle light brown border */
   margin-bottom: 2rem;
 }
 
@@ -70,19 +89,80 @@ h1 {
   flex: 1;
 }
 
-/* RetroUI components may come with their own styles; add additional styles if needed */
-input[type="text"],
-input[type="date"],
-select {
+.date-group input[type="date"] {
+  height: 100%;
   width: 100%;
-  padding: 0.8rem;
-  margin-top: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  height: 55%;
+  background-color: #333;
+  color: #fff;
+  flex-grow: 1;
+  max-width: 100%;
+  display: block;
+  height: 40px;
+  padding-left: 10px;  /* Adjust the value as needed */
+  border: 1px solid #ccc;  /* Optional: for better visibility */
 }
 
-/* RetroUI Button overrides */
+/* Label styling */
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #5c4033;
+}
+
+/* Ensure all inputs fill the full width of their parent */
+input[type="text"],
+/* input[type="date"], */
+input[type="password"],
+select,
+textarea {
+  width: 100%;
+  display: block;
+  padding: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+  background-color: #fffaf0; /* softer off-white with warm tone */
+  box-sizing: border-box; /* Ensures padding/border doesn't overflow */
+}
+
+.date-group {
+  display: flex;
+  width: 100%;
+  gap: 1rem; /* Space between the inputs */
+}
+
+.date-group div {
+  flex: 1; /* Ensures equal distribution */
+  width: 100%;
+}
+
+.date-group input[type="date"] {
+  width: 100%;
+  flex-grow: 1;
+  max-width: 100%;
+  display: block;
+}
+
+
+/* Ensure the form container (or card) allows full-width children */
+.form-container {
+  width: 100%;
+  padding: 1rem; /* Adjust as needed */
+  box-sizing: border-box;
+}
+
+select {
+  height: 150px;
+}
+
+/* Input error state */
+.error-input {
+  border-color: #ff4d4d !important;
+  background-color: #fff0f0 !important;
+}
+
+/* RetroUI Button overrides - consistent sizing with orange accents */
 button, .Button {
   padding: 0.8rem 1.6rem;
   background-color: #ff7f50;
@@ -90,25 +170,57 @@ button, .Button {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1rem;
   transition: background-color 0.3s ease;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 button:hover, .Button:hover {
   background-color: #e06e42;
 }
 
+/* Size variants */
+.Button[size="sm"] {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.Button[size="md"] {
+  padding: 0.7rem 1.4rem;
+  font-size: 1rem;
+}
+
+.Button[size="lg"] {
+  padding: 0.9rem 1.8rem;
+  font-size: 1.125rem;
+}
+
+button:disabled, .Button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
 /* Accordion / Dropdown styling */
 .accordion-toggle, .DropdownMenuTrigger {
-  background-color: #ccc;
-  color: #333;
+  background-color: #fffaf0; /* use warm off-white */
+  color: #5c4033;
   padding: 1rem;
-  border: none;
-  border-radius: 8px;
+  border: 1px solid #e0cda9;
+  border-radius: 5px;
   cursor: pointer;
   font-size: 1rem;
   width: 100%;
-  text-align: center;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.AccordionContent {
+  padding-top: 1rem;
 }
 
 /* Output Section */
@@ -116,20 +228,13 @@ button:hover, .Button:hover {
   display: flex;
   gap: 2rem;
   justify-content: space-between;
-  margin-top: 3rem;
 }
 
 .output-box {
   flex: 1;
-  border: 1px solid #ddd;
+  border: 1px solid #e0cda9;
   border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.output-box h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: #333;
+  background-color: #fff8e1;
 }
 
 /* RetroUI TextArea */
@@ -138,77 +243,116 @@ textarea, .TextArea {
   padding: 0.8rem;
   border: 1px solid #ccc;
   border-radius: 5px;
-  background-color: #f4f4f4;
+  background-color: #fffaf0;
+  font-family: monospace;
+  font-size: 0.9rem;
+  resize: vertical;
 }
 
 /* ProgressBar styling */
 progress, .ProgressBar {
   width: 100%;
-  height: 1rem;
-  border-radius: 5px;
-  margin-bottom: 1rem;
-  background-color: #333;
+  height: 0.75rem;
+  border-radius: 4px;
+  background-color: #fffaf0;
+  overflow: hidden;
 }
 
-/* Popup overrides if needed */
+/* Popup overrides */
 .Popup {
-  background-color: #fff;
-  border: 1px solid #ddd;
+  background-color: #fff8e1;
+  border: 1px solid #e0cda9;
   border-radius: 8px;
-  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.popup-content {
+  min-width: 300px;
 }
 
 /* Markdown Output styling */
 .markdown-output {
-  background-color: #f4f4f4;
-  padding: 0.8rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  height: 10rem;
-  overflow-y: auto;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .form-container {
-    padding: 1.5rem;
-  }
-  .accordion-content {
-    flex-direction: column;
-  }
-  .output-section {
-    flex-direction: column;
-  }
-  .output-box {
-    margin-bottom: 2rem;
-  }
-}
-
-/* GitHub signin container */
-.github-signin-container {
-  background-color: #333;
-  border-radius: 6px;
+  background-color: #fffaf0;
   padding: 1rem;
+  border: 1px solid #e0cda9;
+  border-radius: 5px;
+  height: 320px;
+  overflow-y: auto;
+  font-size: 0.95rem;
 }
+
 .github-signin-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #333;
+  background-color: #333; /* Same orange accent as other buttons */
   color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
   width: 100%;
-  cursor: pointer;
+  padding: 0.8rem 1.6rem; /* Consistent padding */
+  border-radius: 8px;     /* Consistent rounded corners */
+  font-size: 1rem;
+  height: 45px;
+  transition: background-color 0.3s ease;
 }
+
 .github-signin-btn:hover {
-  background-color: #333;
+  background-color: #e06e42; /* Consistent hover effect */
 }
+
 .github-signin-btn .github-icon {
-  width: 25px;
-  height: 25px;
+  width: 24px;
+  height: 24px;
   margin-right: 8px;
+}
+
+.author-input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Spacing utilities */
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mt-6 { margin-top: 1.5rem; }
+.mt-8 { margin-top: 2rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mr-4 { margin-right: 1rem; }
+.p-2 { padding: 0.5rem; }
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.pt-4 { padding-top: 1rem; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .App {
+    padding: 1rem;
+  }
+  
+  .form-container {
+    padding: 1rem;
+  }
+  
+  .pat-group, .date-group {
+    flex-direction: column;
+  }
+  
+  .pat-group div, .date-group div {
+    margin-bottom: 1rem;
+  }
+  
+  .output-section {
+    flex-direction: column;
+  }
+  
+  .output-box {
+    margin-bottom: 1.5rem;
+  }
+  
+  .github-signin-btn, .Button[size="lg"] {
+    padding: 0.7rem 1.4rem;
+    font-size: 1rem;
+  }
 }

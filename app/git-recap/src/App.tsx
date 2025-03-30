@@ -289,21 +289,21 @@ function App() {
 
   return (
     <div className="App">
-      <Card className="app-title p-4">
+      <Card className="app-title p-4 mb-6">
         <h1>Git Recap</h1>
       </Card>
       
-      <Card className="form-container p-4">
-        <div className="github-signin-container">
+      <Card className="form-container p-6">
+        <div className="github-signin-container mb-6">
           {!isAuthorized ? (
             <>
+              {/* GitHub Signin Button */}
               <Button 
-                className="github-signin-btn" 
+                className="github-signin-btn w-full"  // Added w-full for consistency
                 onClick={handleGithubLogin}
-                color="dark"
-                // size="lg"
+                color="accent"   // Changed to accent for the retro look
               >
-                <img src={githubIcon} alt="GitHub Icon" className="github-icon" />
+                <img src={githubIcon} alt="GitHub Icon" className="github-icon mr-2" />
                 Sign in with GitHub
               </Button>
               
@@ -314,9 +314,10 @@ function App() {
                     or authorize with a PAT
                   </AccordionTrigger>
                   <AccordionContent>
+                     {/* className="pt-4"> */}
                     <div className="form-group pat-group">
-                      <div>
-                        <label>Personal Access Token (PAT):</label>
+                      <div className="mr-4">
+                        <label className="block mb-2 font-medium">Personal Access Token (PAT):</label>
                         <Input
                           type={isPATAuthorized ? "password" : "text"}
                           value={pat}
@@ -326,20 +327,23 @@ function App() {
                         />
                       </div>
                       <div>
-                        <label>Code Host:</label>
+                        <label className="block mb-2 font-medium">Code Host:</label>
                         <DropdownMenu>
-                          <DropdownMenuTrigger className="host-dropdown">
+                          <DropdownMenuTrigger className="host-dropdown w-full">
                             {codeHost === 'github' ? 'GitHub' : 
                              codeHost === 'azure' ? 'Azure DevOps' : 'GitLab'}
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem> 
+                              {/* onClick={() => setCodeHost('github')}> */}
                               GitHub
                             </DropdownMenuItem>
                             <DropdownMenuItem>
+                               {/* onClick={() => setCodeHost('azure')}> */}
                               Azure DevOps
                             </DropdownMenuItem>
                             <DropdownMenuItem>
+                              {/* onClick={() => setCodeHost('gitlab')}> */}
                               GitLab
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -352,11 +356,11 @@ function App() {
                         size="md"
                         color="orange"
                         borderColor="black"
-                        className="w-full"
+                        className="w-full my-4"
                       />
                     )}
                     <Button 
-                      className="authorize-btn"
+                      className="authorize-btn mt-4"
                       onClick={handlePATAuthorize}
                       color="accent"
                       // size="md"
@@ -380,18 +384,18 @@ function App() {
         </div>
         
         {/* Date Inputs */}
-        <div className="form-group date-group mt-4">
-          <div>
-            <label>Start Date:</label>
-            <Input 
+        <div className="form-group date-group mt-6">
+          <div className="mr-4">
+            <label className="block mb-2 font-medium">Start Date:</label>
+            <input 
               type="date" 
               value={startDate} 
               onChange={(e) => setStartDate(e.target.value)} 
             />
           </div>
           <div>
-            <label>End Date:</label>
-            <Input 
+            <label className="block mb-2 font-medium">End Date:</label>
+            <input 
               type="date" 
               value={endDate} 
               onChange={(e) => setEndDate(e.target.value)} 
@@ -400,19 +404,19 @@ function App() {
         </div>
         
         {/* Accordion for Additional Filters */}
-        <Accordion className="mt-4">
+        <Accordion className="mt-6">
           <AccordionItem value="filters-accordion">
             <AccordionTrigger>
               {showFilters ? 'Hide Additional Filters' : 'Show Additional Filters'}
             </AccordionTrigger>
             <AccordionContent>
-              <div>
-                <label>Select Repositories:</label>
+              <div className="mb-4">
+                <label className="block mb-2 font-medium">Select Repositories:</label>
                 <select 
                   multiple 
                   value={selectedRepos} 
                   onChange={handleRepoSelectChange}
-                  className="repo-select"
+                  className="repo-select w-full p-2 border border-gray-300 rounded"
                 >
                   {availableRepos.map((repo) => (
                     <option key={repo} value={repo}>
@@ -421,29 +425,30 @@ function App() {
                   ))}
                 </select>
               </div>
-              <div className="authors-section">
+              <div className="authors-section mt-4">
                 <div>
-                  <label>Add Author:</label>
-                  <div className="author-input-group">
+                  <label className="block mb-2 font-medium">Add Author:</label>
+                  <div className="author-input-group flex">
                     <Input
                       type="text"
                       value={authorInput}
                       onChange={(e) => setAuthorInput(e.target.value)}
                       placeholder="Enter author name"
+                      className="flex-grow mr-2"
                     />
                     <Button 
                       type="button" 
                       onClick={addAuthor}
                       color="accent"
-                      // size="sm"
+                      // size="md"
                     >
                       Add
                     </Button>
                   </div>
                 </div>
                 {authors.length > 0 && (
-                  <div className="form-group">
-                    <label>Authors Added:</label>
+                  <div className="form-group mt-4">
+                    <label className="block mb-2 font-medium">Authors Added:</label>
                     <TextArea 
                       readOnly 
                       value={authors.join(', ')} 
@@ -458,15 +463,15 @@ function App() {
       </Card>
       
       {/* Output Section */}
-      <div className="output-section">
-        <Card className="output-box p-4">
-          <h2>Actions Log</h2>
+      <div className="output-section mt-8">
+        <Card className="output-box p-6">
+          <h2 className="text-xl font-bold mb-4">Actions Log</h2>
           <ProgressBar
             progress={progressActions}
             size="md"
             color="orange"
             borderColor="black"
-            className="w-full"
+            className="w-full mb-4"
           />
           <TextArea 
             readOnly 
@@ -474,14 +479,14 @@ function App() {
             rows={10}
           />
         </Card>
-        <Card className="output-box p-4">
-          <h2>Summary</h2>
+        <Card className="output-box p-6">
+          <h2 className="text-xl font-bold mb-4">Summary</h2>
           <ProgressBar
             progress={progressWs}
             size="md"
             color="orange"
             borderColor="black"
-            className="w-full"
+            className="w-full mb-4"
           />
           <div className="markdown-output">
             <ReactMarkdown>{dummyOutput}</ReactMarkdown>
@@ -490,12 +495,13 @@ function App() {
       </div>
       
       {/* Recap Button */}
-      <div className="recap-button">
+      <div className="recap-button mt-8">
         <Button 
           onClick={handleRecap} 
           disabled={isExecuting || !isAuthorized}
           color="accent"
           // size="lg"
+          className="w-full"
         >
           {isExecuting ? 'Processing...' : 'Recap'}
         </Button>
@@ -507,12 +513,12 @@ function App() {
         onClose={() => setIsPopupOpen(false)}
       >
         <Card className="popup-content p-4">
-          <h3>Notification</h3>
+          <h3 className="text-lg font-bold mb-2">Notification</h3>
           <p>{popupMessage}</p>
           <Button 
             onClick={() => setIsPopupOpen(false)}
             color="accent"
-            // size="sm"
+            // size="md"
             className="mt-4"
           >
             Close
