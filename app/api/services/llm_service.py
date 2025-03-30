@@ -9,6 +9,8 @@ from aicore.config import Config
 from aicore.llm import Llm
 from aicore.llm.config import LlmConfig
 
+from services.prompts import SYSTEM
+
 # LLM session storage
 llm_sessions: Dict[str, Llm] = {}
 
@@ -74,7 +76,7 @@ def trim_messages(messages, tokenizer_fn, max_tokens :Optional[int]=None):
     return messages
     
 async def run_concurrent_tasks(llm, message):
-    asyncio.create_task(llm.acomplete(message))
+    asyncio.create_task(llm.acomplete(message, system_prompt=SYSTEM))
     asyncio.create_task(_logger.distribute())
     # Stream logger output while LLM is running
     while True:        
