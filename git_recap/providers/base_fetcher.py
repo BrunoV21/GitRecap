@@ -51,7 +51,10 @@ class BaseFetcher(ABC):
         """
         commit_entries = self.fetch_commits()
         pr_entries = self.fetch_pull_requests()
-        issue_entries = self.fetch_issues()
+        try:
+            issue_entries = self.fetch_issues()
+        except Exception as e:
+            issue_entries = []
 
         all_entries = pr_entries + commit_entries + issue_entries
 
