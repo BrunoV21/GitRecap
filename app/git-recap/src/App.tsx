@@ -34,6 +34,11 @@ function App() {
   // When authorized, we switch the PAT input to be masked
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
 
+  // New state variables at the top of your App component:
+  const [authProgress, setAuthProgress] = useState(0);
+  const [isAuthorizing, setIsAuthorizing] = useState(false);
+  const [authError, setAuthError] = useState(false);
+
   // Authorization state for GitHub
   const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
   const [sessionId, setSessionId] = useState(''); // New state to hold the session ID
@@ -172,10 +177,19 @@ function App() {
   // Handler for the PAT authorize button
   const handlePATAuthorize = async () => {
     const backendUrl = import.meta.env.VITE_AICORE_API;
+    setAuthError(false);
+    setAuthProgress(0);
+    setIsAuthorizing(true);
+  
+    // Simulate progress bar increasing while waiting for the API call
+    const progressInterval = setInterval(() => {
+      setAuthProgress((prev) => (prev < 90 ? prev + 10 : prev));
+    }, 300);
+  
     try {
       const payload = {
         pat, // the PAT token to be stored in backend
-        session_id: sessionId, // the session identifier
+        session_id: sessionId, // the session identifier (if already exists, or empty if not)
       };
   
       const response = await fetch(`${backendUrl}/pat`, {
@@ -192,15 +206,21 @@ function App() {
   
       const data = await response.json();
       console.log("PAT stored for session:", data.session_id);
+      // Update sessionId state so that repos fetch is triggered
+      setSessionId(data.session_id);
   
       // Mask the PAT field by setting the flag to true
       setIsPATAuthorized(true);
-      // Optionally, clear or mask the PAT input field:
-      // setPat('**********');
     } catch (error) {
       console.error('Error authorizing PAT:', error);
+      setAuthError(true);
+      window.alert("PAT authorization failed. Please check your PAT and try again.");
+    } finally {
+      clearInterval(progressInterval);
+      setAuthProgress(100);
+      setIsAuthorizing(false);
     }
-  };  
+  };
 
   return (
     <div className="App">
@@ -228,6 +248,7 @@ function App() {
                           value={pat}
                           onChange={(e) => setPat(e.target.value)}
                           placeholder="Enter your PAT"
+                          style={{ color: authError ? 'red' : '#fff' }}
                         />
                       </div>
                       <div>
@@ -239,6 +260,10 @@ function App() {
                         </select>
                       </div>
                     </div>
+                    {/* Show progress bar when authorizing */}
+                    {isAuthorizing && (
+                      <progress value={authProgress} max="100" style={{ width: '100%' }}></progress>
+                    )}
                     <button className="authorize-btn" onClick={handlePATAuthorize}>
                       Authorize
                     </button>
