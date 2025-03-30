@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
+import ReactMarkdown from 'react-markdown';
 
 function App() {
   // ... existing states ...
@@ -378,7 +379,9 @@ function App() {
         <div className="output-box">
           <h2>Summary</h2>
           <progress value={progressWs} max="100"></progress>
-          <textarea readOnly value={dummyOutput} rows={10} />
+          <div className="markdown-output">
+            <ReactMarkdown>{dummyOutput}</ReactMarkdown>
+          </div>
         </div>
       </div>
       {/* Recap Button */}

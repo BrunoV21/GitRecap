@@ -341,3 +341,12 @@ select[multiple] {
 .authorize-btn:hover {
   background-color: #e06e42; /* Slightly darker on hover */
 }
+
+.markdown-output {
+  background-color: #f4f4f4;
+  padding: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  height: 10rem;
+  overflow-y: auto;
+}
