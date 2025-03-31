@@ -437,3 +437,22 @@ button, .Button {
   pointer-events: none;
   filter: invert(1); /* If the icon is dark, make it white */
 }
+
+/* Adjust these colors to match your design */
+.active-btn {
+  background-color: #e06e42 !important; /* Example: Orange accent */
+  border-color: #e06e42 !important;
+  color: #fff !important;
+  box-shadow: inset 2px 2px 0 #000; /* Optional pressed look */
+}
+
+.btn-same-height {
+  /* Match the input’s height or padding here */
+  height: 60px; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center;
+  /* Optional: keep the retro styling consistent */
+  font-family: 'Press Start 2P', cursive;
+  font-size: 12px;
+}

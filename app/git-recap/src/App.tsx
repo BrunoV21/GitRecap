@@ -336,24 +336,27 @@ function App() {
                         />
                       </div>
                       <div>
-                        <label className="block mb-2 font-medium">Code Host:</label>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="host-dropdown w-full">
-                            {codeHost === 'github' ? 'GitHub' : 
-                             codeHost === 'azure' ? 'Azure DevOps' : 'GitLab'}
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem> 
-                              GitHub
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              Azure DevOps
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              GitLab
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <label className="block mb-2 font-medium">Providers:</label>
+                        <div className="flex space-x-2">
+                          <Button 
+                            onClick={() => setCodeHost('github')}
+                            className={`w-full ${codeHost === 'github' ? 'active-btn' : ''} btn-same-height`}
+                          >
+                            GitHub
+                          </Button>
+                          <Button 
+                            onClick={() => setCodeHost('azure')}
+                            className={`w-full ${codeHost === 'azure' ? 'active-btn' : ''} btn-same-height`}
+                          >
+                            Azure DevOps
+                          </Button>
+                          <Button 
+                            onClick={() => setCodeHost('gitlab')}
+                            className={`w-full ${codeHost === 'gitlab' ? 'active-btn' : ''} btn-same-height`}
+                          >
+                            GitLab
+                          </Button>
+                        </div>
                       </div>
                     </div>
                     {isAuthorizing && (
