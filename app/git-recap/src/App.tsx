@@ -488,9 +488,11 @@ function App() {
             borderColor="black"
             className="w-full mb-4"
           />
-          <div className="markdown-output">
-            <ReactMarkdown>{dummyOutput}</ReactMarkdown>
-          </div>
+          <TextArea 
+            readOnly 
+            value={dummyOutput} 
+            rows={10}
+          />
         </Card>
       </div>
       
