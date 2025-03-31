@@ -395,6 +395,7 @@ function App() {
               type="date" 
               value={startDate} 
               onChange={(e) => setStartDate(e.target.value)} 
+              className="retro-input"
             />
           </div>
           <div>
@@ -403,10 +404,11 @@ function App() {
               type="date" 
               value={endDate} 
               onChange={(e) => setEndDate(e.target.value)}
+              className="retro-input"
             />
           </div>
         </div>
-        
+
         {/* Accordion for Additional Filters */}
         <Accordion className="mt-6">
           <AccordionItem value="filters-accordion">
