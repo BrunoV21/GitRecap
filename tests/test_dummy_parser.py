@@ -44,7 +44,7 @@ class DummyFetcher(BaseFetcher):
         return entries
     
     @property
-    def repos_name(self):
+    def repos_names(self):
         ...
 
 def test_get_authored_messages():
