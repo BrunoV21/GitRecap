@@ -456,3 +456,9 @@ button, .Button {
   font-family: 'Press Start 2P', cursive;
   font-size: 12px;
 }
+
+.grid-button {
+  width: 22%;
+  justify-content: center;
+  text-align: center;
+}

@@ -472,7 +472,7 @@ function App() {
                       <Button
                         key={repo}
                         onClick={() => handleRepoToggle(repo)}
-                        className={`btn-same-height ${selectedRepos.includes(repo) ? 'active-btn' : ''}`}
+                        className={`btn-same-height grid-button ${selectedRepos.includes(repo) ? 'active-btn' : ''}`}
                       >
                         {repo}
                       </Button>
