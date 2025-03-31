@@ -67,6 +67,43 @@ function App() {
   const actionsLogRef = useRef<HTMLDivElement>(null);
   const summaryLogRef = useRef<HTMLDivElement>(null);
 
+  const handleRepoToggle = (repo: string) => {
+    if (selectedRepos.includes(repo)) {
+      setSelectedRepos(selectedRepos.filter((r) => r !== repo));
+    } else {
+      setSelectedRepos([...selectedRepos, repo]);
+    }
+  };
+
+  const [isReposLoading, setIsReposLoading] = useState(true);
+  const [repoProgress, setRepoProgress] = useState(0);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    setIsReposLoading(true);
+    setRepoProgress(0);
+    const progressInterval = setInterval(() => {
+      setRepoProgress((prev) => (prev < 95 ? prev + 5 : prev));
+    }, 100);
+
+    const backendUrl = import.meta.env.VITE_AICORE_API;
+    fetch(`${backendUrl}/repos?session_id=${sessionId}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setAvailableRepos(data.repos);
+        clearInterval(progressInterval);
+        setRepoProgress(100);
+        setIsReposLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching repos", error);
+        clearInterval(progressInterval);
+        setRepoProgress(100);
+        setIsReposLoading(false);
+      });
+  }, [sessionId]);
+
+
   // Handlers for toggling filters and selecting repos/authors
   const toggleFilters = () => setShowFilters(!showFilters);
   const handleRepoSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -421,18 +458,27 @@ function App() {
             <AccordionContent>
               <div className="mb-4">
                 <label className="block mb-2 font-medium">Select Repositories:</label>
-                <select 
-                  multiple 
-                  value={selectedRepos} 
-                  onChange={handleRepoSelectChange}
-                  className="repo-select w-full p-2 border border-gray-300 rounded"
-                >
-                  {availableRepos.map((repo) => (
-                    <option key={repo} value={repo}>
-                      {repo}
-                    </option>
-                  ))}
-                </select>
+                {isReposLoading ? (
+                  <ProgressBar
+                    progress={repoProgress} // Gradual progress update
+                    size="md"
+                    color="orange"
+                    borderColor="black"
+                    className="w-full"
+                  />
+                ) : (
+                  <div className="grid grid-cols-4 gap-2">
+                    {availableRepos.map((repo) => (
+                      <Button
+                        key={repo}
+                        onClick={() => handleRepoToggle(repo)}
+                        className={`btn-same-height ${selectedRepos.includes(repo) ? 'active-btn' : ''}`}
+                      >
+                        {repo}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="authors-section mt-4">
                 <div>
