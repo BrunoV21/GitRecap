@@ -489,12 +489,13 @@ function App() {
                       value={authorInput}
                       onChange={(e) => setAuthorInput(e.target.value)}
                       placeholder="Enter author name"
-                      className="flex-grow mr-2"
+                      className="author-input-field mr-2"
                     />
                     <Button 
                       type="button" 
                       onClick={addAuthor}
                       color="accent"
+                      className="author-add-button"
                     >
                       Add
                     </Button>

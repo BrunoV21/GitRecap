@@ -461,4 +461,18 @@ button, .Button {
   width: 22%;
   justify-content: center;
   text-align: center;
+  margin: 0.8rem;
+}
+
+.author-input-group {
+  display: flex;
+  gap: 0.5rem; /* Optional: adjust spacing as needed */
+}
+
+.author-input-field {
+  flex: 0 0 75%;  /* Takes up 75% of the width */
+}
+
+.author-add-button {
+  flex: 0 0 21%;  /* Takes up the remaining 25% */
 }
