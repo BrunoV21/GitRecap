@@ -52,9 +52,9 @@ button,
 
 /* Headings styling with a dark brown tone */
 h1 {
-  font-size: 2.5rem;
+  font-size: 5rem;
   font-weight: bold;
-  margin-bottom: 1rem;
+  font-family: 'Minecraft-Maus';
   color: #5c4033; /* dark brown */
   text-align: center;
 }
@@ -375,4 +375,19 @@ button, .Button {
 .pat-group div, .date-group div {
   flex: 1;
   width: -webkit-fill-available;
+}
+
+.recap-button.mt-8 {
+  display: inline-block;
+  font-family: Minecraft, sans-serif;
+  margin: .0rem auto;
+  padding: 0rem; /* Increased padding for height */
+  width: 300px; /* Slightly wider */
+  text-align: center;
+}
+
+/* Preserve styles when disabled */
+.recap-button.mt-8:disabled {
+  opacity: 0.7; /* Optional: make it look slightly faded */
+  cursor: not-allowed;
 }

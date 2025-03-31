@@ -73,3 +73,10 @@ button:focus-visible {
   font-weight: normal;
   font-style: normal;
 }
+
+@font-face {
+  font-family: 'Minecraft-Maus';
+  src: url('/assets/fonts/Maus-1jz64.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}

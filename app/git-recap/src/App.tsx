@@ -291,8 +291,7 @@ function App() {
     <div className="App">
       <Card className="app-title p-4 mb-6">
         <h1>Git Recap</h1>
-      </Card>
-      
+      </Card>      
       <Card className="form-container p-6">
         <div className="github-signin-container mb-6">
           {!isAuthorized ? (
@@ -460,8 +459,19 @@ function App() {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </Card>
-      
+      </Card>            
+      {/* Recap Button */}
+      <div className="recap-button mt-8">
+        <Button 
+          onClick={handleRecap} 
+          disabled={isExecuting || !isAuthorized}
+          color="accent"
+          // size="lg"
+          className="w-full"
+        >
+          {isExecuting ? 'Processing...' : 'Recap'}
+        </Button>
+      </div>      
       {/* Output Section */}
       <div className="output-section mt-8">
         <Card className="output-box p-6">
@@ -479,6 +489,8 @@ function App() {
             rows={10}
           />
         </Card>
+      </div>
+      <div className="output-section mt-8">
         <Card className="output-box p-6">
           <h2 className="text-xl font-bold mb-4">Summary</h2>
           <ProgressBar
@@ -494,19 +506,6 @@ function App() {
             rows={10}
           />
         </Card>
-      </div>
-      
-      {/* Recap Button */}
-      <div className="recap-button mt-8">
-        <Button 
-          onClick={handleRecap} 
-          disabled={isExecuting || !isAuthorized}
-          color="accent"
-          // size="lg"
-          className="w-full"
-        >
-          {isExecuting ? 'Processing...' : 'Recap'}
-        </Button>
       </div>
       
       {/* Error Popup */}
