@@ -42,6 +42,10 @@ class DummyFetcher(BaseFetcher):
             if isinstance(entry["timestamp"], datetime):
                 entry["timestamp"] = entry["timestamp"].isoformat()
         return entries
+    
+    @property
+    def repos_name(self):
+        ...
 
 def test_get_authored_messages():
     # Create a dummy fetcher with a date range covering March 2025.
