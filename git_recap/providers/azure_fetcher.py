@@ -51,7 +51,7 @@ class AzureFetcher(BaseFetcher):
             for author in self.authors:
                 try:
                     commits = self.git_client.get_commits(
-                        project=project.id,
+                        project=repo.id,
                         repository_id=repo.id,
                         search_criteria={"author": author}
                     )
