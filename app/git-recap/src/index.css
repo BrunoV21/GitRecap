@@ -80,3 +80,9 @@ button:focus-visible {
   font-weight: normal;
   font-style: normal;
 }
+
+.TextArea-module__pixelTextarea___PfPoJ, .TextArea-module__pixelTextarea___PfPoJ:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  height: 450px;
+}

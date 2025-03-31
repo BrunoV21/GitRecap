@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
 import ReactMarkdown from 'react-markdown';
@@ -63,6 +63,10 @@ function App() {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
 
+  // Refs for scrolling
+  const actionsLogRef = useRef<HTMLDivElement>(null);
+  const summaryLogRef = useRef<HTMLDivElement>(null);
+
   // Handlers for toggling filters and selecting repos/authors
   const toggleFilters = () => setShowFilters(!showFilters);
   const handleRepoSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -88,7 +92,12 @@ function App() {
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
-    setIsExecuting(true);
+    setIsExecuting(true);    
+
+    // Slight delay to ensure layout is updated before scrolling
+    setTimeout(() => {
+      actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
 
     // Start progress for actions endpoint (cap at ~95%)
     const progressActionsInterval = setInterval(() => {
@@ -121,6 +130,8 @@ function App() {
       clearInterval(progressActionsInterval);
       setProgressActions(100);
 
+      // Even on error, scroll to Summary Log card
+      summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
       // --- Now open the websocket ---
       // Construct the websocket URL (assuming backend URL starts with http/https)
       const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
@@ -313,7 +324,6 @@ function App() {
                     or authorize with a PAT
                   </AccordionTrigger>
                   <AccordionContent>
-                     {/* className="pt-4"> */}
                     <div className="form-group pat-group">
                       <div className="mr-4">
                         <label className="block mb-2 font-medium">Personal Access Token (PAT):</label>
@@ -334,15 +344,12 @@ function App() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
                             <DropdownMenuItem> 
-                              {/* onClick={() => setCodeHost('github')}> */}
                               GitHub
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                               {/* onClick={() => setCodeHost('azure')}> */}
                               Azure DevOps
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                              {/* onClick={() => setCodeHost('gitlab')}> */}
                               GitLab
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -362,7 +369,6 @@ function App() {
                       className="authorize-btn mt-4"
                       onClick={handlePATAuthorize}
                       color="accent"
-                      // size="md"
                     >
                       Authorize
                     </Button>
@@ -375,7 +381,6 @@ function App() {
               className="authorized-btn" 
               disabled
               color="dark"
-              // size="lg"
             >
               ✔ Authorized
             </Button>
@@ -397,7 +402,7 @@ function App() {
             <input 
               type="date" 
               value={endDate} 
-              onChange={(e) => setEndDate(e.target.value)} 
+              onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
         </div>
@@ -439,7 +444,6 @@ function App() {
                       type="button" 
                       onClick={addAuthor}
                       color="accent"
-                      // size="md"
                     >
                       Add
                     </Button>
@@ -466,14 +470,13 @@ function App() {
           onClick={handleRecap} 
           disabled={isExecuting || !isAuthorized}
           color="accent"
-          // size="lg"
           className="w-full"
         >
           {isExecuting ? 'Processing...' : 'Recap'}
         </Button>
       </div>      
       {/* Output Section */}
-      <div className="output-section mt-8">
+      <div className="output-section mt-8" ref={actionsLogRef}>
         <Card className="output-box p-6">
           <h2 className="text-xl font-bold mb-4">Actions Log</h2>
           <ProgressBar
@@ -490,7 +493,7 @@ function App() {
           />
         </Card>
       </div>
-      <div className="output-section mt-8">
+      <div className="output-section mt-8" ref={summaryLogRef}>
         <Card className="output-box p-6">
           <h2 className="text-xl font-bold mb-4">Summary</h2>
           <ProgressBar
@@ -519,7 +522,6 @@ function App() {
           <Button 
             onClick={() => setIsPopupOpen(false)}
             color="accent"
-            // size="md"
             className="mt-4"
           >
             Close
