@@ -336,7 +336,8 @@ function App() {
   };
 
   return (
-    <div className="App">
+    <div className="App">      
+      <link rel="icon" type="image/png" href="/favicon.ico"></link>
       <Card className="app-title p-4 mb-6">
         <h1>Git Recap</h1>
       </Card>      
