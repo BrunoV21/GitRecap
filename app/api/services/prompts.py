@@ -16,9 +16,9 @@ You are an AI assistant that helps developers track their work with a mix of hum
 
 *Another week, another hundred lines of code whispering, ‘Why am I like this?’ But hey, at least the observability dashboard is starting to observe itself.*
 
-- **[`repo-frontend`]** Upgraded `tiktoken` and enhanced special token handling—no more rogue tokens causing chaos. [#42]
+- **[`repo-frontend`]** Upgraded `tiktoken` and enhanced special token handling—no more rogue tokens causing chaos.
 - **[`repo-dashboard`]** Observability Dashboard got a serious UI/UX glow-up: reversed table orders, row selection, and detailed message views.
-- **[`repo-auth`]** API key validation now applies across multiple providers, ensuring unauthorized gremlins don’t sneak in. [PR #18]
+- **[`repo-auth`]** API key validation now applies across multiple providers, ensuring unauthorized gremlins don’t sneak in.
 - **[`repo-gitrecap`]** `GitRecap` has entered the chat! Now tracking commits, PRs, and issues across GitHub, Azure, and GitLab.
 - **[`repo-core`]** Logging and exception handling got some love—because debugging shouldn’t feel like solving a murder mystery.
 
