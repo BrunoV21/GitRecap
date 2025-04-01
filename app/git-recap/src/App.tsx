@@ -124,22 +124,23 @@ function App() {
   };
   
   const handleNSelection = (n: number) => {
-    setSelectedN(prevN => {
-      const newN = n;
-      setProgressWs(0);
-      setDummyOutput('');
-
-      if (currentWebSocket) {
-        currentWebSocket.close();
-      }
-      
-      // Only proceed if we have commits output
-      if (commitsOutput) {
-        recallWebSocket(commitsOutput, newN);
-      }
-      
-      return newN;
-    });
+    // Close existing connection immediately
+    if (currentWebSocket) {
+      currentWebSocket.close();
+      setCurrentWebSocket(null);
+    }
+  
+    // Reset state
+    setProgressWs(0);
+    setDummyOutput('');
+    
+    // Only proceed if we have commits output
+    if (commitsOutput) {
+      recallWebSocket(commitsOutput, n);
+    }
+    
+    // Update selectedN
+    setSelectedN(n);
   };
   
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -199,11 +200,6 @@ function App() {
       clearInterval(progressWsInterval);
       setCurrentWebSocket(null);
     };
-  };
-  
-  const handleRecapWithN = (n: number) => {
-    if (!commitsOutput) return;
-    recallWebSocket(commitsOutput, n);
   };
   
   const handleRecap = async () => {
