@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 import json
 from typing import Optional
 
@@ -12,8 +12,18 @@ router = APIRouter()
 active_connections = {}
 active_histories = {}
 
+TRIGGER_PROMPT = """
+Consider the following history of actionables from Git and in return me the summary with N = '{N}' bullet points:
+
+{ACTIONS}
+"""
+
 @router.websocket("/ws/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id : Optional[str]=None):
+async def websocket_endpoint(
+    websocket: WebSocket, 
+    session_id: Optional[str] = None,
+    N: Optional[int] = Query(None, ge=1, le=15)  # Ensures N is between 0 and 15 inclusive
+):
     await websocket.accept()
     
     # Store the connection
@@ -21,10 +31,17 @@ async def websocket_endpoint(websocket: WebSocket, session_id : Optional[str]=No
 
     try:
         # Initialize LLM
-        llm = get_llm(session_id)
+        llm = get_llm(session_id)        
+        # Use N in your logic, default to some value if not provided
+        N = N if N is not None else 5  # Default to 1 if N is not provided
         while True:
             message = await websocket.receive_text()
-            history = [message]
+            history = [
+                TRIGGER_PROMPT.format(
+                    N=N,
+                    ACTIONS=message
+                )
+            ]
             response = []
             async for chunk in run_concurrent_tasks(
                 llm,
