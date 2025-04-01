@@ -27,7 +27,7 @@ function App() {
   const [endDate, setEndDate] = useState(today);
 
   // Accordion and filter states
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters] = useState(false);
   const [availableRepos, setAvailableRepos] = useState<string[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
   const [authorInput, setAuthorInput] = useState('');
@@ -41,8 +41,7 @@ function App() {
   const [progressWs, setProgressWs] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
 
-  // PAT accordion and authorization states
-  const [showPATAccordion, setShowPATAccordion] = useState(false);
+  // PAT accordion and authorization states«
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
@@ -99,19 +98,6 @@ function App() {
       });
   }, [sessionId]);
 
-
-  // Handlers for toggling filters and selecting repos/authors
-  const toggleFilters = () => setShowFilters(!showFilters);
-  const handleRepoSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const options = event.target.options;
-    const selected: string[] = [];
-    for (let i = 0; i < options.length; i++) {
-      if (options[i].selected) {
-        selected.push(options[i].value);
-      }
-    }
-    setSelectedRepos(selected);
-  };
   const addAuthor = () => {
     if (authorInput && !authors.includes(authorInput)) {
       setAuthors([...authors, authorInput]);
@@ -119,43 +105,67 @@ function App() {
     }
   };
 
+  const [currentWebSocket, setCurrentWebSocket] = useState<WebSocket | null>(null);
+
   const handleFullRecap = () => {
+    // Close any existing WebSocket connection
+    if (currentWebSocket) {
+      currentWebSocket.close();
+    }
+    
     // Clear current outputs and reset progress
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
-    setProgressWs(0);    
-    // Force a fresh start by setting commitsOutput to empty
-    // This will make handleRecap go through the full initial flow
+    setProgressWs(0);
+    
+    // Force a fresh start
     handleRecap();
   };
-
+  
   const handleNSelection = (n: number) => {
     setSelectedN(prevN => {
-      // This callback receives the previous value and returns the new one
       const newN = n;
-      
-      // Reset the summary progress bar and clear content
       setProgressWs(0);
       setDummyOutput('');
+
+      if (currentWebSocket) {
+        currentWebSocket.close();
+      }
       
-      // Call handleRecap with the new value
-      handleRecapWithN(newN);
+      // Only proceed if we have commits output
+      if (commitsOutput) {
+        recallWebSocket(commitsOutput, newN);
+      }
       
       return newN;
     });
   };
   
-  const handleRecapWithN = (n: number) => {
-    if (!commitsOutput) return;
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
   
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (textAreaRef.current) {
+        textAreaRef.current.scrollTop = textAreaRef.current.scrollHeight;
+      }
+    }, 0);
+  };
+  
+  const recallWebSocket = (actions: string, n?: number) => {
     const backendUrl = import.meta.env.VITE_AICORE_API;
     const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
     const ws = new WebSocket(wsUrl);
+    
+    // Store the current WebSocket reference
+    setCurrentWebSocket(ws);
   
     ws.onopen = () => {
-      console.log("WebSocket reconnected with N param:", n);
-      ws.send(JSON.stringify({ actions: commitsOutput, n }));
+      console.log("WebSocket connected with N:", n || selectedN);
+      ws.send(JSON.stringify({ 
+        actions, 
+        n: n !== undefined ? n : selectedN 
+      }));
     };
   
     const progressWsInterval = setInterval(() => {
@@ -168,8 +178,13 @@ function App() {
         clearInterval(progressWsInterval);
         setProgressWs(100);
         ws.close();
+        setCurrentWebSocket(null);
       } else {
-        setDummyOutput((prev) => prev + message);
+        setDummyOutput((prev) => {
+          const newOutput = prev + message;
+          scrollToBottom();
+          return newOutput;
+        });
       }
     };
   
@@ -177,17 +192,30 @@ function App() {
       console.error("WebSocket error:", event);
       clearInterval(progressWsInterval);
       setProgressWs(100);
+      setCurrentWebSocket(null);
+    };
+  
+    ws.onclose = () => {
+      clearInterval(progressWsInterval);
+      setCurrentWebSocket(null);
     };
   };
-
-
-  // Handler for Recap button
+  
+  const handleRecapWithN = (n: number) => {
+    if (!commitsOutput) return;
+    recallWebSocket(commitsOutput, n);
+  };
+  
   const handleRecap = async () => {
     await fetchInitialActions();
   };
   
-  // Extracted initial fetch logic
   const fetchInitialActions = async () => {
+    // Close any existing WebSocket connection
+    if (currentWebSocket) {
+      currentWebSocket.close();
+    }
+  
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
@@ -235,39 +263,6 @@ function App() {
     } finally {
       setIsExecuting(false);
     }
-  };
-  
-  // Extracted WebSocket logic
-  const recallWebSocket = (actions = commitsOutput) => {
-    const backendUrl = import.meta.env.VITE_AICORE_API;
-    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
-    const ws = new WebSocket(wsUrl);
-  
-    ws.onopen = () => {
-      console.log("WebSocket connected with N:", selectedN);
-      ws.send(JSON.stringify({ actions, n: selectedN }));
-    };
-  
-    const progressWsInterval = setInterval(() => {
-      setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
-    }, 500);
-  
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data.toString()).chunk;
-      if (message === "</end>") {
-        clearInterval(progressWsInterval);
-        setProgressWs(100);
-        ws.close();
-      } else {
-        setDummyOutput((prev) => prev + message);
-      }
-    };
-  
-    ws.onerror = (event) => {
-      console.error("WebSocket error:", event);
-      clearInterval(progressWsInterval);
-      setProgressWs(100);
-    };
   };
 
   useEffect(() => {
@@ -340,11 +335,6 @@ function App() {
     const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI;
     const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=read:user`;
     window.location.href = githubAuthUrl;
-  };
-
-  // Toggle PAT accordion visibility
-  const togglePATAccordion = () => {
-    setShowPATAccordion((prev) => !prev);
   };
 
   // Handler for the PAT authorize button remains the same...
@@ -648,6 +638,14 @@ function App() {
             readOnly 
             value={dummyOutput} 
             rows={10}
+            ref={textAreaRef}
+            style={{
+              height: '400px',
+              overflowY: 'auto',
+              whiteSpace: 'pre-wrap',
+              resize: 'none',
+              fontFamily: 'monospace' // Optional: for better code display
+            }}
           />
         </Card>
 </div>
