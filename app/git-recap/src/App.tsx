@@ -119,14 +119,14 @@ function App() {
     }
   };
 
-  const handleFullRecap = async () => {
+  const handleFullRecap = () => {
     // Clear current outputs and reset progress
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
-    setProgressWs(0);
-    
-    // Use a ref or state callback to ensure we use fresh state
+    setProgressWs(0);    
+    // Force a fresh start by setting commitsOutput to empty
+    // This will make handleRecap go through the full initial flow
     handleRecap();
   };
 
@@ -183,56 +183,21 @@ function App() {
 
   // Handler for Recap button
   const handleRecap = async () => {
-    // If commitsOutput already has content, recall the websocket with the N parameter.
-    if (commitsOutput) {
-      const backendUrl = import.meta.env.VITE_AICORE_API;
-      const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
-      const ws = new WebSocket(wsUrl);
+    await fetchInitialActions();
+  };
   
-      ws.onopen = () => {
-        console.log("WebSocket reconnected with N param:", selectedN);
-        // Send the N parameter. Depending on your backend protocol, you may want to send it within a JSON payload.
-        ws.send(JSON.stringify({  actions: commitsOutput, n: selectedN }));
-      };
-  
-      // Start a separate progress for websocket (simulate progress until <end> is received)
-      const progressWsInterval = setInterval(() => {
-        setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
-      }, 500);
-  
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data.toString()).chunk;
-        if (message === "</end>") {
-          clearInterval(progressWsInterval);
-          setProgressWs(100);
-          ws.close();
-        } else {
-          setDummyOutput((prev) => prev + message);
-        }
-      };
-  
-      ws.onerror = (event) => {
-        console.error("WebSocket error:", event);
-        clearInterval(progressWsInterval);
-        setProgressWs(100);
-      };
-  
-      return; // End early since we only needed to recall the websocket
-    }
-  
-    // Otherwise, run the original recap flow.
+  // Extracted initial fetch logic
+  const fetchInitialActions = async () => {
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
     setIsExecuting(true);    
   
-    // Slight delay to ensure layout is updated before scrolling
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   
-    // Start progress for actions endpoint (cap at ~95%)
     const progressActionsInterval = setInterval(() => {
       setProgressActions((prev) => (prev < 95 ? prev + 1 : prev));
     }, 500);
@@ -252,48 +217,16 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
       });
   
-      if (!response.ok) {
-        throw new Error(`Request failed! Status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
   
       const data = await response.json();
       setCommitsOutput(data.actions);
-  
       clearInterval(progressActionsInterval);
       setProgressActions(100);
-  
       summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
   
-      // Now open the websocket connection normally.
-      const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
-      const ws = new WebSocket(wsUrl);
-  
-     
-      ws.onopen = () => {
-        console.log("WebSocket connected.");
-        ws.send(JSON.stringify({ actions: data.actions, n: selectedN }));
-      };
-  
-      const progressWsInterval = setInterval(() => {
-        setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
-      }, 500);
-  
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data.toString()).chunk;
-        if (message === "</end>") {
-          clearInterval(progressWsInterval);
-          setProgressWs(100);
-          ws.close();
-        } else {
-          setDummyOutput((prev) => prev + message);
-        }
-      };
-  
-      ws.onerror = (event) => {
-        console.error("WebSocket error:", event);
-        clearInterval(progressWsInterval);
-        setProgressWs(100);
-      };
+      // Now open websocket with the data
+      recallWebSocket(data.actions);
     } catch (error) {
       console.error('Error during recap:', error);
       setCommitsOutput('Error retrieving actions.');
@@ -302,7 +235,40 @@ function App() {
     } finally {
       setIsExecuting(false);
     }
-  };  
+  };
+  
+  // Extracted WebSocket logic
+  const recallWebSocket = (actions = commitsOutput) => {
+    const backendUrl = import.meta.env.VITE_AICORE_API;
+    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
+    const ws = new WebSocket(wsUrl);
+  
+    ws.onopen = () => {
+      console.log("WebSocket connected with N:", selectedN);
+      ws.send(JSON.stringify({ actions, n: selectedN }));
+    };
+  
+    const progressWsInterval = setInterval(() => {
+      setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
+    }, 500);
+  
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data.toString()).chunk;
+      if (message === "</end>") {
+        clearInterval(progressWsInterval);
+        setProgressWs(100);
+        ws.close();
+      } else {
+        setDummyOutput((prev) => prev + message);
+      }
+    };
+  
+    ws.onerror = (event) => {
+      console.error("WebSocket error:", event);
+      clearInterval(progressWsInterval);
+      setProgressWs(100);
+    };
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
