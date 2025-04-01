@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
-import ReactMarkdown from 'react-markdown';
 
 import { 
   Button, 
@@ -13,11 +12,6 @@ import {
   AccordionItem, 
   AccordionTrigger, 
   AccordionContent,
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   Popup
 } from 'pixel-retroui';
 
@@ -125,22 +119,67 @@ function App() {
     }
   };
 
-  // New handler for the Recap button that clears current actions before calling handleRecap
   const handleFullRecap = async () => {
-    // Clear current actions and reset progress
+    // Clear current outputs and reset progress
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
+    
+    // Use a ref or state callback to ensure we use fresh state
     handleRecap();
   };
 
   const handleNSelection = (n: number) => {
-    setSelectedN(n);
-    setProgressWs(0);      // Reset the summary progress bar
-    setDummyOutput('');    // Clear the summary text box content
-    handleRecap();
-  };  
+    setSelectedN(prevN => {
+      // This callback receives the previous value and returns the new one
+      const newN = n;
+      
+      // Reset the summary progress bar and clear content
+      setProgressWs(0);
+      setDummyOutput('');
+      
+      // Call handleRecap with the new value
+      handleRecapWithN(newN);
+      
+      return newN;
+    });
+  };
+  
+  const handleRecapWithN = (n: number) => {
+    if (!commitsOutput) return;
+  
+    const backendUrl = import.meta.env.VITE_AICORE_API;
+    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
+    const ws = new WebSocket(wsUrl);
+  
+    ws.onopen = () => {
+      console.log("WebSocket reconnected with N param:", n);
+      ws.send(JSON.stringify({ actions: commitsOutput, n }));
+    };
+  
+    const progressWsInterval = setInterval(() => {
+      setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
+    }, 500);
+  
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data.toString()).chunk;
+      if (message === "</end>") {
+        clearInterval(progressWsInterval);
+        setProgressWs(100);
+        ws.close();
+      } else {
+        setDummyOutput((prev) => prev + message);
+      }
+    };
+  
+    ws.onerror = (event) => {
+      console.error("WebSocket error:", event);
+      clearInterval(progressWsInterval);
+      setProgressWs(100);
+    };
+  };
+
 
   // Handler for Recap button
   const handleRecap = async () => {
@@ -229,9 +268,9 @@ function App() {
       const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
       const ws = new WebSocket(wsUrl);
   
+     
       ws.onopen = () => {
         console.log("WebSocket connected.");
-        // Here you could also send the N value as part of your payload, if needed:
         ws.send(JSON.stringify({ actions: data.actions, n: selectedN }));
       };
   
