@@ -488,3 +488,14 @@ button, .Button {
   align-items: center;
   justify-content: center;
 }
+
+.summary-n-btn:disabled {
+  height: 15px;        /* Match the approximate height of the Summary H2 text */
+  width: 60px;         /* Increase width slightly */
+  padding: 0;          /* Remove extra padding to align with the text height */
+  font-size: 1rem;     /* Adjust font-size as needed */
+  margin-right: 0.5rem; /* Spacing between buttons */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

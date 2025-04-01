@@ -125,6 +125,13 @@ function App() {
     }
   };
 
+  const handleNSelection = (n: number) => {
+    setSelectedN(n);
+    setProgressWs(0);      // Reset the summary progress bar
+    setDummyOutput('');    // Clear the summary text box content
+    handleRecap();
+  };  
+
   // Handler for Recap button
   const handleRecap = async () => {
     // If commitsOutput already has content, recall the websocket with the N parameter.
@@ -593,20 +600,23 @@ function App() {
             {/* Buttons positioned absolutely to the right edge */}
             <div className="n-selector absolute right-0 top-0 flex space-x-2">
               <Button 
-                onClick={() => setSelectedN(5)}
+                onClick={() => handleNSelection(5)}
                 className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
+                disabled={isExecuting || !isAuthorized}
               >
                 5
               </Button>
               <Button 
-                onClick={() => setSelectedN(10)}
+                onClick={() => handleNSelection(10)}
                 className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
+                disabled={isExecuting || !isAuthorized}
               >
                 10
               </Button>
               <Button 
-                onClick={() => setSelectedN(15)}
+                onClick={() => handleNSelection(15)}
                 className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
+                disabled={isExecuting || !isAuthorized}
               >
                 15
               </Button>
@@ -625,7 +635,7 @@ function App() {
             rows={10}
           />
         </Card>
-      </div>
+</div>
       {/* Error Popup */}
       <Popup
         isOpen={isPopupOpen}
