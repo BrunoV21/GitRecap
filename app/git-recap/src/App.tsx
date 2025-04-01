@@ -125,6 +125,16 @@ function App() {
     }
   };
 
+  // New handler for the Recap button that clears current actions before calling handleRecap
+  const handleFullRecap = async () => {
+    // Clear current actions and reset progress
+    setCommitsOutput('');
+    setDummyOutput('');
+    setProgressActions(0);
+    setProgressWs(0);
+    handleRecap();
+  };
+
   const handleNSelection = (n: number) => {
     setSelectedN(n);
     setProgressWs(0);      // Reset the summary progress bar
@@ -137,13 +147,13 @@ function App() {
     // If commitsOutput already has content, recall the websocket with the N parameter.
     if (commitsOutput) {
       const backendUrl = import.meta.env.VITE_AICORE_API;
-      const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}?n=${selectedN}`;
+      const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
       const ws = new WebSocket(wsUrl);
   
       ws.onopen = () => {
         console.log("WebSocket reconnected with N param:", selectedN);
         // Send the N parameter. Depending on your backend protocol, you may want to send it within a JSON payload.
-        ws.send(JSON.stringify({ n: selectedN }));
+        ws.send(JSON.stringify({  actions: commitsOutput, n: selectedN }));
       };
   
       // Start a separate progress for websocket (simulate progress until <end> is received)
@@ -564,14 +574,14 @@ function App() {
       {/* Recap Button */}
       <div className="recap-button mt-8">
         <Button 
-          onClick={handleRecap} 
+          onClick={handleFullRecap} 
           disabled={isExecuting || !isAuthorized}
           color="accent"
           className="w-full"
         >
           {isExecuting ? 'Processing...' : 'Recap'}
         </Button>
-      </div>      
+      </div>
       {/* Output Section */}
       <div className="output-section mt-8" ref={actionsLogRef}>
         <Card className="output-box p-6">
@@ -602,21 +612,21 @@ function App() {
               <Button 
                 onClick={() => handleNSelection(5)}
                 className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
-                disabled={isExecuting || !isAuthorized}
+                disabled={isExecuting || !isAuthorized || selectedN === 5}
               >
                 5
               </Button>
               <Button 
                 onClick={() => handleNSelection(10)}
                 className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
-                disabled={isExecuting || !isAuthorized}
+                disabled={isExecuting || !isAuthorized || selectedN === 10}
               >
                 10
               </Button>
               <Button 
                 onClick={() => handleNSelection(15)}
                 className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
-                disabled={isExecuting || !isAuthorized}
+                disabled={isExecuting || !isAuthorized || selectedN === 15}
               >
                 15
               </Button>
