@@ -636,7 +636,7 @@ function App() {
             rows={10}
             ref={textAreaRef}
             style={{
-              height: '400px',
+              height: '500px',
               overflowY: 'auto',
               whiteSpace: 'pre-wrap',
               resize: 'none',
