@@ -244,6 +244,16 @@ function App() {
       if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
   
       const data = await response.json();
+      
+      // Check if actions are empty/falsy
+      if (!data.actions) {
+        setPopupMessage('Got no actionables from Git. Please check your filters or date range.');
+        setIsPopupOpen(true);
+        clearInterval(progressActionsInterval);
+        setProgressActions(100);
+        return; // Exit early since there's nothing to process
+      }
+      
       setCommitsOutput(data.actions);
       clearInterval(progressActionsInterval);
       setProgressActions(100);
@@ -644,7 +654,7 @@ function App() {
             }}
           />
         </Card>
-</div>
+      </div>
       {/* Error Popup */}
       <Popup
         isOpen={isPopupOpen}
