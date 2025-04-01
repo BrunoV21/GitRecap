@@ -21,8 +21,7 @@ Consider the following history of actionables from Git and in return me the summ
 @router.websocket("/ws/{session_id}")
 async def websocket_endpoint(
     websocket: WebSocket, 
-    session_id: Optional[str] = None,
-    N: Optional[int] = Query(None, ge=1, le=15)  # Ensures N is between 0 and 15 inclusive
+    session_id: Optional[str] = None
 ):
     await websocket.accept()
     
@@ -31,11 +30,14 @@ async def websocket_endpoint(
 
     try:
         # Initialize LLM
-        llm = get_llm(session_id)        
-        # Use N in your logic, default to some value if not provided
-        N = N if N is not None else 5  # Default to 1 if N is not provided
+        llm = get_llm(session_id)
         while True:
             message = await websocket.receive_text()
+            msg_json = json.loads(message)
+            message = msg_json.get("actions")
+            N = msg_json.get("n", 5)
+            assert int(N) <= 15
+            assert message
             history = [
                 TRIGGER_PROMPT.format(
                     N=N,
