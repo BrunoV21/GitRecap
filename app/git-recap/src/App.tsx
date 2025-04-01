@@ -67,6 +67,8 @@ function App() {
   const actionsLogRef = useRef<HTMLDivElement>(null);
   const summaryLogRef = useRef<HTMLDivElement>(null);
 
+  const [selectedN, setSelectedN] = useState(5);
+
   const handleRepoToggle = (repo: string) => {
     if (selectedRepos.includes(repo)) {
       setSelectedRepos(selectedRepos.filter((r) => r !== repo));
@@ -125,22 +127,60 @@ function App() {
 
   // Handler for Recap button
   const handleRecap = async () => {
+    // If commitsOutput already has content, recall the websocket with the N parameter.
+    if (commitsOutput) {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}?n=${selectedN}`;
+      const ws = new WebSocket(wsUrl);
+  
+      ws.onopen = () => {
+        console.log("WebSocket reconnected with N param:", selectedN);
+        // Send the N parameter. Depending on your backend protocol, you may want to send it within a JSON payload.
+        ws.send(JSON.stringify({ n: selectedN }));
+      };
+  
+      // Start a separate progress for websocket (simulate progress until <end> is received)
+      const progressWsInterval = setInterval(() => {
+        setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
+      }, 500);
+  
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data.toString()).chunk;
+        if (message === "</end>") {
+          clearInterval(progressWsInterval);
+          setProgressWs(100);
+          ws.close();
+        } else {
+          setDummyOutput((prev) => prev + message);
+        }
+      };
+  
+      ws.onerror = (event) => {
+        console.error("WebSocket error:", event);
+        clearInterval(progressWsInterval);
+        setProgressWs(100);
+      };
+  
+      return; // End early since we only needed to recall the websocket
+    }
+  
+    // Otherwise, run the original recap flow.
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
     setIsExecuting(true);    
-
+  
     // Slight delay to ensure layout is updated before scrolling
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-
+  
     // Start progress for actions endpoint (cap at ~95%)
     const progressActionsInterval = setInterval(() => {
       setProgressActions((prev) => (prev < 95 ? prev + 1 : prev));
     }, 500);
-
+  
     try {
       const backendUrl = import.meta.env.VITE_AICORE_API;
       const queryParams = new URLSearchParams({
@@ -150,54 +190,49 @@ function App() {
         ...(selectedRepos.length ? { repo_filter: selectedRepos.join(",") } : {}),
         ...(authors.length ? { authors: authors.join(",") } : {}),
       }).toString();
-
+  
       const response = await fetch(`${backendUrl}/actions?${queryParams}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
-
+  
       if (!response.ok) {
         throw new Error(`Request failed! Status: ${response.status}`);
       }
-
+  
       const data = await response.json();
       setCommitsOutput(data.actions);
-
-      // Actions progress is now complete:
+  
       clearInterval(progressActionsInterval);
       setProgressActions(100);
-
-      // Even on error, scroll to Summary Log card
+  
       summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
-      // --- Now open the websocket ---
-      // Construct the websocket URL (assuming backend URL starts with http/https)
+  
+      // Now open the websocket connection normally.
       const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
       const ws = new WebSocket(wsUrl);
-
+  
       ws.onopen = () => {
         console.log("WebSocket connected.");
-        // Send the actions output via the websocket
-        ws.send(data.actions);
+        // Here you could also send the N value as part of your payload, if needed:
+        ws.send(JSON.stringify({ actions: data.actions, n: selectedN }));
       };
-
-      // Start a separate progress for websocket (simulate progress until <end> is received)
+  
       const progressWsInterval = setInterval(() => {
         setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
       }, 500);
-
+  
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data.toString()).chunk;
         if (message === "</end>") {
-          // When <end> is received, complete progress and close
           clearInterval(progressWsInterval);
           setProgressWs(100);
           ws.close();
         } else {
-          // Append received chunk to dummyOutput
           setDummyOutput((prev) => prev + message);
         }
       };
-
+  
       ws.onerror = (event) => {
         console.error("WebSocket error:", event);
         clearInterval(progressWsInterval);
@@ -211,7 +246,7 @@ function App() {
     } finally {
       setIsExecuting(false);
     }
-  };
+  };  
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -386,6 +421,7 @@ function App() {
                           <Button 
                             onClick={() => setCodeHost('azure')}
                             className={`w-full ${codeHost === 'azure' ? 'active-btn' : ''} btn-same-height`}
+                            disabled={true} // Or some condition that evaluates to true initially
                           >
                             Azure DevOps
                           </Button>
@@ -549,7 +585,33 @@ function App() {
       </div>
       <div className="output-section mt-8" ref={summaryLogRef}>
         <Card className="output-box p-6">
-          <h2 className="text-xl font-bold mb-4">Summary</h2>
+          {/* Container with title on the left and buttons aligned to the far right */}
+          <div className="summary-header relative mb-4">
+            {/* Title positioned at the left */}
+            <h2 className="text-xl font-bold">Summary</h2>
+            
+            {/* Buttons positioned absolutely to the right edge */}
+            <div className="n-selector absolute right-0 top-0 flex space-x-2">
+              <Button 
+                onClick={() => setSelectedN(5)}
+                className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
+              >
+                5
+              </Button>
+              <Button 
+                onClick={() => setSelectedN(10)}
+                className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
+              >
+                10
+              </Button>
+              <Button 
+                onClick={() => setSelectedN(15)}
+                className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
+              >
+                15
+              </Button>
+            </div>
+          </div>
           <ProgressBar
             progress={progressWs}
             size="md"
@@ -564,7 +626,6 @@ function App() {
           />
         </Card>
       </div>
-      
       {/* Error Popup */}
       <Popup
         isOpen={isPopupOpen}

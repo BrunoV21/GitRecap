@@ -62,7 +62,7 @@ h1 {
 h2 {
   font-size: 1.5rem;
   font-weight: bold;
-  margin-bottom: 1rem;
+  margin-bottom: 0.2rem;
   color: #5c4033;
 }
 
@@ -475,4 +475,16 @@ button, .Button {
 
 .author-add-button {
   flex: 0 0 21%;  /* Takes up the remaining 25% */
+}
+
+/* New CSS for Summary N-Selector Buttons */
+.summary-n-btn {
+  height: 15px;        /* Match the approximate height of the Summary H2 text */
+  width: 60px;         /* Increase width slightly */
+  padding: 0;          /* Remove extra padding to align with the text height */
+  font-size: 1rem;     /* Adjust font-size as needed */
+  margin-right: 0.5rem; /* Spacing between buttons */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
