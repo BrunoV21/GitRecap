@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from server.routes import router as api_router
 from services.llm_service import simulate_llm_response
 from server.websockets import router as websocket_router
+from .middleware import is_user_authenticated
 
 # Initialize FastAPI app
 app = FastAPI(title="LLM Service API")
@@ -20,6 +21,9 @@ app.add_middleware(
 # Add rate limiting middleware
 # add_rate_limiting_middleware(app)
 
+# Add API-key authentication middleware
+app.middleware("http")(is_user_authenticated)
+
 # Include routers
 app.include_router(api_router)
 app.include_router(websocket_router)
@@ -32,7 +36,7 @@ async def health_check():
 @app.get("/health2")
 async def stream_health_check():
     response = simulate_llm_response("health")
-    return {"response": " ".join(response)} 
+    return {"response": " ".join(response)}
 
 if __name__ == "__main__":
     import uvicorn
