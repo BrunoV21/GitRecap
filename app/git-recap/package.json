@@ -1,6 +1,6 @@
 {
   "name": "git-recap",
-  "homepage": "https://BrunoV21.github.io/GitRecap/",
+  "homepage": "https://brunov21.github.io/GitRecap/",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "gh-pages": "^6.3.0",
     "lucide-react": "^0.487.0",
     "pixel-retroui": "^2.0.0",
     "react": "^19.0.0",
