@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
 
+import { Info } from "lucide-react";
+
 import { 
   Button, 
   Card, 
@@ -513,10 +515,18 @@ function App() {
             </AccordionTrigger>
             <AccordionContent>
               <div className="mb-4">
-                <label className="block mb-2 font-medium">Select Repositories:</label>
+                <label className="block mb-2 font-medium flex items-center justify-between">
+                  Select Repositories:
+                  <div className="relative inline-block group">
+                    <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-6 hidden group-hover:block w-64 bg-beige border border-brown-300 text-brown-800 text-xs rounded-md p-2 shadow-lg z-10 whitespace-normal">
+                      Looking for a repo that is not here? To access private repos, install this App from GitHub Marketplace or provide a PAT!
+                    </div>
+                  </div>
+                </label>
                 {isReposLoading ? (
                   <ProgressBar
-                    progress={repoProgress} // Gradual progress update
+                    progress={repoProgress}
                     size="md"
                     color="orange"
                     borderColor="black"
@@ -544,7 +554,7 @@ function App() {
                       type="text"
                       value={authorInput}
                       onChange={(e) => setAuthorInput(e.target.value)}
-                      placeholder="Enter author name"
+                      placeholder="Enter aditional authors to be considered in the actions history"
                       className="author-input-field mr-2"
                     />
                     <Button 

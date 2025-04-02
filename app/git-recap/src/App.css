@@ -499,3 +499,75 @@ button, .Button {
   align-items: center;
   justify-content: center;
 }
+
+/* Add these color variables if not already present */
+:root {
+  --color-beige: #f5f5dc; /* or use your exact beige color */
+  --color-brown-300: #d2b48c; /* light brown for border */
+  --color-brown-800: #5c4033; /* dark brown for text */
+}
+
+/* Tooltip styles */
+.bg-beige {
+  background-color: var(--color-beige);
+}
+
+.border-brown-300 {
+  border-color: var(--color-brown-300);
+}
+
+.text-brown-800 {
+  color: var(--color-brown-800);
+}
+
+.group {
+  position: relative;
+  display: inline-block;
+}
+
+.group .group-hover\:block {
+  display: none;
+}
+
+.group:hover .group-hover\:block {
+  display: block;
+}
+
+/* Ensure tooltip text stays in one line */
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.w-auto {
+  width: auto;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+/* Add to your existing CSS */
+.justify-between {
+  justify-content: space-between;
+}
+
+.whitespace-normal {
+  white-space: normal;
+}
+
+/* Update or add these tooltip styles */
+.group:hover .group-hover\:block {
+  display: block;
+  width: 30rem; /* 64 = 16rem */
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* Center the tooltip relative to the icon */
+.left-1\/2 {
+  left: 50%;
+}
+
+.-translate-x-1\/2 {
+  transform: translateX(-90%);
+}
