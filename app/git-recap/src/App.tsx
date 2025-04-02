@@ -606,8 +606,9 @@ function App() {
           {/* Container with title on the left and buttons aligned to the far right */}
           <div className="summary-header relative mb-4">
             {/* Title positioned at the left */}
-            <h2 className="text-xl font-bold">Summary</h2>
-            
+            <h2 className="text-xl font-bold">
+              Summary (as recapped by `{import.meta.env.VITE_LLM_MODEL}`)
+            </h2>
             {/* Buttons positioned absolutely to the right edge */}
             <div className="n-selector absolute right-0 top-0 flex space-x-2">
               <Button 
