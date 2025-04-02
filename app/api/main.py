@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from server.routes import router as api_router
 from services.llm_service import simulate_llm_response
 from server.websockets import router as websocket_router
-from .middleware import is_user_authenticated
+from middleware import APIKeyMiddleware
 
 # Initialize FastAPI app
 app = FastAPI(title="LLM Service API")
@@ -22,7 +22,7 @@ app.add_middleware(
 # add_rate_limiting_middleware(app)
 
 # Add API-key authentication middleware
-app.middleware("http")(is_user_authenticated)
+app.add_middleware(APIKeyMiddleware)
 
 # Include routers
 app.include_router(api_router)
