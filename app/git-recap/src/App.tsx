@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
@@ -18,6 +19,9 @@ import {
 } from 'pixel-retroui';
 
 function App() {
+  // Retrieve API-key from environment variables.
+  const apiKey = import.meta.env.VITE_API_KEY;
+
   // ... existing states ...
   const [pat, setPat] = useState('');
   const [codeHost, setCodeHost] = useState('github');
@@ -43,7 +47,7 @@ function App() {
   const [progressWs, setProgressWs] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
 
-  // PAT accordion and authorization states«
+  // PAT accordion and authorization states
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
@@ -84,7 +88,7 @@ function App() {
     }, 100);
 
     const backendUrl = import.meta.env.VITE_AICORE_API;
-    fetch(`${backendUrl}/repos?session_id=${sessionId}`)
+    fetch(`${backendUrl}/repos?session_id=${sessionId}`, { headers: { 'X-API-Key': apiKey } })
       .then((response) => response.json())
       .then((data) => {
         setAvailableRepos(data.repos);
@@ -98,7 +102,7 @@ function App() {
         setRepoProgress(100);
         setIsReposLoading(false);
       });
-  }, [sessionId]);
+  }, [sessionId, apiKey]);
 
   const addAuthor = () => {
     if (authorInput && !authors.includes(authorInput)) {
@@ -240,7 +244,10 @@ function App() {
   
       const response = await fetch(`${backendUrl}/actions?${queryParams}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'X-API-Key': apiKey 
+        },
       });
   
       if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
@@ -300,7 +307,7 @@ function App() {
     const appName = import.meta.env.VITE_APP_NAME;
     const target = `${backendUrl}/external-signup?app=${appName}&accessToken=${code}&provider=GitHub`;
     
-    fetch(target, { method: "GET" })
+    fetch(target, { method: "GET", headers: { 'X-API-Key': apiKey } })
       .then(response => response.json())
       .then(data => {
         console.log("GitHub token response", data);
@@ -321,13 +328,13 @@ function App() {
         // Only remove the stored code on error to allow retry
         sessionStorage.removeItem('processedOAuthCode');
       });
-  }, []);
+  }, [apiKey]);
 
-  // Fetch repos using session_id when it is available
+  // Fetch repos using session_id when it is available (redundant fetch removed as it is already handled above)
   useEffect(() => {
     if (!sessionId) return;
     const backendUrl = import.meta.env.VITE_AICORE_API;
-    fetch(`${backendUrl}/repos?session_id=${sessionId}`)
+    fetch(`${backendUrl}/repos?session_id=${sessionId}`, { headers: { 'X-API-Key': apiKey } })
       .then((response) => response.json())
       .then((data) => {
         console.log("Fetched repos:", data.repos);
@@ -336,7 +343,7 @@ function App() {
       .catch((error) => {
          console.error("Error fetching repos", error);
       });
-  }, [sessionId]);
+  }, [sessionId, apiKey]);
 
   const handleGithubLogin = () => {
     const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
@@ -365,7 +372,8 @@ function App() {
       const response = await fetch(`${backendUrl}/pat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey
         },
         body: JSON.stringify(payload)
       });
@@ -661,7 +669,7 @@ function App() {
               overflowY: 'auto',
               whiteSpace: 'pre-wrap',
               resize: 'none',
-              fontFamily: 'monospace' // Optional: for better code display
+              fontFamily: 'monospace'
             }}
           />
         </Card>
