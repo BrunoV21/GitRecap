@@ -290,7 +290,6 @@ function App() {
     const processedCode = sessionStorage.getItem('processedOAuthCode');
     if (processedCode === code) {
       console.log("This OAuth code was already processed");
-      // Check if we have a stored session from this code
       const storedSession = sessionStorage.getItem('githubSessionId');
       if (storedSession) {
         console.log("Restoring session from storage:", storedSession);
@@ -300,6 +299,13 @@ function App() {
       return;
     }
     
+    // Get API key from environment variables
+    const apiKey = import.meta.env.VITE_API_KEY;
+    if (!apiKey) {
+      console.error("API key is not configured");
+      return;
+    }
+  
     // Store the code we're processing
     sessionStorage.setItem('processedOAuthCode', code);
     
@@ -307,17 +313,28 @@ function App() {
     const appName = import.meta.env.VITE_APP_NAME;
     const target = `${backendUrl}/external-signup?app=${appName}&accessToken=${code}&provider=GitHub`;
     
-    fetch(target, { method: "GET", headers: { 'X-API-Key': apiKey } })
-      .then(response => response.json())
+    fetch(target, { 
+      method: "GET",
+      headers: {
+        'X-API-Key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'include'  // Important for cookies/CORS
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
         console.log("GitHub token response", data);
         setIsGithubAuthorized(true);
         setSessionId(data.session_id);
         
-        // Store the session ID in sessionStorage for future use
         sessionStorage.setItem('githubSessionId', data.session_id);
         
-        // Clean up the URL after successful processing
         if (window.history.replaceState) {
           const newUrl = window.location.pathname + window.location.hash;
           window.history.replaceState(null, '', newUrl);
@@ -325,10 +342,10 @@ function App() {
       })
       .catch(error => {
         console.error("OAuth processing error:", error);
-        // Only remove the stored code on error to allow retry
         sessionStorage.removeItem('processedOAuthCode');
+        // Consider adding user-facing error handling here
       });
-  }, [apiKey]);
+  }, []); // Removed apiKey from dependencies since it's from env vars
 
   // Fetch repos using session_id when it is available (redundant fetch removed as it is already handled above)
   useEffect(() => {

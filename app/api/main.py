@@ -9,13 +9,13 @@ from middleware import APIKeyMiddleware
 # Initialize FastAPI app
 app = FastAPI(title="LLM Service API")
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    # allow_origins=["http://localhost:5173"],  # Your frontend URL
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # Explicit methods
+    allow_headers=["X-API-Key", "Content-Type"],  # Must include X-API-Key
+    expose_headers=["X-API-Key"]  # Important for client-side access
 )
 
 # Add rate limiting middleware
