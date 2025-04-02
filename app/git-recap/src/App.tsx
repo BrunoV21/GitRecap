@@ -520,7 +520,16 @@ function App() {
                   <div className="relative inline-block group">
                     <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
                     <div className="absolute left-1/2 -translate-x-1/2 bottom-6 hidden group-hover:block w-64 bg-beige border border-brown-300 text-brown-800 text-xs rounded-md p-2 shadow-lg z-10 whitespace-normal">
-                      Looking for a repo that is not here? To access private repos, install this App from GitHub Marketplace or provide a PAT!
+                      Looking for a repo that is not here? To access private repos,{' '}
+                      <a 
+                        href="https://docs.github.com/en/apps/using-github-apps/installing-a-github-app-from-github-marketplace-for-your-personal-account" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        install this App from GitHub Marketplace
+                      </a>{' '}
+                      or provide a PAT!
                     </div>
                   </div>
                 </label>

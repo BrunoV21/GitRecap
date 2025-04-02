@@ -571,3 +571,21 @@ button, .Button {
 .-translate-x-1\/2 {
   transform: translateX(-90%);
 }
+
+/* Link styles for tooltip */
+.text-blue-600 {
+  color: #2563eb;
+}
+
+.hover\:text-blue-800:hover {
+  color: #1e40af;
+}
+
+.underline {
+  text-decoration: underline;
+}
+
+/* Ensure links don't affect tooltip layout */
+a {
+  display: inline;
+}
