@@ -18,12 +18,6 @@ app.add_middleware(
     expose_headers=["X-API-Key"]  # Important for client-side access
 )
 
-# Add rate limiting middleware
-# add_rate_limiting_middleware(app)
-
-# Add API-key authentication middleware
-app.add_middleware(APIKeyMiddleware)
-
 # Include routers
 app.include_router(api_router)
 app.include_router(websocket_router)
