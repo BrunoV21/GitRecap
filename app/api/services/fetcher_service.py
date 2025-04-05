@@ -41,8 +41,7 @@ def get_fetcher(session_id: str) -> BaseFetcher:
     Raises:
         HTTPException: If no PAT is found for the given session_id.
     """
-    print(list(fetchers.keys()))
     fetcher = fetchers.get(session_id)
     if not fetcher:
-        raise HTTPException(status_code=404, detail="PAT not found for session")
+        raise HTTPException(status_code=404, detail="Session not found")
     return fetcher

@@ -67,6 +67,8 @@ async def set_llm(config: Optional[LlmConfig] = None) -> str:
         raise HTTPException(status_code=500, detail=f"Failed to set custom LLM: {str(e)}")
     
 def get_llm(session_id :str)->Optional[Llm]:
+    if session_id not in llm_sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
     return llm_sessions.get(session_id)
     
 def trim_messages(messages, tokenizer_fn, max_tokens :Optional[int]=None):

@@ -28,9 +28,10 @@ async def websocket_endpoint(
     # Store the connection
     active_connections[session_id] = websocket
 
+    # Initialize LLM
+    llm = get_llm(session_id)
+
     try:
-        # Initialize LLM
-        llm = get_llm(session_id)
         while True:
             message = await websocket.receive_text()
             msg_json = json.loads(message)

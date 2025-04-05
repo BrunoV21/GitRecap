@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from server.routes import router as api_router
 from services.llm_service import simulate_llm_response
 from server.websockets import router as websocket_router
-from middleware import APIKeyMiddleware
+import os
 
 # Initialize FastAPI app
 app = FastAPI(title="LLM Service API")
@@ -39,5 +39,7 @@ async def stream_health_check():
     return {"response": " ".join(response)}
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
     import uvicorn
+    load_dotenv()
     uvicorn.run(app, host="0.0.0.0", port=8000)

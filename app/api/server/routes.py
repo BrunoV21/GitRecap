@@ -65,13 +65,12 @@ async def store_fetcher_endpoint(request: Request):
     if not token:
         raise HTTPException(status_code=400, detail="Missing required field: pat")
     
-    response = await create_llm_session()
-    response["token"] = token    
+    response = await create_llm_session()  
     session_id = response.get("session_id")
     store_fetcher(session_id, token, provider)
     return {"session_id": session_id}
 
-@router.post("/llm")
+# @router.post("/llm")
 async def create_llm_session(
     request: Optional[LlmConfig] = None
 ):
@@ -127,13 +126,13 @@ async def get_actions(
     
     return {"actions": parse_entries_to_txt(actions)}
 
-@router.post("/chat")
-async def chat(
-    chat_request: ChatRequest
-):
-    try:
-        llm = await initialize_llm_session(chat_request.session_id)
-        response = await llm.acomplete(chat_request.message)
-        return {"response": response}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @router.post("/chat")
+# async def chat(
+#     chat_request: ChatRequest
+# ):
+#     try:
+#         llm = await initialize_llm_session(chat_request.session_id)
+#         response = await llm.acomplete(chat_request.message)
+#         return {"response": response}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))

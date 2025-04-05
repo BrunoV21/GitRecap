@@ -11,7 +11,8 @@ fetcher = GitHubFetcher(
     pat=os.getenv("PAT"),
     start_date=datetime.now() - timedelta(days=20),
     end_date=datetime.now(),
-    repo_filter=["AiCore"]
+    repo_filter=["AiCore"],
+    authors=["brunov21"]
 )
 
 messages = fetcher.get_authored_messages()
