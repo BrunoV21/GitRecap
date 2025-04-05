@@ -1,7 +1,6 @@
 {
   "name": "git-recap",
-  "homepage": "https://brunov21.github.io/GitRecap/",
-  "private": true,
+  "homepage": "https://BrunoV21.github.io/GitRecap/",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
