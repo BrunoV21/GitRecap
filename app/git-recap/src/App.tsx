@@ -19,8 +19,6 @@ import {
 } from 'pixel-retroui';
 
 function App() {
-  // Retrieve API-key from environment variables.
-  const apiKey = import.meta.env.VITE_API_KEY;
 
   // ... existing states ...
   const [pat, setPat] = useState('');
@@ -88,7 +86,7 @@ function App() {
     }, 100);
 
     const backendUrl = import.meta.env.VITE_AICORE_API;
-    fetch(`${backendUrl}/repos?session_id=${sessionId}`, { headers: { 'X-API-Key': apiKey } })
+    fetch(`${backendUrl}/repos?session_id=${sessionId}`)
       .then((response) => response.json())
       .then((data) => {
         setAvailableRepos(data.repos);
@@ -102,7 +100,7 @@ function App() {
         setRepoProgress(100);
         setIsReposLoading(false);
       });
-  }, [sessionId, apiKey]);
+  }, [sessionId]);
 
   const addAuthor = () => {
     if (authorInput && !authors.includes(authorInput)) {
@@ -243,11 +241,7 @@ function App() {
       }).toString();
   
       const response = await fetch(`${backendUrl}/actions?${queryParams}`, {
-        method: 'GET',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'X-API-Key': apiKey 
-        },
+        method: 'GET'
       });
   
       if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
@@ -298,13 +292,6 @@ function App() {
       }
       return;
     }
-    
-    // Get API key from environment variables
-    const apiKey = import.meta.env.VITE_API_KEY;
-    if (!apiKey) {
-      console.error("API key is not configured");
-      return;
-    }
   
     // Store the code we're processing
     sessionStorage.setItem('processedOAuthCode', code);
@@ -314,13 +301,7 @@ function App() {
     const target = `${backendUrl}/external-signup?app=${appName}&accessToken=${code}&provider=GitHub`;
     
     fetch(target, { 
-      method: "GET",
-      headers: {
-        'X-API-Key': apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      credentials: 'include'  // Important for cookies/CORS
+      method: "GET"
     })
       .then(response => {
         if (!response.ok) {
@@ -345,13 +326,13 @@ function App() {
         sessionStorage.removeItem('processedOAuthCode');
         // Consider adding user-facing error handling here
       });
-  }, []); // Removed apiKey from dependencies since it's from env vars
+  }, []);
 
   // Fetch repos using session_id when it is available (redundant fetch removed as it is already handled above)
   useEffect(() => {
     if (!sessionId) return;
     const backendUrl = import.meta.env.VITE_AICORE_API;
-    fetch(`${backendUrl}/repos?session_id=${sessionId}`, { headers: { 'X-API-Key': apiKey } })
+    fetch(`${backendUrl}/repos?session_id=${sessionId}`)
       .then((response) => response.json())
       .then((data) => {
         console.log("Fetched repos:", data.repos);
@@ -360,7 +341,7 @@ function App() {
       .catch((error) => {
          console.error("Error fetching repos", error);
       });
-  }, [sessionId, apiKey]);
+  }, [sessionId]);
 
   const handleGithubLogin = () => {
     const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
@@ -388,10 +369,6 @@ function App() {
   
       const response = await fetch(`${backendUrl}/pat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey
-        },
         body: JSON.stringify(payload)
       });
   

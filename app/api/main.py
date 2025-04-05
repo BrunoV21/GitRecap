@@ -11,11 +11,8 @@ app = FastAPI(title="LLM Service API")
 
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["http://localhost:5173"],  # Your frontend URL
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # Explicit methods
-    allow_headers=["X-API-Key", "Content-Type"],  # Must include X-API-Key
-    expose_headers=["X-API-Key"]  # Important for client-side access
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["GET", "POST", "OPTIONS"]
 )
 
 # Include routers
