@@ -4,16 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from server.routes import router as api_router
 from services.llm_service import simulate_llm_response
 from server.websockets import router as websocket_router
-import os
+from midleware import OriginAndRateLimitMiddleware, ALLOWED_ORIGIN
 
 # Initialize FastAPI app
 app = FastAPI(title="LLM Service API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[ALLOWED_ORIGIN],
     allow_methods=["GET", "POST", "OPTIONS"]
 )
+app.add_middleware(OriginAndRateLimitMiddleware)
 
 # Include routers
 app.include_router(api_router)
