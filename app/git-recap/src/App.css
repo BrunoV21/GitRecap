@@ -482,8 +482,6 @@ button, .Button {
   align-items: center; 
   justify-content: center;
   /* Optional: keep the retro styling consistent */
-  font-family: 'Press Start 2P', cursive;
-  font-size: 12px;
 }
 
 .grid-button {
@@ -696,6 +694,11 @@ a {
   width: 20%; /* Set to 8% width to match the input */
   min-width: 60px; /* Add a minimum width to prevent it from becoming too small */
   flex-shrink: 0;
+}
+
+.pat-group button {
+  margin: auto;
+  width: 25%;
 }
 
 /* Only wrap on very small screens */
