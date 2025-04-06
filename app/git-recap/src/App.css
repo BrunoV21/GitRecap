@@ -411,7 +411,7 @@ button, .Button {
   font-family: Minecraft, sans-serif;
   margin: .0rem auto;
   padding: 0rem; /* Increased padding for height */
-  width: 300px; /* Slightly wider */
+  width: 30%; /* Slightly wider */
   text-align: center;
 }
 
