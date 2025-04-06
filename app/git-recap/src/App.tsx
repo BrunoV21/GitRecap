@@ -560,13 +560,13 @@ function App() {
               <div className="authors-section mt-4">
                 <div>
                   <label className="block mb-2 font-medium">Add Author:</label>
-                  <div className="author-input-group flex">
+                  <div className="author-input-group">
                     <Input
                       type="text"
                       value={authorInput}
                       onChange={(e) => setAuthorInput(e.target.value)}
-                      placeholder="Enter aditional authors to be considered in the actions history"
-                      className="author-input-field mr-2"
+                      placeholder="Enter additional authors to be considered in the actions history"
+                      className="author-input-field"
                     />
                     <Button 
                       type="button" 

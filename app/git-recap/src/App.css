@@ -312,12 +312,6 @@ progress, .ProgressBar {
   margin-right: 8px;
 }
 
-.author-input-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
 /* Spacing utilities */
 .mt-2 { margin-top: 0.5rem; }
 .mt-4 { margin-top: 1rem; }
@@ -478,21 +472,6 @@ button, .Button {
   grid-auto-rows: minmax(60px, auto); /* Consistent row height */
   gap: 0.5rem;
   align-items: stretch; /* Stretch items to fill row */
-}
-
-.author-input-group {
-  display: flex;
-  gap: 0.5rem; /* Optional: adjust spacing as needed */
-}
-
-.author-input-field {
-  min-width: 200px; /* Minimum width before wrapping */
-  flex: 1;
-}
-
-.author-add-button {
-  flex: 0 0 auto; /* Don't grow, don't shrink */
-  white-space: nowrap;
 }
 
 .grid-button {
@@ -661,6 +640,38 @@ a {
   justify-content: center;
 }
 
+/* Author Input Group - New Styles */
+.author-input-container {
+  width: 100%;
+}
+
+.author-input-group {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+}
+
+.author-input-field {
+  flex: 1;
+  min-width: 0; /* Crucial for proper flex behavior */
+}
+
+.author-add-button {
+  width: 80px; /* Fixed width for the button */
+  flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+/* Only wrap on very small screens */
+@media (max-width: 400px) {
+  .author-input-group {
+    flex-direction: column;
+  }
+  
+  .author-add-button {
+    width: 100%;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .summary-header {
@@ -675,5 +686,21 @@ a {
     margin-left: 0; /* Reset for small screens */
     width: 100%; /* Full width when wrapped */
     justify-content: flex-end; /* Keep buttons right-aligned */
+  }
+  
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  
+  .pat-group, .date-group {
+    flex-direction: column;
+  }
+  
+  .author-input-group {
+    flex-wrap: wrap;
+  }
+  
+  .author-add-button {
+    flex: 1; /* Full width when wrapped */
   }
 }
