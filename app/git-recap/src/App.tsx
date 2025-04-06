@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
@@ -19,8 +18,6 @@ import {
 } from 'pixel-retroui';
 
 function App() {
-
-  // ... existing states ...
   const [pat, setPat] = useState('');
   const [codeHost, setCodeHost] = useState('github');
 
@@ -30,41 +27,38 @@ function App() {
   const [startDate, setStartDate] = useState(sevenDaysAgo);
   const [endDate, setEndDate] = useState(today);
 
-  // Accordion and filter states
+  // Filter and output states
   const [showFilters] = useState(false);
   const [availableRepos, setAvailableRepos] = useState<string[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
   const [authorInput, setAuthorInput] = useState('');
   const [authors, setAuthors] = useState<string[]>([]);
-
-  // Output states
   const [commitsOutput, setCommitsOutput] = useState('');
   const [dummyOutput, setDummyOutput] = useState('');
-  // Two separate progress states:
   const [progressActions, setProgressActions] = useState(0);
   const [progressWs, setProgressWs] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
 
-  // PAT accordion and authorization states
+  // Auth states
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [authError, setAuthError] = useState(false);  
-
-  // Authorization states for GitHub/session
   const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
   const [sessionId, setSessionId] = useState('');
   const isAuthorized = isGithubAuthorized || isPATAuthorized;
 
-  // Add popup state
+  // UI states
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
+  const [selectedN, setSelectedN] = useState(5);
+  const [isReposLoading, setIsReposLoading] = useState(true);
+  const [repoProgress, setRepoProgress] = useState(0);
 
-  // Refs for scrolling
   const actionsLogRef = useRef<HTMLDivElement>(null);
   const summaryLogRef = useRef<HTMLDivElement>(null);
-
-  const [selectedN, setSelectedN] = useState(5);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const [currentWebSocket, setCurrentWebSocket] = useState<WebSocket | null>(null);
 
   const handleRepoToggle = (repo: string) => {
     if (selectedRepos.includes(repo)) {
@@ -74,9 +68,7 @@ function App() {
     }
   };
 
-  const [isReposLoading, setIsReposLoading] = useState(true);
-  const [repoProgress, setRepoProgress] = useState(0);
-
+  // Fetch available repositories when sessionId changes
   useEffect(() => {
     if (!sessionId) return;
     setIsReposLoading(true);
@@ -109,45 +101,33 @@ function App() {
     }
   };
 
-  const [currentWebSocket, setCurrentWebSocket] = useState<WebSocket | null>(null);
-
   const handleFullRecap = () => {
-    // Close any existing WebSocket connection
     if (currentWebSocket) {
       currentWebSocket.close();
     }
     
-    // Clear current outputs and reset progress
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
-    
-    // Force a fresh start
     handleRecap();
   };
   
   const handleNSelection = (n: number) => {
-    // Close existing connection immediately
     if (currentWebSocket) {
       currentWebSocket.close();
       setCurrentWebSocket(null);
     }
   
-    // Reset state
     setProgressWs(0);
     setDummyOutput('');
     
-    // Only proceed if we have commits output
     if (commitsOutput) {
       recallWebSocket(commitsOutput, n);
     }
     
-    // Update selectedN
     setSelectedN(n);
   };
-  
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
   
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -162,11 +142,9 @@ function App() {
     const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
     const ws = new WebSocket(wsUrl);
     
-    // Store the current WebSocket reference
     setCurrentWebSocket(ws);
   
     ws.onopen = () => {
-      console.log("WebSocket connected with N:", n || selectedN);
       ws.send(JSON.stringify({ 
         actions, 
         n: n !== undefined ? n : selectedN 
@@ -211,7 +189,6 @@ function App() {
   };
   
   const fetchInitialActions = async () => {
-    // Close any existing WebSocket connection
     if (currentWebSocket) {
       currentWebSocket.close();
     }
@@ -221,7 +198,7 @@ function App() {
     setProgressActions(0);
     setProgressWs(0);
     setIsExecuting(true);    
-  
+    
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -248,21 +225,18 @@ function App() {
   
       const data = await response.json();
       
-      // Check if actions are empty/falsy
       if (!data.actions) {
         setPopupMessage('Got no actionables from Git. Please check your filters or date range.');
         setIsPopupOpen(true);
         clearInterval(progressActionsInterval);
         setProgressActions(100);
-        return; // Exit early since there's nothing to process
+        return;
       }
       
       setCommitsOutput(data.actions);
       clearInterval(progressActionsInterval);
       setProgressActions(100);
       summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
-  
-      // Now open websocket with the data
       recallWebSocket(data.actions);
     } catch (error) {
       console.error('Error during recap:', error);
@@ -274,26 +248,23 @@ function App() {
     }
   };
 
+  // Handle GitHub OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     
     if (!code) return;
     
-    // Check if we've already processed this specific code
     const processedCode = sessionStorage.getItem('processedOAuthCode');
     if (processedCode === code) {
-      console.log("This OAuth code was already processed");
       const storedSession = sessionStorage.getItem('githubSessionId');
       if (storedSession) {
-        console.log("Restoring session from storage:", storedSession);
         setIsGithubAuthorized(true);
         setSessionId(storedSession);
       }
       return;
     }
   
-    // Store the code we're processing
     sessionStorage.setItem('processedOAuthCode', code);
     
     const backendUrl = import.meta.env.VITE_AICORE_API; 
@@ -303,17 +274,10 @@ function App() {
     fetch(target, { 
       method: "GET"
     })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-        console.log("GitHub token response", data);
         setIsGithubAuthorized(true);
         setSessionId(data.session_id);
-        
         sessionStorage.setItem('githubSessionId', data.session_id);
         
         if (window.history.replaceState) {
@@ -324,24 +288,8 @@ function App() {
       .catch(error => {
         console.error("OAuth processing error:", error);
         sessionStorage.removeItem('processedOAuthCode');
-        // Consider adding user-facing error handling here
       });
   }, []);
-
-  // Fetch repos using session_id when it is available (redundant fetch removed as it is already handled above)
-  useEffect(() => {
-    if (!sessionId) return;
-    const backendUrl = import.meta.env.VITE_AICORE_API;
-    fetch(`${backendUrl}/repos?session_id=${sessionId}`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("Fetched repos:", data.repos);
-        setAvailableRepos(data.repos);
-      })
-      .catch((error) => {
-         console.error("Error fetching repos", error);
-      });
-  }, [sessionId]);
 
   const handleGithubLogin = () => {
     const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
@@ -350,7 +298,6 @@ function App() {
     window.location.href = githubAuthUrl;
   };
 
-  // Handler for the PAT authorize button remains the same...
   const handlePATAuthorize = async () => {
     const backendUrl = import.meta.env.VITE_AICORE_API;
     setAuthError(false);
@@ -362,22 +309,17 @@ function App() {
     }, 300);
   
     try {
-      const payload = {
-        pat,
-        session_id: sessionId,
-      };
-  
       const response = await fetch(`${backendUrl}/pat`, {
         method: 'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          pat,
+          session_id: sessionId,
+        })
       });
   
-      if (!response.ok) {
-        throw new Error('PAT authorization failed.');
-      }
+      if (!response.ok) throw new Error('PAT authorization failed.');
   
       const data = await response.json();
-      console.log("PAT stored for session:", data.session_id);
       setSessionId(data.session_id);
       setIsPATAuthorized(true);
     } catch (error) {
@@ -403,17 +345,15 @@ function App() {
         <div className="github-signin-container mb-6">
           {!isAuthorized ? (
             <>
-              {/* GitHub Signin Button */}
               <Button 
-                className="github-signin-btn w-full"  // Added w-full for consistency
+                className="github-signin-btn w-full"
                 onClick={handleGithubLogin}
-                color="accent"   // Changed to accent for the retro look
+                color="accent"
               >
                 <img src={githubIcon} alt="GitHub Icon" className="github-icon mr-2" />
                 Sign in with GitHub
               </Button>
               
-              {/* PAT Accordion Section */}
               <Accordion className="mt-4">
                 <AccordionItem value="pat-accordion">
                   <AccordionTrigger>
@@ -443,7 +383,7 @@ function App() {
                           <Button 
                             onClick={() => setCodeHost('azure')}
                             className={`w-full ${codeHost === 'azure' ? 'active-btn' : ''} btn-same-height`}
-                            disabled={true} // Or some condition that evaluates to true initially
+                            disabled={true}
                           >
                             Azure DevOps
                           </Button>
@@ -487,7 +427,6 @@ function App() {
           )}
         </div>
         
-        {/* Date Inputs */}
         <div className="form-group date-group mt-6">
           <div className="mr-4">
             <label className="block mb-2 font-medium">Start Date:</label>
@@ -509,7 +448,6 @@ function App() {
           </div>
         </div>
 
-        {/* Accordion for Additional Filters */}
         <Accordion className="mt-6">
           <AccordionItem value="filters-accordion">
             <AccordionTrigger>
@@ -593,7 +531,6 @@ function App() {
           </AccordionItem>
         </Accordion>
       </Card>            
-      {/* Recap Button */}
       <div className="recap-button mt-8">
         <Button 
           onClick={handleFullRecap} 
@@ -604,7 +541,6 @@ function App() {
           {isExecuting ? 'Processing...' : 'Recap'}
         </Button>
       </div>
-      {/* Output Section */}
       <div className="output-section mt-8" ref={actionsLogRef}>
         <Card className="output-box p-6">
           <h2 className="text-xl font-bold mb-4">Actions Log</h2>
@@ -624,7 +560,6 @@ function App() {
       </div>
       <div className="output-section mt-8" ref={summaryLogRef}>
         <Card className="output-box p-6">
-          {/* Summary Header */}
           <div className="summary-header">
             <h2>Summary (by `{import.meta.env.VITE_LLM_MODEL}`)</h2>
             <div className="n-selector">
@@ -661,7 +596,6 @@ function App() {
           />
         </Card>
       </div>
-      {/* Error Popup */}
       <Popup
         isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
