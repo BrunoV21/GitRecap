@@ -676,23 +676,26 @@ a {
 
 /* Author Input Group - New Styles */
 .author-input-container {
-  width: 100%;
+  width: 90%;
+  display: flex;
+  justify-content: center; /* This centers the child horizontally */
 }
 
 .author-input-group {
   display: flex;
-  width: 100%;
+  width: auto; /* Changed from 100% to auto to allow natural width */
   gap: 8px;
 }
 
 .author-input-field {
-  flex: 1;
-  min-width: 0; /* Crucial for proper flex behavior */
+  width: 100%; /* Set to 8% width */
+  min-width: 60px; /* Add a minimum width to prevent it from becoming too small */
 }
 
 .author-add-button {
-  width: 80px; /* Fixed width for the button */
-  flex-shrink: 0; /* Prevent button from shrinking */
+  width: 20%; /* Set to 8% width to match the input */
+  min-width: 60px; /* Add a minimum width to prevent it from becoming too small */
+  flex-shrink: 0;
 }
 
 /* Only wrap on very small screens */
