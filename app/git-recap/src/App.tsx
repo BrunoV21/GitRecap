@@ -624,33 +624,17 @@ function App() {
       </div>
       <div className="output-section mt-8" ref={summaryLogRef}>
         <Card className="output-box p-6">
-          {/* Container with title on the left and buttons aligned to the far right */}
-          <div className="summary-header relative mb-4">
-            {/* Title positioned at the left */}
-            <h2 className="text-xl font-bold">
-              Summary (by `{import.meta.env.VITE_LLM_MODEL}`)
-            </h2>
-            {/* Buttons positioned absolutely to the right edge */}
-            <div className="n-selector absolute right-0 top-0 flex space-x-2">
-              <Button 
-                onClick={() => handleNSelection(5)}
-                className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
-                disabled={isExecuting || !isAuthorized || selectedN === 5}
-              >
+          {/* Summary Header */}
+          <div className="summary-header">
+            <h2>Summary (by `{import.meta.env.VITE_LLM_MODEL}`)</h2>
+            <div className="n-selector">
+              <Button onClick={() => handleNSelection(5)} className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}>
                 5
               </Button>
-              <Button 
-                onClick={() => handleNSelection(10)}
-                className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
-                disabled={isExecuting || !isAuthorized || selectedN === 10}
-              >
+              <Button onClick={() => handleNSelection(10)} className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}>
                 10
               </Button>
-              <Button 
-                onClick={() => handleNSelection(15)}
-                className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
-                disabled={isExecuting || !isAuthorized || selectedN === 15}
-              >
+              <Button onClick={() => handleNSelection(15)} className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}>
                 15
               </Button>
             </div>

@@ -517,17 +517,6 @@ button, .Button {
   align-items: stretch; /* Stretch items to fill row */
 }
 
-.summary-n-btn:disabled {
-  height: 15px;        /* Match the approximate height of the Summary H2 text */
-  width: 60px;         /* Increase width slightly */
-  padding: 0;          /* Remove extra padding to align with the text height */
-  font-size: 1rem;     /* Adjust font-size as needed */
-  margin-right: 0.5rem; /* Spacing between buttons */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* Add these color variables if not already present */
 :root {
   --color-beige: #f5f5dc; /* or use your exact beige color */
@@ -637,21 +626,54 @@ a {
   font-family: 'Minecraft', monospace;
 }
 
+/* Replace existing summary-header styles with these */
+.summary-header {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping when needed */
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.summary-header h2 {
+  margin: 0; /* Remove default margins */
+  flex-grow: 1; /* Allow title to grow */
+  white-space: nowrap; /* Prevent title from wrapping */
+  min-width: min-content; /* Don't let it shrink too much */
+}
+
+.n-selector {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0; /* Prevent shrinking */
+  margin-left: auto; /* Push to the right */
+}
+
+/* Make buttons more compact */
+.summary-n-btn {
+  min-width: 20%; /* Fixed width for numbers */
+  padding: 0.25rem 0.5rem;
+  height: 32px;
+  margin: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
-  .grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  .summary-header {
+    gap: 0.5rem;
   }
   
-  .pat-group, .date-group {
-    flex-direction: column;
+  .summary-header h2 {
+    white-space: normal; /* Allow title to wrap if needed */
   }
   
-  .author-input-group {
-    flex-direction: column;
-  }
-  
-  .author-add-button {
-    width: 100%;
+  .n-selector {
+    margin-left: 0; /* Reset for small screens */
+    width: 100%; /* Full width when wrapped */
+    justify-content: flex-end; /* Keep buttons right-aligned */
   }
 }
