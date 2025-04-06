@@ -226,8 +226,42 @@ button:disabled, .Button:disabled {
   justify-content: space-between;
 }
 
+.Accordion {
+  min-height: 100px; /* Adjust as needed */
+}
+
 .AccordionContent {
+  display: flex !important;
+  flex-direction: column !important;
+  /* Remove fixed height */
+  height: auto !important;
+  /* Allow vertical scrolling only when needed */
+  overflow-y: auto !important;
+  /* Add some padding for better spacing */
+  padding: 1rem 0 !important;
+}
+
+/* Ensure the repositories container can scroll if needed */
+.repositories-scroll-container {
+  max-height: 800px; /* Adjust this value as needed */
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+/* Make the authors section sticky at the bottom */
+.authors-section {
+  margin-top: auto; /* Pushes it to the bottom */
   padding-top: 1rem;
+  border-top: 1px solid #e0cda9; /* Visual separation */
+}
+
+/* Update the grid container */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-auto-rows: minmax(60px, auto);
+  gap: 0.5rem;
+  align-items: stretch;
 }
 
 /* Output Section */

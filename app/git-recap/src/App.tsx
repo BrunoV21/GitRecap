@@ -516,7 +516,7 @@ function App() {
               {showFilters ? 'Hide Additional Filters' : 'Show Additional Filters'}
             </AccordionTrigger>
             <AccordionContent>
-              <div className="mb-4">
+              <div className="repositories-scroll-container">
                 <label className="block mb-2 font-medium flex items-center justify-between">
                   Select Repositories:
                   <div className="relative inline-block group">
