@@ -4,8 +4,8 @@ from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from collections import defaultdict
 
-
-ALLOWED_ORIGIN = os.getenv("VITE_FRONTEND_HOST")
+ALLOWED_ORIGIN = ["https://mclovinittt-gitrecap.hf.space"] 
+ALLOWED_ORIGIN.append(os.getenv("VITE_FRONTEND_HOST")) if os.getenv("VITE_FRONTEND_HOST") else ...
 RATE_LIMIT = int(os.getenv("RATE_LIMIT", "30"))  # Max requests
 WINDOW_SECONDS = int(os.getenv("WINDOW_SECONDS", "3"))  # Time window (e.g., 5 reqs per 60s)
 
@@ -17,7 +17,7 @@ class OriginAndRateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin")
 
-        if origin != ALLOWED_ORIGIN:
+        if origin not in ALLOWED_ORIGIN:
             raise HTTPException(status_code=403, detail="Forbidden: origin not allowed")
 
         # --- Rate limiting logic ---

@@ -11,7 +11,7 @@ app = FastAPI(title="LLM Service API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ALLOWED_ORIGIN],
+    allow_origins=ALLOWED_ORIGIN,
     allow_methods=["GET", "POST", "OPTIONS"]
 )
 app.add_middleware(OriginAndRateLimitMiddleware)
