@@ -495,7 +495,7 @@ function App() {
               type="date" 
               value={startDate} 
               onChange={(e) => setStartDate(e.target.value)} 
-              className="retro-input"
+              className="retro-input minecraft-font"
             />
           </div>
           <div>
@@ -504,7 +504,7 @@ function App() {
               type="date" 
               value={endDate} 
               onChange={(e) => setEndDate(e.target.value)}
-              className="retro-input"
+              className="retro-input minecraft-font"
             />
           </div>
         </div>
@@ -544,17 +544,17 @@ function App() {
                     className="w-full"
                   />
                 ) : (
-                  <div className="grid grid-cols-4 gap-2">
-                    {availableRepos.map((repo) => (
-                      <Button
-                        key={repo}
-                        onClick={() => handleRepoToggle(repo)}
-                        className={`btn-same-height grid-button ${selectedRepos.includes(repo) ? 'active-btn' : ''}`}
-                      >
-                        {repo}
-                      </Button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {availableRepos.map((repo) => (
+                    <Button
+                      key={repo}
+                      onClick={() => handleRepoToggle(repo)}
+                      className={`grid-button ${selectedRepos.includes(repo) ? 'active-btn' : ''}`}
+                    >
+                      {repo}
+                    </Button>
+                  ))}
+                </div>
                 )}
               </div>
               <div className="authors-section mt-4">
