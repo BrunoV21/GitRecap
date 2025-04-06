@@ -1,21 +1,3 @@
----
-title: Git Recap 
-emoji: 🚀
-colorFrom: indigo
-colorTo: purple
-sdk: docker
-pinned: true
-license: apache-2.0
-models:
-- deepseek-ai/DeepSeek-R1
-- deepseek-ai/DeepSeek-R1-Distill-Llama-70B
-- mistralai/Mistral-Small-24B-Instruct-2501
-- mistralai/Mistral-Large-Instruct-2411
-- mistralai/Mistral-Nemo-Instruct-2407
-- meta-llama/Llama-4-Scout-17B-16E-Instruct
-short_description: Recap your repositories with the power of Llms!
----
-
 # Git Recap
 
 Git Recap is a modular Python tool that aggregates and formats user-authored messages from repositories hosted on GitHub, Azure DevOps, and GitLab. It fetches commit messages, pull requests (along with their associated commits), and issues, then consolidates and sorts these events into a clear, chronological summary. This summary is output as a plain text string that can serve as context for large language models or other analysis tools.

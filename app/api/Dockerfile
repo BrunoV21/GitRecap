@@ -13,20 +13,20 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create the /app/files directory and set full permissions
-RUN mkdir -p /app/.files && chmod 777 /app/.files
-RUN mkdir -p /app/logs && chmod 777 /app/logs
-RUN mkdir -p /app/observability_data && chmod 777 /app/observability_data
+RUN mkdir -p /app/.files && chmod 777 /app/.files && \
+    mkdir -p /app/logs && chmod 777 /app/logs && \
+    mkdir -p /app/observability_data && chmod 777 /app/observability_data && \
+    mkdir -p /app/devops_cache && chmod 777 /app/devops_cache
 
 # Copy the current repository into the container
-COPY app/api /app
+COPY . /app
 
 # Upgrade pip and install dependencies
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install git-recap==0.1.0 && \
-    pip install core-for-ai==0.1.88[all] && \
-    pip install -r requirements.txt
+    pip install git+https://github.com/BrunoV21/AiCore.git#egg=core-for-ai[all]
 
-EXPOSE 8000
+EXPOSE 7860
 
 CMD python main.py
