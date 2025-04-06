@@ -14,7 +14,9 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGIN,
     allow_methods=["GET", "POST", "OPTIONS"]
 )
-app.add_middleware(OriginAndRateLimitMiddleware)
+# app.add_middleware(
+#     OriginAndRateLimitMiddleware
+# )
 
 # Include routers
 app.include_router(api_router)
