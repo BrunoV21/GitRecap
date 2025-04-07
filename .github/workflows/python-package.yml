@@ -89,6 +89,7 @@ jobs:
     steps:
       - name: Deploy with gh-pages
         run: |
+          cd app/git-recap
           git remote set-url origin https://git:${GIT_TOKEN}@github.com/${GIT_REPOSITORY}.git
           npm run deploy -- -u "github-actions-bot <support+actions@github.com>"
         env:
