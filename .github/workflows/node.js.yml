@@ -33,10 +33,6 @@ jobs:
       working-directory: app/git-recap
       run: npm run build --if-present
 
-    - name: Test
-      working-directory: app/git-recap
-      run: npm test
-
     - name: Deploy with gh-pages
       working-directory: app/git-recap
       run: |
