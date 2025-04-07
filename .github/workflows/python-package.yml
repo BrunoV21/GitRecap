@@ -82,3 +82,25 @@ jobs:
         uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+
+  deploy_git_recap:
+    name: Deploy Git Recap App
+    runs-on: ubuntu-latest
+    needs: build_and_test
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      inputs.run_deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies and deploy
+        run: |
+          cd app/git-recap
+          npm install
+          npm run deploy
+        
