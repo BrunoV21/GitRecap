@@ -41,6 +41,8 @@ jobs:
         npm run deploy -- -u "github-actions-bot <support+actions@github.com>"
       env:
         GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+        VITE_GITHUB_CLIENT_ID: ${{ VITE_GITHUB_CLIENT_ID }}
+        VITE_REDIRECT_URI: ${{ secrets.VITE_REDIRECT_URI }}
         VITE_APP_NAME: ${{ vars.VITE_APP_NAME }}
         VITE_AICORE_API: ${{ vars.VITE_AICORE_API }}
         VITE_LLM_MODEL: ${{ vars.VITE_LLM_MODEL }}
