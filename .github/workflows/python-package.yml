@@ -84,27 +84,16 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
   deploy_git_recap:
-    name: Deploy Git Recap App
+    name: Deploy GitRecap
     runs-on: ubuntu-latest
     needs: build_and_test
     if: >
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       inputs.run_deploy
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Configure Git identity
-        run: |
-          git config --global user.email "bruno.vitorino@tecnico.ulisboa.pt"
-          git config --global user.name "brunov21"
-
-      - name: Install dependencies and deploy
-        run: |
-          cd app/git-recap
-          npm install
-          npm run deploy
+      steps:
+        - name: Deploy with gh-pages
+          run: |
+            git remote set-url origin https://git:${GIT_TOKEN}@github.com/${GIT_REPOSITORY}.git
+            npm run deploy -- -u "github-actions-bot <support+actions@github.com>"
+          env:
+            GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
