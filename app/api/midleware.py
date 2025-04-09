@@ -5,7 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from collections import defaultdict
 
 ALLOWED_ORIGIN = [
-    "https://brunov21.github.io"
+    os.getenv("VITE_FRONTEND_HOST")
 ]
 RATE_LIMIT = int(os.getenv("RATE_LIMIT", "30"))  # Max requests per time window
 WINDOW_SECONDS = int(os.getenv("WINDOW_SECONDS", "3"))  # Time window in seconds
