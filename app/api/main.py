@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 
@@ -21,6 +22,10 @@ app.add_middleware(OriginAndRateLimitMiddleware)
 app.include_router(api_router)
 app.include_router(websocket_router)
 
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="https://brunov21.github.io/GitRecap/")
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
@@ -30,9 +35,6 @@ async def health_check():
 async def stream_health_check():
     response = simulate_llm_response("health")
     return {"response": " ".join(response)}
-
-# Note: The recurring cleanup task has been removed.
-# Session cleanup is now scheduled individually when a new session is created.
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
