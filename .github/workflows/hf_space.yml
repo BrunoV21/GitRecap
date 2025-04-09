@@ -20,7 +20,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}          
         run: |
           cd app/api
-          git init
+          git init --initial-branch=main
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote add origin https://McLoviniTtt:$HF_TOKEN@huggingface.co/spaces/McLoviniTtt/GitRecap
