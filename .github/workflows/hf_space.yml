@@ -1,0 +1,29 @@
+name: Sync app/api to Hugging Face Space
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Deploy app/api to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}          
+        run: |
+          cd app/api
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add origin https://McLoviniTtt:$HF_TOKEN@huggingface.co/spaces/McLoviniTtt/GitRecap
+          git add .
+          git commit -m "Deploy app/api to HF Space"
+          git push --force origin main
