@@ -561,6 +561,52 @@ button, .Button {
   display: block;
 }
 
+.group .tooltip {
+  display: none;
+}
+
+.group:hover .tooltip-text {
+  opacity: 1;
+  display: block;
+}
+
+/* Tooltip container */
+.relative.group {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip text */
+.tooltip-text {
+  /* display: none; */
+  /* Positioning */
+  position: absolute;
+  right: 100%; /* Positions to the left of the icon */
+  top: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  /* transform: translateY(-50%); Perfect vertical centering */
+  
+  /* Spacing */
+  margin-right: 8px; /* Gap between tooltip and icon */
+  
+  /* Sizing */
+  width: 256px;
+  
+  /* Styling (use your existing classes or these values) */
+  background-color: #f5f5dc;
+  border: 1px solid #d2b48c;
+  color: #5c4033;
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 50;
+  
+  /* Text */
+  font-size: 0.75rem;
+  white-space: normal;
+}
+
 /* Ensure tooltip text stays in one line */
 .whitespace-nowrap {
   white-space: nowrap;

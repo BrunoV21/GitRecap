@@ -226,7 +226,7 @@ function App() {
       const data = await response.json();
       
       if (!data.actions) {
-        setPopupMessage('Got no actionables from Git. Please check your filters or date range.');
+        setPopupMessage('Got no actionables from Git. Please check your filters or date range. If you are signing with GitHub, you will need to install GitRecap from the Marketplace or authenticate with a PAT instead.');
         setIsPopupOpen(true);
         clearInterval(progressActionsInterval);
         setProgressActions(100);
@@ -457,9 +457,9 @@ function App() {
               <div className="repositories-scroll-container">
                 <label className="block mb-2 font-medium flex items-center justify-between">
                   Select Repositories:
-                  <div className="relative inline-block group">
+                  <div className="group" style={{position: 'relative', display: 'inline-block'}}>
                     <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-6 hidden group-hover:block w-64 bg-beige border border-brown-300 text-brown-800 text-xs rounded-md p-2 shadow-lg z-10 whitespace-normal">
+                    <div className="tooltip-text">
                       Looking for a repo that is not here? To access private repos,{' '}
                       <a 
                         href="https://docs.github.com/en/apps/using-github-apps/installing-a-github-app-from-github-marketplace-for-your-personal-account" 
