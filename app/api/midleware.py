@@ -4,27 +4,28 @@ from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from collections import defaultdict
 
-ALLOWED_ORIGIN = ["https://mclovinittt-gitrecap.hf.space"] 
-ALLOWED_ORIGIN.append(os.getenv("VITE_FRONTEND_HOST")) if os.getenv("VITE_FRONTEND_HOST") else ...
-RATE_LIMIT = int(os.getenv("RATE_LIMIT", "30"))  # Max requests
-WINDOW_SECONDS = int(os.getenv("WINDOW_SECONDS", "3"))  # Time window (e.g., 5 reqs per 60s)
+ALLOWED_ORIGIN = [
+    "https://huggingface.co/spaces/McLoviniTtt/GitRecap",
+    "https://brunov21.github.io/GitRecap"
+]
+RATE_LIMIT = int(os.getenv("RATE_LIMIT", "30"))  # Max requests per time window
+WINDOW_SECONDS = int(os.getenv("WINDOW_SECONDS", "3"))  # Time window in seconds
 
-# Store timestamps of requests per IP or origin
+# Store timestamps of requests per IP
 request_logs = defaultdict(list)
 
 
 class OriginAndRateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin")
-
         if origin not in ALLOWED_ORIGIN:
             raise HTTPException(status_code=403, detail="Forbidden: origin not allowed")
 
-        # --- Rate limiting logic ---
+        # Rate limiting logic based on client IP
         client_ip = request.client.host
         now = time.time()
 
-        # Remove timestamps older than the window
+        # Clean up old request timestamps outside the current window
         request_logs[client_ip] = [
             t for t in request_logs[client_ip] if now - t < WINDOW_SECONDS
         ]

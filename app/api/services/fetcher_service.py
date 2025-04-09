@@ -3,19 +3,20 @@ from fastapi import HTTPException
 from git_recap.providers.base_fetcher import BaseFetcher
 from git_recap.fetcher import GitHubFetcher, AzureFetcher, GitLabFetcher
 
-# In-memory store mapping session_id to PAT
+# In-memory store mapping session_id to its respective fetcher instance
 fetchers: Dict[str, BaseFetcher] = {}
 
-def store_fetcher(session_id: str, pat: str, provider :Optional[str]="GitHub") -> None:
+def store_fetcher(session_id: str, pat: str, provider: Optional[str] = "GitHub") -> None:
     """
     Store the provided PAT associated with the given session_id.
     
     Args:
-        session_id: The session identifier that ties the PAT to an active session.
+        session_id: The session identifier tied to the active session.
         pat: The Personal Access Token to be stored.
+        provider: The provider identifier (default is "GitHub"). Can also be "Azure Devops" or "GitLab".
     
     Raises:
-        HTTPException: If the session_id or pat is invalid.
+        HTTPException: If the session_id or PAT is invalid.
     """
     if not session_id or not pat:
         raise HTTPException(status_code=400, detail="Invalid session_id or PAT")
@@ -30,18 +31,30 @@ def store_fetcher(session_id: str, pat: str, provider :Optional[str]="GitHub") -
 
 def get_fetcher(session_id: str) -> BaseFetcher:
     """
-    Retrieve the stored PAT for the provided session_id.
+    Retrieve the stored fetcher instance for the provided session_id.
     
     Args:
         session_id: The session identifier.
     
     Returns:
-        The stored PAT string.
+        The fetcher instance associated with the session_id.
     
     Raises:
-        HTTPException: If no PAT is found for the given session_id.
+        HTTPException: If no fetcher is found for the given session_id.
     """
     fetcher = fetchers.get(session_id)
     if not fetcher:
         raise HTTPException(status_code=404, detail="Session not found")
     return fetcher
+
+def expire_fetcher(session_id: str) -> None:
+    """
+    Remove the fetcher associated with the given session_id.
+    
+    This function is used for cleaning up resources by expiring the stored fetcher instance
+    when its corresponding session is expired.
+    
+    Args:
+        session_id: The session identifier whose associated fetcher should be removed.
+    """
+    fetchers.pop(session_id, None)

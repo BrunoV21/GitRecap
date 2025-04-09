@@ -5,6 +5,7 @@ from typing import Optional
 from services.llm_service import initialize_llm_session, trim_messages, run_concurrent_tasks, get_llm
 from aicore.const import SPECIAL_TOKENS, STREAM_END_TOKEN
 import ulid
+import asyncio
 
 router = APIRouter()
 
@@ -68,3 +69,11 @@ async def websocket_endpoint(
         if session_id in active_connections:
             await websocket.send_text(json.dumps({"error": str(e)}))
             del active_connections[session_id]
+
+def close_websocket_connection(session_id: str):
+    """
+    Clean up and close the active websocket connection associated with the given session_id.
+    """
+    websocket = active_connections.pop(session_id, None)
+    if websocket:
+        asyncio.create_task(websocket.close())
