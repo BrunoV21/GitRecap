@@ -5,8 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from collections import defaultdict
 
 ALLOWED_ORIGIN = [
-    "https://huggingface.co/spaces/McLoviniTtt/GitRecap",
-    "https://brunov21.github.io/GitRecap"
+    "https://brunov21.github.io"
 ]
 RATE_LIMIT = int(os.getenv("RATE_LIMIT", "30"))  # Max requests per time window
 WINDOW_SECONDS = int(os.getenv("WINDOW_SECONDS", "3"))  # Time window in seconds
@@ -18,7 +17,7 @@ request_logs = defaultdict(list)
 class OriginAndRateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin")
-        if origin not in ALLOWED_ORIGIN:
+        if origin and origin not in ALLOWED_ORIGIN:
             raise HTTPException(status_code=403, detail="Forbidden: origin not allowed")
 
         # Rate limiting logic based on client IP
