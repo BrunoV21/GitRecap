@@ -106,7 +106,11 @@ async def get_actions(
     repo_filter: Optional[List[str]] = Query(None),
     authors: Optional[List[str]] = Query(None)
 ):
-    fetcher = get_fetcher(session_id)    
+    if repo_filter is not None:
+        repo_filter = sum([repo.split(",") for repo in repo_filter], [])
+    if authors is not None:
+        authors = sum([author.split(",") for author in authors], [])
+    fetcher = get_fetcher(session_id)
     # Convert date strings to datetime objects
     start_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)  if start_date else None
     end_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)  if end_date else None
