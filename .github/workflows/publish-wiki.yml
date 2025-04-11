@@ -1,18 +1,37 @@
-name: Publish wiki
+name: Sync app/docs to GitHub Wiki
 on:
   push:
     branches: [main]
-    paths:
-      - docs/**
-      - .github/workflows/publish-wiki.yml
-concurrency:
-  group: publish-wiki
-  cancel-in-progress: true
-permissions:
-  contents: write
+  workflow_dispatch:
+
 jobs:
-  publish-wiki:
+  sync-to-wiki:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed for pushing to the wiki via GITHUB_TOKEN
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: Andrew-Chen-Wang/github-wiki-action@v4
+      - name: Checkout main repo
+        uses: actions/checkout@v3
+
+      - name: Checkout Wiki repo into docs/wiki
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}.wiki
+          token: ${{ secrets.GIT_PAT }}
+          path: /docs/tmp-wiki
+
+      - name: Move .git from wiki clone to docs folder
+        run: |
+          cd docs
+          mv tmp-wiki/.git ./
+          rm -rf tmp-wiki
+
+      - name: Commit and push to Wiki
+        run: |
+          cd docs
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Sync app/docs to GitHub Wiki" || echo "No changes to commit"
+          git push -f origin master
