@@ -22,7 +22,7 @@ jobs:
           git init
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote add origin https://${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git
+          git remote add origin https://brunov21:${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git
           git add .
           git commit -m "Deploy app/api to GitHub Wiki"
           git push --force origin master
