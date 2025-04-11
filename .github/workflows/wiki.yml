@@ -1,4 +1,4 @@
-name: Sync app/api to GitHub Wiki
+name: Sync docs to GitHub Wiki
 on:
   push:
     branches: [main]
@@ -14,15 +14,30 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Push to GitHub Wiki
+      - name: Clone Wiki repo and deploy docs
         env:
           GIT_TOKEN: ${{ secrets.GIT_PAT }}
         run: |
+          # Navigate to app/docs folder
           cd docs
-          git init
+          
+          # Clone the GitHub Wiki repository into a temporary "tmp" directory.
+          echo "Cloning Wiki repository into tmp folder..."
+          git clone https://BrunoV21:${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git tmp
+          
+          # Move the hidden .git directory from the temporary clone to the app/docs folder.
+          echo "Moving .git directory to current folder..."
+          mv tmp/.git ./
+          
+          # Delete the temporary clone folder.
+          echo "Deleting temporary folder..."
+          rm -rf tmp
+          
+          # Configure Git identity for the commit.
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote add origin https://BrunoV21:${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git
+          
+          # Add changes, commit and push to the master branch.
           git add .
-          git commit -m "Deploy app/docs to GitHub Wiki"
+          git commit -m "Deploy docs to GitHub Wiki" || echo "No changes to commit"
           git push --force origin master
