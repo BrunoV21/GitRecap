@@ -1,43 +1,18 @@
-name: Sync docs to GitHub Wiki
+name: Publish wiki
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-
+    paths:
+      - docs/**
+      - .github/workflows/publish-wiki.yml
+concurrency:
+  group: publish-wiki
+  cancel-in-progress: true
+permissions:
+  contents: write
 jobs:
-  sync-to-wiki:
+  publish-wiki:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          lfs: true
-
-      - name: Clone Wiki repo and deploy docs
-        env:
-          GIT_TOKEN: ${{ secrets.GIT_PAT }}
-        run: |
-          # Navigate to app/docs folder
-          cd docs
-          
-          # Clone the GitHub Wiki repository into a temporary "tmp" directory.
-          echo "Cloning Wiki repository into tmp folder..."
-          git clone https://${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git tmp
-          
-          # Move the hidden .git directory from the temporary clone to the app/docs folder.
-          echo "Moving .git directory to current folder..."
-          mv tmp/.git ./
-          
-          # Delete the temporary clone folder.
-          echo "Deleting temporary folder..."
-          rm -rf tmp
-          
-          # Configure Git identity for the commit.
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Add changes, commit and push to the master branch.
-          git add .
-          git commit -m "Deploy docs to GitHub Wiki" || echo "No changes to commit"
-          git push --force origin master
+      - uses: actions/checkout@v3
+      - uses: Andrew-Chen-Wang/github-wiki-action@v4
