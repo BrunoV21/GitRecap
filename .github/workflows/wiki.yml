@@ -1,0 +1,28 @@
+name: Sync app/api to GitHub Wiki
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync-to-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to GitHub Wiki
+        env:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+        run: |
+          cd app/api
+          git init --initial-branch=main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add origin https://BrunoV21:${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git
+          git add .
+          git commit -m "Deploy app/api to GitHub Wiki"
+          git push --force origin main
