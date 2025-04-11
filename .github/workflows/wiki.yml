@@ -16,7 +16,7 @@ jobs:
 
       - name: Push to GitHub Wiki
         env:
-          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_TOKEN: ${{ secrets.GIT_PAT }}
         run: |
           cd docs
           git init
