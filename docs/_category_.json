@@ -1,0 +1,44 @@
+
+{
+  "label": "Git Recap",
+  "position": 1,
+  "link": {
+    "type": "generated-index",
+    "description": "Documentation for Git Recap project"
+  },
+  "collapsed": false,
+  "items": [
+    {
+      "type": "doc",
+      "id": "overview"
+    },
+    {
+      "type": "doc",
+      "id": "installation"
+    },
+    {
+      "type": "doc",
+      "id": "python-package"
+    },
+    {
+      "type": "doc",
+      "id": "backend"
+    },
+    {
+      "type": "doc",
+      "id": "frontend"
+    },
+    {
+      "type": "doc",
+      "id": "github-app"
+    },
+    {
+      "type": "doc",
+      "id": "contributing"
+    },
+    {
+      "type": "doc",
+      "id": "faq"
+    }
+  ]
+}
