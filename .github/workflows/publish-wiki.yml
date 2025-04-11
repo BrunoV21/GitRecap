@@ -5,6 +5,9 @@ on:
     paths:
       - docs/**
       - .github/workflows/publish-wiki.yml
+concurrency:
+  group: publish-wiki
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
