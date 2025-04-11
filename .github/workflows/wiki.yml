@@ -25,4 +25,4 @@ jobs:
           git remote add origin https://BrunoV21:${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git
           git add .
           git commit -m "Deploy app/api to GitHub Wiki"
-          git push --force origin main
+          git push --force origin master
