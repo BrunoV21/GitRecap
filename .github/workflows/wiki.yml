@@ -19,7 +19,7 @@ jobs:
           GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
         run: |
           cd docs
-          git init --initial-branch=main
+          git init
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote add origin https://BrunoV21:${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git
