@@ -23,7 +23,7 @@ jobs:
           
           # Clone the GitHub Wiki repository into a temporary "tmp" directory.
           echo "Cloning Wiki repository into tmp folder..."
-          git clone https://BrunoV21:${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git tmp
+          git clone https://${GIT_TOKEN}@github.com/BrunoV21/GitRecap.wiki.git tmp
           
           # Move the hidden .git directory from the temporary clone to the app/docs folder.
           echo "Moving .git directory to current folder..."
