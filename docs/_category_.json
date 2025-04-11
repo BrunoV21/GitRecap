@@ -1,0 +1,67 @@
+
+{
+  "label": "Git Recap",
+  "position": 1,
+  "link": {
+    "type": "generated-index",
+    "description": "Complete documentation for Git Recap project - a tool to aggregate and summarize Git activities across multiple platforms"
+  },
+  "collapsed": false,
+  "items": [
+    {
+      "type": "doc",
+      "id": "overview",
+      "label": "Overview",
+      "description": "Project introduction, features, and high-level architecture"
+    },
+    {
+      "type": "doc",
+      "id": "installation",
+      "label": "Installation",
+      "description": "Setup instructions for local development and production environments"
+    },
+    {
+      "type": "category",
+      "label": "Components",
+      "description": "Detailed documentation of system components",
+      "items": [
+        {
+          "type": "doc",
+          "id": "python-package",
+          "label": "Python Package",
+          "description": "git_recap package modules and extension points"
+        },
+        {
+          "type": "doc",
+          "id": "backend",
+          "label": "Backend API",
+          "description": "FastAPI structure, authentication, and security"
+        },
+        {
+          "type": "doc",
+          "id": "frontend",
+          "label": "Frontend",
+          "description": "React+Vite architecture and key components"
+        }
+      ]
+    },
+    {
+      "type": "doc",
+      "id": "github-app",
+      "label": "GitHub App",
+      "description": "Installation, permissions, and usage workflows"
+    },
+    {
+      "type": "doc",
+      "id": "contributing",
+      "label": "Contributing",
+      "description": "Guidelines for contributing to the project"
+    },
+    {
+      "type": "doc",
+      "id": "faq",
+      "label": "FAQ",
+      "description": "Troubleshooting and common issues"
+    }
+  ]
+}
