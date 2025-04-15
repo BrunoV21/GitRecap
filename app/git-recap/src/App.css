@@ -747,6 +747,63 @@ a {
   width: 25%;
 }
 
+.footer {
+  margin-top: 2rem;
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  border-top: 1px solid #eaeaea;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  color: #666;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: #333;
+  text-decoration: underline;
+}
+
+/* Add this to your existing footer styles */
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  color: #666;
+  text-decoration: none;
+  gap: 0.5rem; /* This creates space between icon and text */
+}
+
+/* Or alternatively, you can use margin */
+.icon-spacing {
+  margin-right: 0.5rem; /* Adjust this value to increase/decrease spacing */
+}
+
+.repositories-scroll-container {
+  /* Remove scroll by letting content expand naturally */
+  overflow: visible;
+  min-height: 50px; /* Adjust based on your needs */
+}
+
+/* Also adjust the grid container if needed */
+.repositories-scroll-container .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem;
+  overflow: visible;
+}
+
 /* Only wrap on very small screens */
 @media (max-width: 400px) {
   .author-input-group {

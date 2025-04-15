@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { Github } from 'lucide-react';
+import { BookText } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
 
@@ -612,6 +614,23 @@ function App() {
           </Button>
         </Card>
       </Popup>
+      <footer className="footer">
+        <div className="footer-content">
+          <span>© {new Date().getFullYear()} GitRecap</span>
+          <span> | </span>
+          <span>License: <a href="https://github.com/BrunoV21/GitRecap/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Apache 2.0</a></span>
+          <span> | </span>
+          <a href="https://github.com/BrunoV21/GitRecap" className="footer-link" target="_blank" rel="noopener noreferrer">
+            <Github className="h-4 w-4 icon-spacing" />
+            Repository
+          </a>
+          <span> | </span>
+          <a href="https://github.com/BrunoV21/GitRecap/wiki" className="footer-link" target="_blank" rel="noopener noreferrer">
+            <BookText className="h-4 w-4 icon-spacing" />
+            Wiki
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }
