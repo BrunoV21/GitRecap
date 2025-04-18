@@ -69,20 +69,30 @@ class URLFetcher(BaseFetcher):
             raise ValueError(f"Invalid Git repository URL: {self.url}. Error: {e.stderr}") from e
 
     def _clone_repo(self) -> None:
-        """Clone the repository to a temporary directory with safety checks."""
+        """Clone the repository to a temporary directory with all branches."""
         self.temp_dir = tempfile.mkdtemp(prefix="gitrecap_")
         try:
-            result = subprocess.run(
-                ["git", "clone", "--depth", "1", self.url, self.temp_dir],
+            # First clone with --no-checkout to save bandwidth
+            subprocess.run(
+                ["git", "clone", "--no-checkout", self.url, self.temp_dir],
                 check=True,
                 capture_output=True,
                 text=True,
-                timeout=300  # 5 minute timeout for cloning
+                timeout=300
+            )
+            
+            # Fetch all branches
+            subprocess.run(
+                ["git", "-C", self.temp_dir, "fetch", "--all"],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=300
             )
             
             # Verify the cloned repository has at least one commit
             verify_result = subprocess.run(
-                ["git", "-C", self.temp_dir, "rev-list", "--count", "HEAD"],
+                ["git", "-C", self.temp_dir, "rev-list", "--count", "--all"],
                 capture_output=True,
                 text=True,
                 check=True
@@ -114,6 +124,24 @@ class URLFetcher(BaseFetcher):
             
         return [repo_name]
 
+    def _get_all_branches(self) -> List[str]:
+        """Get list of all remote branches in the repository."""
+        if not self.temp_dir:
+            return []
+            
+        try:
+            result = subprocess.run(
+                ["git", "-C", self.temp_dir, "branch", "-r", "--format=%(refname:short)"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            branches = [b.strip() for b in result.stdout.splitlines() if b.strip()]
+            # Filter out HEAD reference if present
+            return [b for b in branches if not b.endswith('/HEAD')]
+        except subprocess.CalledProcessError:
+            return []
+
     def _run_git_log(self, extra_args: List[str] = None) -> List[Dict[str, Any]]:
         """Run git log command with common arguments and parse output."""
         if not self.temp_dir:
@@ -124,7 +152,8 @@ class URLFetcher(BaseFetcher):
             "-C", self.temp_dir,
             "log",
             "--pretty=format:%H|%an|%ad|%s",
-            "--date=iso"
+            "--date=iso",
+            "--all"  # Include all branches and tags
         ]
 
         if self.start_date:
@@ -143,7 +172,7 @@ class URLFetcher(BaseFetcher):
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=30  # Add timeout for git log operations
+                timeout=120  # Increased timeout for large repositories
             )
             return self._parse_git_log(result.stdout)
         except subprocess.TimeoutExpired:
@@ -181,7 +210,7 @@ class URLFetcher(BaseFetcher):
         return entries
 
     def fetch_commits(self) -> List[Dict[str, Any]]:
-        """Fetch commits from the cloned repository."""
+        """Fetch commits from all branches in the cloned repository."""
         return self._run_git_log()
 
     def fetch_pull_requests(self) -> List[Dict[str, Any]]:
