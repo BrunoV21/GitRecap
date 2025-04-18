@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, Query
+from pydantic import BaseModel
 
 from models.schemas import ChatRequest
 from services.llm_service import initialize_llm_session, set_llm, get_llm, trim_messages
@@ -12,7 +13,35 @@ import os
 
 router = APIRouter()
 
+class CloneRequest(BaseModel):
+    """Request model for repository cloning endpoint."""
+    url: str
+
 GITHUB_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token'
+
+@router.post("/api/v1/clone-repo")
+async def clone_repository(request: CloneRequest):
+    """
+    Endpoint for cloning a repository from a URL.
+    
+    Args:
+        request: CloneRequest containing the repository URL
+        
+    Returns:
+        dict: Contains session_id for subsequent operations
+        
+    Raises:
+        HTTPException: 400 for invalid URL, 500 for cloning failure
+    """
+    try:
+        response = await create_llm_session()
+        session_id = response.get("session_id")
+        store_fetcher(session_id, request.url, "URL")
+        return {"session_id": session_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clone repository: {str(e)}")
 
 @router.get("/external-signup")
 async def external_signup(app: str, accessToken: str, provider: str):
@@ -46,14 +75,21 @@ async def external_signup(app: str, accessToken: str, provider: str):
     response["provider"] = provider
     final_response = await store_fetcher_endpoint(response)
     session_id = final_response.get("session_id")    
-    # Here you can further process the token, create a user session, etc.
     return {"session_id": session_id}
 
 @router.post("/pat")
 async def store_fetcher_endpoint(request: Request):
     """
     Endpoint to store the PAT associated with a session.
-    Expects JSON payload with 'session_id' and 'pat'
+    
+    Args:
+        request: Contains JSON payload with 'session_id' and 'pat'
+        
+    Returns:
+        dict: Contains session_id
+        
+    Raises:
+        HTTPException: 400 if PAT is missing
     """
     if isinstance(request, Request):
         payload = await request.json()
@@ -70,14 +106,20 @@ async def store_fetcher_endpoint(request: Request):
     store_fetcher(session_id, token, provider)
     return {"session_id": session_id}
 
-# @router.post("/llm")
 async def create_llm_session(
     request: Optional[LlmConfig] = None
 ):
     """
     Create a new LLM session with custom configuration
     
-    Returns a session ID that can be used in subsequent chat requests
+    Args:
+        request: Optional LLM configuration
+        
+    Returns:
+        dict: Contains session_id and success message
+        
+    Raises:
+        HTTPException: 500 if session creation fails
     """
     try:
         session_id = await set_llm(request)
@@ -92,8 +134,15 @@ async def create_llm_session(
 async def get_repos(session_id: str):
     """
     Return a list of repositories for the given session_id.
-    In a real implementation, you might use the stored PAT (or session data)
-    to query the code host for the actual list of repositories.
+    
+    Args:
+        session_id: The session identifier
+        
+    Returns:
+        dict: Contains list of repository names
+        
+    Raises:
+        HTTPException: 404 if session not found
     """
     fetcher = get_fetcher(session_id)
     return {"repos": fetcher.repos_names}
@@ -106,14 +155,31 @@ async def get_actions(
     repo_filter: Optional[List[str]] = Query(None),
     authors: Optional[List[str]] = Query(None)
 ):
+    """
+    Get actions for the specified session with optional filters.
+    
+    Args:
+        session_id: The session identifier
+        start_date: Optional start date filter
+        end_date: Optional end date filter
+        repo_filter: Optional list of repositories to filter
+        authors: Optional list of authors to filter
+        
+    Returns:
+        dict: Contains formatted action entries
+        
+    Raises:
+        HTTPException: 404 if session not found
+    """
     if repo_filter is not None:
         repo_filter = sum([repo.split(",") for repo in repo_filter], [])
     if authors is not None:
         authors = sum([author.split(",") for author in authors], [])
     fetcher = get_fetcher(session_id)
+    
     # Convert date strings to datetime objects
-    start_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)  if start_date else None
-    end_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)  if end_date else None
+    start_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc) if start_date else None
+    end_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc) if end_date else None
 
     if start_dt:
         fetcher.start_date = start_dt

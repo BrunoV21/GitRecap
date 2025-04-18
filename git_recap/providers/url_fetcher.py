@@ -12,6 +12,13 @@ from git_recap.providers.base_fetcher import BaseFetcher
 class URLFetcher(BaseFetcher):
     """Fetcher implementation for generic Git repository URLs."""
     
+    GIT_URL_PATTERN = re.compile(
+        r'^(?:http|https|git|ssh)://'  # Protocol
+        r'(?:\S+@)?'  # Optional username
+        r'([^/]+)'  # Domain
+        r'(?:[:/])([^/]+/[^/]+?)(?:\.git)?$'  # Repo path
+    )
+    
     def __init__(
         self,
         url: str,
@@ -27,37 +34,69 @@ class URLFetcher(BaseFetcher):
             repo_filter=repo_filter,
             authors=authors
         )
-        self.url = url
+        self.url = self._normalize_url(url)
         self.temp_dir = None
         self._validate_url()
         self._clone_repo()
 
+    def _normalize_url(self, url: str) -> str:
+        """Normalize the Git URL to ensure consistent format."""
+        url = url.strip()
+        if not url.endswith('.git'):
+            url += '.git'
+        if not any(url.startswith(proto) for proto in ('http://', 'https://', 'git://', 'ssh://')):
+            url = f'https://{url}'
+        return url
+
     def _validate_url(self) -> None:
         """Validate the Git repository URL using git ls-remote."""
+        if not self.GIT_URL_PATTERN.match(self.url):
+            raise ValueError(f"Invalid Git repository URL format: {self.url}")
+            
         try:
             result = subprocess.run(
                 ["git", "ls-remote", self.url],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
+                timeout=10  # Add timeout to prevent hanging
             )
             if not result.stdout.strip():
                 raise ValueError(f"URL {self.url} points to an empty repository")
+        except subprocess.TimeoutExpired:
+            raise ValueError(f"Timeout while validating URL {self.url}")
         except subprocess.CalledProcessError as e:
-            raise ValueError(f"Invalid Git repository URL: {self.url}") from e
+            raise ValueError(f"Invalid Git repository URL: {self.url}. Error: {e.stderr}") from e
 
     def _clone_repo(self) -> None:
-        """Clone the repository to a temporary directory."""
+        """Clone the repository to a temporary directory with safety checks."""
         self.temp_dir = tempfile.mkdtemp(prefix="gitrecap_")
         try:
-            subprocess.run(
-                ["git", "clone", self.url, self.temp_dir],
+            result = subprocess.run(
+                ["git", "clone", "--depth", "1", self.url, self.temp_dir],
                 check=True,
-                capture_output=True
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout for cloning
             )
+            
+            # Verify the cloned repository has at least one commit
+            verify_result = subprocess.run(
+                ["git", "-C", self.temp_dir, "rev-list", "--count", "HEAD"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            if int(verify_result.stdout.strip()) == 0:
+                raise ValueError("Cloned repository has no commits")
+                
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("Repository cloning timed out")
         except subprocess.CalledProcessError as e:
-            shutil.rmtree(self.temp_dir, ignore_errors=True)
             raise RuntimeError(f"Failed to clone repository: {e.stderr}") from e
+        except Exception as e:
+            self.clear()
+            raise RuntimeError(f"Unexpected error during cloning: {str(e)}") from e
 
     @property
     def repos_names(self) -> List[str]:
@@ -65,10 +104,11 @@ class URLFetcher(BaseFetcher):
         if not self.temp_dir:
             return []
         
-        url_parts = re.split(r'[:/]', self.url)
-        repo_name = url_parts[-1] if url_parts else ""
-        
-        # Remove .git extension if present
+        match = self.GIT_URL_PATTERN.match(self.url)
+        if not match:
+            return []
+            
+        repo_name = match.group(2).split('/')[-1]
         if repo_name.endswith(".git"):
             repo_name = repo_name[:-4]
             
@@ -102,9 +142,12 @@ class URLFetcher(BaseFetcher):
                 args,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
+                timeout=30  # Add timeout for git log operations
             )
             return self._parse_git_log(result.stdout)
+        except subprocess.TimeoutExpired:
+            return []
         except subprocess.CalledProcessError:
             return []
 
@@ -114,22 +157,27 @@ class URLFetcher(BaseFetcher):
         for line in log_output.splitlines():
             if not line.strip():
                 continue
-            sha, author, date_str, message = line.split("|", 3)
-            timestamp = datetime.fromisoformat(date_str)
-            
-            if self.start_date and timestamp < self.start_date:
-                continue
-            if self.end_date and timestamp > self.end_date:
-                continue
+                
+            try:
+                sha, author, date_str, message = line.split("|", 3)
+                timestamp = datetime.fromisoformat(date_str)
+                
+                if self.start_date and timestamp < self.start_date:
+                    continue
+                if self.end_date and timestamp > self.end_date:
+                    continue
 
-            entries.append({
-                "type": "commit",
-                "repo": self.repos_names[0],
-                "message": message,
-                "sha": sha,
-                "author": author,
-                "timestamp": timestamp
-            })
+                entries.append({
+                    "type": "commit",
+                    "repo": self.repos_names[0],
+                    "message": message,
+                    "sha": sha,
+                    "author": author,
+                    "timestamp": timestamp
+                })
+            except ValueError:
+                continue  # Skip malformed log entries
+                
         return entries
 
     def fetch_commits(self) -> List[Dict[str, Any]]:
@@ -138,16 +186,18 @@ class URLFetcher(BaseFetcher):
 
     def fetch_pull_requests(self) -> List[Dict[str, Any]]:
         """Fetch pull requests (not implemented for generic Git URLs)."""
-        # Generic Git URLs don't have a standard way to fetch PRs
         return []
 
     def fetch_issues(self) -> List[Dict[str, Any]]:
         """Fetch issues (not implemented for generic Git URLs)."""
-        # Generic Git URLs don't have a standard way to fetch issues
         return []
 
     def clear(self) -> None:
         """Clean up temporary directory."""
         if self.temp_dir and os.path.exists(self.temp_dir):
-            shutil.rmtree(self.temp_dir, ignore_errors=True)
-            self.temp_dir = None
+            try:
+                shutil.rmtree(self.temp_dir, ignore_errors=True)
+            except Exception:
+                pass  # Ensure we don't raise during cleanup
+            finally:
+                self.temp_dir = None
