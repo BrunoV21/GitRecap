@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 from fastapi import HTTPException
 from git_recap.providers.base_fetcher import BaseFetcher
-from git_recap.fetcher import GitHubFetcher, AzureFetcher, GitLabFetcher, URLFetcher
+from git_recap.providers import GitHubFetcher, AzureFetcher, GitLabFetcher, URLFetcher
 
 # In-memory store mapping session_id to its respective fetcher instance
 fetchers: Dict[str, BaseFetcher] = {}
