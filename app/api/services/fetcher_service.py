@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 from fastapi import HTTPException
 from git_recap.providers.base_fetcher import BaseFetcher
-from git_recap.fetcher import GitHubFetcher, AzureFetcher, GitLabFetcher
+from git_recap.fetcher import GitHubFetcher, AzureFetcher, GitLabFetcher, URLFetcher
 
 # In-memory store mapping session_id to its respective fetcher instance
 fetchers: Dict[str, BaseFetcher] = {}
@@ -12,14 +12,15 @@ def store_fetcher(session_id: str, pat: str, provider: Optional[str] = "GitHub")
     
     Args:
         session_id: The session identifier tied to the active session.
-        pat: The Personal Access Token to be stored.
-        provider: The provider identifier (default is "GitHub"). Can also be "Azure Devops" or "GitLab".
+        pat: The Personal Access Token to be stored (or URL for URL provider).
+        provider: The provider identifier (default is "GitHub"). 
+                 Can be "Azure Devops", "GitLab", or "URL".
     
     Raises:
-        HTTPException: If the session_id or PAT is invalid.
+        HTTPException: If the session_id or PAT/URL is invalid.
     """
     if not session_id or not pat:
-        raise HTTPException(status_code=400, detail="Invalid session_id or PAT")
+        raise HTTPException(status_code=400, detail="Invalid session_id or PAT/URL")
     
     # Optionally, perform any additional validation or encryption here
     if provider == "GitHub":
@@ -28,6 +29,10 @@ def store_fetcher(session_id: str, pat: str, provider: Optional[str] = "GitHub")
         fetchers[session_id] = AzureFetcher(pat=pat)
     elif provider == "GitLab":
         fetchers[session_id] = GitLabFetcher(pat=pat)
+    elif provider == "URL":
+        fetchers[session_id] = URLFetcher(url=pat)
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported provider")
 
 def get_fetcher(session_id: str) -> BaseFetcher:
     """
@@ -57,4 +62,6 @@ def expire_fetcher(session_id: str) -> None:
     Args:
         session_id: The session identifier whose associated fetcher should be removed.
     """
-    fetchers.pop(session_id, None)
+    fetcher = fetchers.pop(session_id, None)
+    if fetcher and hasattr(fetcher, 'clear'):
+        fetcher.clear()
