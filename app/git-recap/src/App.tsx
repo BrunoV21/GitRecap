@@ -72,7 +72,7 @@ function App() {
     setIsCloning(true);
     try {
       const backendUrl = import.meta.env.VITE_AICORE_API;
-      const response = await fetch(`${backendUrl}/api/v1/clone-repo`, {
+      const response = await fetch(`${backendUrl}/clone-repo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: repoUrl })

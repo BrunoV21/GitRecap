@@ -19,7 +19,7 @@ class CloneRequest(BaseModel):
 
 GITHUB_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 
-@router.post("/api/v1/clone-repo")
+@router.post("/clone-repo")
 async def clone_repository(request: CloneRequest):
     """
     Endpoint for cloning a repository from a URL.
@@ -193,6 +193,7 @@ async def get_actions(
     llm = get_llm(session_id)
     actions = fetcher.get_authored_messages()
     actions = trim_messages(actions, llm.tokenizer)
+    print(f"\n\n\n{actions=}\n\n\n")
     
     return {"actions": parse_entries_to_txt(actions)}
 
