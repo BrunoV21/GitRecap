@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Github } from 'lucide-react';
 import { BookText } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
@@ -49,6 +50,10 @@ function App() {
   const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
   const [sessionId, setSessionId] = useState('');
   const isAuthorized = isGithubAuthorized || isPATAuthorized;
+  
+  // URL clone states
+  const [repoUrl, setRepoUrl] = useState('');
+  const [isCloning, setIsCloning] = useState(false);
 
   // UI states
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -61,6 +66,31 @@ function App() {
   const summaryLogRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [currentWebSocket, setCurrentWebSocket] = useState<WebSocket | null>(null);
+
+  const handleCloneRepo = useCallback(async () => {
+    if (!repoUrl) return;
+    setIsCloning(true);
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(`${backendUrl}/clone-repo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: repoUrl })
+      });
+      
+      if (!response.ok) throw new Error('Failed to clone repository');
+      
+      const data = await response.json();
+      setSessionId(data.session_id);
+      setIsPATAuthorized(true);
+    } catch (error) {
+      console.error('Error cloning repository:', error);
+      setPopupMessage('Failed to clone repository. Please check the URL and try again.');
+      setIsPopupOpen(true);
+    } finally {
+      setIsCloning(false);
+    }
+  }, [repoUrl]);
 
   const handleRepoToggle = (repo: string) => {
     if (selectedRepos.includes(repo)) {
@@ -347,6 +377,32 @@ function App() {
         <div className="github-signin-container mb-6">
           {!isAuthorized ? (
             <>
+              <div className="url-clone-container mb-4 flex gap-2 w-full">
+                <Input
+                  type="text"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  placeholder="Enter Git repository URL"
+                  className="flex-grow min-w-0"  // Takes remaining space
+                  style={{ flex: '2 1 0%' }}     // Explicit 2:1 ratio
+                />
+                <Button
+                  onClick={handleCloneRepo}
+                  disabled={isCloning || !repoUrl}
+                  color="accent"
+                  className="flex-shrink-0"
+                  style={{ 
+                    width: '33.333%',           // Force 1/3 width
+                    flex: '1 1 0%',             // Flex basis 0%
+                    minWidth: 'fit-content'     // Prevent squeezing
+                  }}
+                >
+                  {isCloning ? 'Cloning...' : 'Clone'}
+                </Button>
+              </div>
+              <div className="divider mb-4 flex justify-center">
+                -- or --
+              </div>
               <Button 
                 className="github-signin-btn w-full"
                 onClick={handleGithubLogin}

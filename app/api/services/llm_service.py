@@ -1,15 +1,29 @@
+import json
 import os
 import uuid
 from typing import Dict, List, Optional
 from fastapi import HTTPException
 import asyncio
+import random
 
 from aicore.logger import _logger
 from aicore.config import Config
 from aicore.llm import Llm
 from aicore.llm.config import LlmConfig
+from services.prompts import SELECT_QUIRKY_REMARK_SYSTEM, SYSTEM, quirky_remarks
 
-from services.prompts import SYSTEM
+def get_random_quirky_remarks(remarks_list, n=5):
+    """
+    Returns a list of n randomly selected quirky remarks.
+    
+    Args:
+        remarks_list (list): The full list of quirky remarks.
+        n (int): Number of remarks to select (default is 5).
+        
+    Returns:
+        list: Randomly selected quirky remarks.
+    """
+    return random.sample(remarks_list, min(n, len(remarks_list)))
 
 # LLM session storage
 llm_sessions: Dict[str, Llm] = {}
@@ -110,7 +124,10 @@ async def run_concurrent_tasks(llm, message):
     Yields:
         Chunks of logs from the logger.
     """
-    asyncio.create_task(llm.acomplete(message, system_prompt=SYSTEM))
+    QUIRKY_SYSTEM = SELECT_QUIRKY_REMARK_SYSTEM.format(
+        examples=json.dumps(get_random_quirky_remarks(quirky_remarks), indent=4)
+    )
+    asyncio.create_task(llm.acomplete(message, system_prompt=[SYSTEM, QUIRKY_SYSTEM]))
     asyncio.create_task(_logger.distribute())
     # Stream logger output while LLM is running.
     while True:        
