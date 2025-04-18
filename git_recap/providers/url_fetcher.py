@@ -51,7 +51,7 @@ class URLFetcher(BaseFetcher):
         self.temp_dir = tempfile.mkdtemp(prefix="gitrecap_")
         try:
             subprocess.run(
-                ["git", "clone", "--depth", "1", self.url, self.temp_dir],
+                ["git", "clone", self.url, self.temp_dir],
                 check=True,
                 capture_output=True
             )
@@ -65,10 +65,13 @@ class URLFetcher(BaseFetcher):
         if not self.temp_dir:
             return []
         
-        # Extract repo name from URL or temp dir
-        repo_name = os.path.basename(self.temp_dir)
+        url_parts = re.split(r'[:/]', self.url)
+        repo_name = url_parts[-1] if url_parts else ""
+        
+        # Remove .git extension if present
         if repo_name.endswith(".git"):
             repo_name = repo_name[:-4]
+            
         return [repo_name]
 
     def _run_git_log(self, extra_args: List[str] = None) -> List[Dict[str, Any]]:
