@@ -383,19 +383,26 @@ function App() {
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
                   placeholder="Enter Git repository URL"
-                  className="flex-grow"
+                  className="flex-grow min-w-0"  // Takes remaining space
+                  style={{ flex: '2 1 0%' }}     // Explicit 2:1 ratio
                 />
                 <Button
                   onClick={handleCloneRepo}
                   disabled={isCloning || !repoUrl}
                   color="accent"
-                  className="w-1/3"
+                  className="flex-shrink-0"
+                  style={{ 
+                    width: '33.333%',           // Force 1/3 width
+                    flex: '1 1 0%',             // Flex basis 0%
+                    minWidth: 'fit-content'     // Prevent squeezing
+                  }}
                 >
                   {isCloning ? 'Cloning...' : 'Clone'}
                 </Button>
               </div>
-              
-              <div className="divider mb-4">or</div>
+              <div className="divider mb-4 flex justify-center">
+                -- or --
+              </div>
               <Button 
                 className="github-signin-btn w-full"
                 onClick={handleGithubLogin}
