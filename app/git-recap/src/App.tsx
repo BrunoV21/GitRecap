@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Github } from 'lucide-react';
-import { BookText } from 'lucide-react';
+import { Github, Hammer, BookText } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
 
@@ -448,6 +447,7 @@ function App() {
                           <Button 
                             onClick={() => setCodeHost('gitlab')}
                             className={`w-full ${codeHost === 'gitlab' ? 'active-btn' : ''} btn-same-height`}
+                            disabled={true}
                           >
                             GitLab
                           </Button>
@@ -684,6 +684,11 @@ function App() {
           <a href="https://github.com/BrunoV21/GitRecap/wiki" className="footer-link" target="_blank" rel="noopener noreferrer">
             <BookText className="h-4 w-4 icon-spacing" />
             Wiki
+          </a>
+          <span> | </span>
+          <a href="https://github.com/BrunoV21/AiCore" className="footer-link" target="_blank" rel="noopener noreferrer">
+            <Hammer className="h-4 w-4 icon-spacing" />
+            Built with AiCore
           </a>
         </div>
       </footer>
