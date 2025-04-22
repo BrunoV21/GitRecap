@@ -36,13 +36,13 @@ class URLFetcher(BaseFetcher):
         )
         self.url = self._normalize_url(url)
         self.temp_dir = None
-        self._validate_url()
+        # self._validate_url()
         self._clone_repo()
 
     def _normalize_url(self, url: str) -> str:
         """Normalize the Git URL to ensure consistent format."""
         url = url.strip()
-        if not url.endswith('.git'):
+        if not url.endswith('.git') and "_git" not in url:
             url += '.git'
         if not any(url.startswith(proto) for proto in ('http://', 'https://', 'git://', 'ssh://')):
             url = f'https://{url}'
@@ -116,7 +116,8 @@ class URLFetcher(BaseFetcher):
         
         match = self.GIT_URL_PATTERN.match(self.url)
         if not match:
-            return []
+            repo_name = self.url.split('/')[-1]
+            return [repo_name]
             
         repo_name = match.group(2).split('/')[-1]
         if repo_name.endswith(".git"):
