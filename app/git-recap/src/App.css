@@ -605,6 +605,7 @@ button, .Button {
   /* Text */
   font-size: 0.75rem;
   white-space: normal;
+  max-width: 180px; /* or whatever maximum you prefer */
 }
 
 /* Ensure tooltip text stays in one line */
