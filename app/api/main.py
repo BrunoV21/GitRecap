@@ -6,7 +6,7 @@ import asyncio
 from server.routes import router as api_router
 from services.llm_service import simulate_llm_response
 from server.websockets import router as websocket_router
-from midleware import OriginAndRateLimitMiddleware, ALLOWED_ORIGIN
+from app.api.middleware import OriginAndRateLimitMiddleware, ALLOWED_ORIGIN
 
 # Initialize FastAPI app
 app = FastAPI(title="LLM Service API")
