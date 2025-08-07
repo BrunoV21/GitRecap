@@ -1,10 +1,10 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Github, Hammer, BookText } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
 
 import { Info } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
 
 import { 
   Button, 
@@ -60,6 +60,11 @@ function App() {
   const [selectedN, setSelectedN] = useState(5);
   const [isReposLoading, setIsReposLoading] = useState(true);
   const [repoProgress, setRepoProgress] = useState(0);
+
+  // Release notes states
+  const [releaseNotes, setReleaseNotes] = useState('');
+  const [isReleaseNotesLoading, setIsReleaseNotesLoading] = useState(false);
+  const [releaseNotesError, setReleaseNotesError] = useState('');
 
   const actionsLogRef = useRef<HTMLDivElement>(null);
   const summaryLogRef = useRef<HTMLDivElement>(null);
@@ -276,6 +281,39 @@ function App() {
       setIsPopupOpen(true);
     } finally {
       setIsExecuting(false);
+    }
+  };
+
+  // --- Release Notes Logic ---
+  const handleGenerateReleaseNotes = async () => {
+    setIsReleaseNotesLoading(true);
+    setReleaseNotes('');
+    setReleaseNotesError('');
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const queryParams = new URLSearchParams({
+        session_id: sessionId,
+        start_date: startDate,
+        end_date: endDate,
+        ...(selectedRepos.length ? { repo_filter: selectedRepos.join(",") } : {}),
+        ...(authors.length ? { authors: authors.join(",") } : {}),
+      }).toString();
+      const response = await fetch(`${backendUrl}/release-notes?${queryParams}`, {
+        method: 'GET'
+      });
+      if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
+      const data = await response.json();
+      if (!data.release_notes) {
+        setReleaseNotesError('No release notes generated. Please check your filters or date range.');
+        setReleaseNotes('');
+      } else {
+        setReleaseNotes(data.release_notes);
+      }
+    } catch (error) {
+      setReleaseNotesError('Error generating release notes. Please try again.');
+      setReleaseNotes('');
+    } finally {
+      setIsReleaseNotesLoading(false);
     }
   };
 
@@ -598,6 +636,14 @@ function App() {
         >
           {isExecuting ? 'Processing...' : 'Recap'}
         </Button>
+        <Button
+          onClick={handleGenerateReleaseNotes}
+          disabled={isReleaseNotesLoading || !isAuthorized}
+          color="accent"
+          className="w-full mt-4"
+        >
+          {isReleaseNotesLoading ? 'Generating Release Notes...' : 'Generate Release Notes'}
+        </Button>
       </div>
       <div className="output-section mt-8" ref={actionsLogRef}>
         <Card className="output-box p-6">
@@ -614,6 +660,30 @@ function App() {
             value={commitsOutput} 
             rows={10}
           />
+        </Card>
+      </div>
+      <div className="output-section mt-8">
+        <Card className="output-box p-6">
+          <h2 className="text-xl font-bold mb-4">Release Notes</h2>
+          {isReleaseNotesLoading && (
+            <ProgressBar
+              progress={80}
+              size="md"
+              color="orange"
+              borderColor="black"
+              className="w-full mb-4"
+            />
+          )}
+          {releaseNotesError && (
+            <div className="text-red-600 mb-2">{releaseNotesError}</div>
+          )}
+          <div className="markdown-output" style={{ minHeight: 120 }}>
+            {releaseNotes ? (
+              <ReactMarkdown>{releaseNotes}</ReactMarkdown>
+            ) : (
+              !isReleaseNotesLoading && <span className="text-gray-500">No release notes generated yet.</span>
+            )}
+          </div>
         </Card>
       </div>
       <div className="output-section mt-8" ref={summaryLogRef}>

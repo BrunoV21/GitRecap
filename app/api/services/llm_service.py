@@ -12,6 +12,13 @@ from aicore.llm import Llm
 from aicore.llm.config import LlmConfig
 from services.prompts import SELECT_QUIRKY_REMARK_SYSTEM, SYSTEM, quirky_remarks
 
+# --- Release Notes Prompt Template (should match the one in prompts.py and websockets.py) ---
+RELEASE_NOTES_PROMPT = """
+Given the following list of commit messages and metadata, generate a structured release notes document suitable for end users and developers. Group related changes, highlight breaking changes, and use clear section headers. Do not include dates unless specifically requested. Be concise and professional.
+
+{COMMITS}
+"""
+
 def get_random_quirky_remarks(remarks_list, n=5):
     """
     Returns a list of n randomly selected quirky remarks.
@@ -155,6 +162,23 @@ def simulate_llm_response(message: str) -> List[str]:
         chunks.append(response[i:i+10])
     
     return chunks
+
+# --- Release Notes LLM Orchestration ---
+async def generate_release_notes_llm(llm: Llm, commits_txt: str) -> str:
+    """
+    Generate release notes using the LLM given a plain text list of commits.
+    Args:
+        llm: The LLM instance.
+        commits_txt: The plain text list of commits/messages.
+    Returns:
+        The generated release notes as a string.
+    """
+    prompt = RELEASE_NOTES_PROMPT.format(COMMITS=commits_txt)
+    # In a real implementation, you would stream or await the LLM's response.
+    # For now, just return a dummy string.
+    # response = await llm.acomplete([prompt])
+    # return response
+    return f"[RELEASE NOTES PLACEHOLDER]\n\n{commits_txt}"
 
 def cleanup_llm_sessions():
     """Clean up all LLM sessions."""
