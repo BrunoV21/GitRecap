@@ -1,3 +1,9 @@
+<a href="https://www.uneed.best/tool/gitrecap">
+  <img src="https://www.uneed.best/POTD2A.png" style="width: 250px;" alt="Uneed POTD2 Badge" />
+</a>
+
+---
+
 # Git Recap
 
 Git Recap is a modular Python tool that aggregates and formats user-authored messages from repositories hosted on GitHub, Azure DevOps, and GitLab. It fetches commit messages, pull requests (along with their associated commits), and issues, then consolidates and sorts these events into a clear, chronological summary. This summary is output as a plain text string that can serve as context for large language models or other analysis tools.
