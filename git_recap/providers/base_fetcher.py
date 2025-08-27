@@ -9,7 +9,7 @@ class BaseFetcher(ABC):
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         repo_filter: Optional[List[str]] = None,
-        authors: Optional[List[str]]=None
+        authors: Optional[List[str]] = None
     ):
         self.pat = pat
         if start_date is not None:
@@ -28,32 +28,82 @@ class BaseFetcher(ABC):
 
     @property
     @abstractmethod
-    def repos_names(self)->List[str]:
-        pass
-        
-    @abstractmethod
-    def fetch_commits(self) -> List[str]:
+    def repos_names(self) -> List[str]:
+        """
+        Return the list of repository names accessible to this fetcher.
+
+        Returns:
+            List[str]: List of repository names.
+        """
         pass
 
     @abstractmethod
-    def fetch_pull_requests(self) -> List[str]:
+    def fetch_commits(self) -> List[Dict[str, Any]]:
+        """
+        Fetch commit entries for the configured repositories and authors.
+
+        Returns:
+            List[Dict[str, Any]]: List of commit entries.
+        """
         pass
 
     @abstractmethod
-    def fetch_issues(self) -> List[str]:
+    def fetch_pull_requests(self) -> List[Dict[str, Any]]:
+        """
+        Fetch pull request entries for the configured repositories and authors.
+
+        Returns:
+            List[Dict[str, Any]]: List of pull request entries.
+        """
         pass
+
+    @abstractmethod
+    def fetch_issues(self) -> List[Dict[str, Any]]:
+        """
+        Fetch issue entries for the configured repositories and authors.
+
+        Returns:
+            List[Dict[str, Any]]: List of issue entries.
+        """
+        pass
+
+    @abstractmethod
+    def fetch_releases(self) -> List[Dict[str, Any]]:
+        """
+        Fetch releases for all repositories accessible to this fetcher.
+
+        Returns:
+            List[Dict[str, Any]]: List of releases, each as a structured dictionary.
+                The dictionary should include at least:
+                  - tag_name: str
+                  - name: str
+                  - repo: str
+                  - author: str
+                  - published_at: datetime
+                  - created_at: datetime
+                  - draft: bool
+                  - prerelease: bool
+                  - body: str
+                  - assets: List[Dict[str, Any]] (if available)
+        Raises:
+            NotImplementedError: If the provider does not support release fetching.
+        """
+        raise NotImplementedError("Release fetching is not implemented for this provider.")
 
     def get_authored_messages(self) -> List[Dict[str, Any]]:
         """
         Aggregates all commit, pull request, and issue entries into a single list,
         ensuring no duplicate commits (based on SHA) are present, and then sorts
         them in chronological order based on their timestamp.
+
+        Returns:
+            List[Dict[str, Any]]: Aggregated and sorted list of entries.
         """
         commit_entries = self.fetch_commits()
         pr_entries = self.fetch_pull_requests()
         try:
             issue_entries = self.fetch_issues()
-        except Exception as e:
+        except Exception:
             issue_entries = []
 
         all_entries = pr_entries + commit_entries + issue_entries
@@ -75,11 +125,17 @@ class BaseFetcher(ABC):
         # Sort all entries by their timestamp.
         final_entries.sort(key=lambda x: x["timestamp"])
         return self.convert_timestamps_to_str(final_entries)
-    
+
     @staticmethod
     def convert_timestamps_to_str(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Converts the timestamp field from datetime to string format for each entry in the list.
+
+        Args:
+            entries (List[Dict[str, Any]]): List of entries with possible datetime timestamps.
+
+        Returns:
+            List[Dict[str, Any]]: Entries with timestamps as ISO-formatted strings.
         """
         for entry in entries:
             if isinstance(entry.get("timestamp"), datetime):

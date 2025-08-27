@@ -11,14 +11,14 @@ from git_recap.providers.base_fetcher import BaseFetcher
 
 class URLFetcher(BaseFetcher):
     """Fetcher implementation for generic Git repository URLs."""
-    
+
     GIT_URL_PATTERN = re.compile(
         r'^(?:http|https|git|ssh)://'  # Protocol
         r'(?:\S+@)?'  # Optional username
         r'([^/]+)'  # Domain
         r'(?:[:/])([^/]+/[^/]+?)(?:\.git)?$'  # Repo path
     )
-    
+
     def __init__(
         self,
         url: str,
@@ -52,7 +52,7 @@ class URLFetcher(BaseFetcher):
         """Validate the Git repository URL using git ls-remote."""
         if not self.GIT_URL_PATTERN.match(self.url):
             raise ValueError(f"Invalid Git repository URL format: {self.url}")
-            
+
         try:
             result = subprocess.run(
                 ["git", "ls-remote", self.url],
@@ -80,7 +80,7 @@ class URLFetcher(BaseFetcher):
                 text=True,
                 timeout=300
             )
-            
+
             # Fetch all branches
             subprocess.run(
                 ["git", "-C", self.temp_dir, "fetch", "--all"],
@@ -89,7 +89,7 @@ class URLFetcher(BaseFetcher):
                 text=True,
                 timeout=300
             )
-            
+
             # Verify the cloned repository has at least one commit
             verify_result = subprocess.run(
                 ["git", "-C", self.temp_dir, "rev-list", "--count", "--all"],
@@ -99,7 +99,7 @@ class URLFetcher(BaseFetcher):
             )
             if int(verify_result.stdout.strip()) == 0:
                 raise ValueError("Cloned repository has no commits")
-                
+
         except subprocess.TimeoutExpired:
             raise RuntimeError("Repository cloning timed out")
         except subprocess.CalledProcessError as e:
@@ -113,23 +113,23 @@ class URLFetcher(BaseFetcher):
         """Return list of repository names (single item for URL fetcher)."""
         if not self.temp_dir:
             return []
-        
+
         match = self.GIT_URL_PATTERN.match(self.url)
         if not match:
             repo_name = self.url.split('/')[-1]
             return [repo_name]
-            
+
         repo_name = match.group(2).split('/')[-1]
         if repo_name.endswith(".git"):
             repo_name = repo_name[:-4]
-            
+
         return [repo_name]
 
     def _get_all_branches(self) -> List[str]:
         """Get list of all remote branches in the repository."""
         if not self.temp_dir:
             return []
-            
+
         try:
             result = subprocess.run(
                 ["git", "-C", self.temp_dir, "branch", "-r", "--format=%(refname:short)"],
@@ -187,11 +187,11 @@ class URLFetcher(BaseFetcher):
         for line in log_output.splitlines():
             if not line.strip():
                 continue
-                
+
             try:
                 sha, author, date_str, message = line.split("|", 3)
                 timestamp = datetime.fromisoformat(date_str)
-                
+
                 if self.start_date and timestamp < self.start_date:
                     continue
                 if self.end_date and timestamp > self.end_date:
@@ -207,7 +207,7 @@ class URLFetcher(BaseFetcher):
                 })
             except ValueError:
                 continue  # Skip malformed log entries
-                
+
         return entries
 
     def fetch_commits(self) -> List[Dict[str, Any]]:
@@ -221,6 +221,17 @@ class URLFetcher(BaseFetcher):
     def fetch_issues(self) -> List[Dict[str, Any]]:
         """Fetch issues (not implemented for generic Git URLs)."""
         return []
+
+    def fetch_releases(self) -> List[Dict[str, Any]]:
+        """
+        Fetch releases for the repository.
+        Not implemented for generic Git URLs.
+        Raises:
+            NotImplementedError: Always, since release fetching is not supported for URLFetcher.
+        """
+        # If in the future, support for fetching releases from generic git repos is added,
+        # implement logic here (e.g., parse tags and annotate with metadata).
+        raise NotImplementedError("Release fetching is not supported for generic Git URLs (URLFetcher).")
 
     def clear(self) -> None:
         """Clean up temporary directory."""

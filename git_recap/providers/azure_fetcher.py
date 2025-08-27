@@ -5,8 +5,25 @@ from typing import List, Dict, Any
 from git_recap.providers.base_fetcher import BaseFetcher
 
 class AzureFetcher(BaseFetcher):
+    """
+    Fetcher implementation for Azure DevOps repositories.
+
+    Supports fetching commits, pull requests, and issues.
+    Release fetching is not supported and will raise NotImplementedError.
+    """
+
     def __init__(self, pat: str, organization_url: str, start_date=None, end_date=None, repo_filter=None, authors=None):
-        # authors should be passed as a list of unique names (e.g., email or unique id)
+        """
+        Initialize the AzureFetcher.
+
+        Args:
+            pat (str): Personal Access Token for Azure DevOps.
+            organization_url (str): The Azure DevOps organization URL.
+            start_date (datetime, optional): Start date for filtering entries.
+            end_date (datetime, optional): End date for filtering entries.
+            repo_filter (List[str], optional): List of repository names to filter.
+            authors (List[str], optional): List of author identifiers (e.g., email or unique id).
+        """
         super().__init__(pat, start_date, end_date, repo_filter, authors)
         self.organization_url = organization_url
         credentials = BasicAuthentication('', self.pat)
@@ -20,17 +37,37 @@ class AzureFetcher(BaseFetcher):
             self.authors = []
 
     def get_repos(self):
+        """
+        Retrieve all repositories in all projects for the organization.
+        Returns:
+            List of repository objects.
+        """
         projects = self.core_client.get_projects().value
         # Get all repositories in each project
         repos = [self.git_client.get_repositories(project.id) for project in projects]
         return repos
 
     @property
-    def repos_names(self)->List[str]:
-        "to be implemented later"
+    def repos_names(self) -> List[str]:
+        """
+        Return the list of repository names.
+
+        Returns:
+            List[str]: List of repository names.
+        """
+        # To be implemented if needed for UI or listing.
         ...
 
     def _filter_by_date(self, date_obj: datetime) -> bool:
+        """
+        Check if a datetime object is within the configured date range.
+
+        Args:
+            date_obj (datetime): The datetime to check.
+
+        Returns:
+            bool: True if within range, False otherwise.
+        """
         if self.start_date and date_obj < self.start_date:
             return False
         if self.end_date and date_obj > self.end_date:
@@ -38,11 +75,26 @@ class AzureFetcher(BaseFetcher):
         return True
 
     def _stop_fetching(self, date_obj: datetime) -> bool:
+        """
+        Determine if fetching should stop based on the date.
+
+        Args:
+            date_obj (datetime): The datetime to check.
+
+        Returns:
+            bool: True if should stop, False otherwise.
+        """
         if self.start_date and date_obj < self.start_date:
             return True
         return False
 
     def fetch_commits(self) -> List[Dict[str, Any]]:
+        """
+        Fetch commits for all repositories and authors.
+
+        Returns:
+            List[Dict[str, Any]]: List of commit entries.
+        """
         entries = []
         processed_commits = set()
         for repo in self.repos:
@@ -77,6 +129,12 @@ class AzureFetcher(BaseFetcher):
         return entries
 
     def fetch_pull_requests(self) -> List[Dict[str, Any]]:
+        """
+        Fetch pull requests and their associated commits for all repositories and authors.
+
+        Returns:
+            List[Dict[str, Any]]: List of pull request and commit_from_pr entries.
+        """
         entries = []
         processed_pr_commits = set()
         projects = self.core_client.get_projects().value
@@ -138,6 +196,12 @@ class AzureFetcher(BaseFetcher):
         return entries
 
     def fetch_issues(self) -> List[Dict[str, Any]]:
+        """
+        Fetch issues (work items) assigned to the configured authors.
+
+        Returns:
+            List[Dict[str, Any]]: List of issue entries.
+        """
         entries = []
         wit_client = self.connection.clients.get_work_item_tracking_client()
         # Query work items for each author using a simplified WIQL query.
@@ -161,3 +225,15 @@ class AzureFetcher(BaseFetcher):
                 if self._stop_fetching(created_date):
                     break
         return entries
+
+    def fetch_releases(self) -> List[Dict[str, Any]]:
+        """
+        Fetch releases for Azure DevOps repositories.
+
+        Not implemented for Azure DevOps.
+
+        Raises:
+            NotImplementedError: Always, since release fetching is not supported for AzureFetcher.
+        """
+        # If Azure DevOps release fetching is supported in the future, implement logic here.
+        raise NotImplementedError("Release fetching is not supported for Azure DevOps (AzureFetcher).")

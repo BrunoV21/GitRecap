@@ -19,3 +19,6 @@ messages = fetcher.get_authored_messages()
 txt = parse_entries_to_txt(messages)
 
 print(txt)
+
+releases = fetcher.fetch_releases()
+print(releases)
