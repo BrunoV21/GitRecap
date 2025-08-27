@@ -47,6 +47,9 @@ class DummyFetcher(BaseFetcher):
     def repos_names(self):
         ...
 
+    def fetch_releases(self):
+        ...
+
 def test_get_authored_messages():
     # Create a dummy fetcher with a date range covering March 2025.
     fetcher = DummyFetcher(
