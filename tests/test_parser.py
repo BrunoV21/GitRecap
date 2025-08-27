@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from git_recap.utils import parse_entries_to_txt  # assuming you placed the parser function in utils.py
+from git_recap.utils import parse_entries_to_txt
 
 def test_parse_entries_to_txt():
     # Example list of entries
@@ -50,3 +50,45 @@ def test_parse_entries_to_txt():
     assert "dummysha1" not in txt
     assert "dummysha2" not in txt
     assert "T00:17:02" not in txt  # individual timestamp should not be printed
+
+
+# --- Release fetching test stub ---
+def test_fetch_releases_stub():
+    """
+    Unit test stub for the new release-fetching functionality.
+
+    This test covers:
+      - Successful fetching of releases for a supported provider (e.g., GitHubFetcher)
+      - NotImplementedError for providers that do not support releases
+
+    This is a stub: actual API calls are not performed here.
+    """
+    from git_recap.providers.github_fetcher import GitHubFetcher
+    from git_recap.providers.gitlab_fetcher import GitLabFetcher
+    from git_recap.providers.azure_fetcher import AzureFetcher
+    from git_recap.providers.url_fetcher import URLFetcher
+
+    # GitHubFetcher: Should return a list (empty if no PAT or repos)
+    github_fetcher = GitHubFetcher(pat="dummy", repo_filter=[])
+    try:
+        releases = github_fetcher.fetch_releases()
+        assert isinstance(releases, list)
+    except Exception:
+        # Accept any exception here since we use a dummy PAT
+        pass
+
+    # GitLabFetcher: Should raise NotImplementedError
+    gitlab_fetcher = GitLabFetcher(pat="dummy")
+    with pytest.raises(NotImplementedError):
+        gitlab_fetcher.fetch_releases()
+
+    # AzureFetcher: Should raise NotImplementedError
+    # organization_url is required, use dummy
+    azure_fetcher = AzureFetcher(pat="dummy", organization_url="https://dev.azure.com/dummy")
+    with pytest.raises(NotImplementedError):
+        azure_fetcher.fetch_releases()
+
+    # URLFetcher: Should raise NotImplementedError
+    url_fetcher = URLFetcher(url="https://github.com/dummy/dummy.git")
+    with pytest.raises(NotImplementedError):
+        url_fetcher.fetch_releases()

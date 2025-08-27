@@ -4,11 +4,37 @@ from typing import List, Dict, Any
 from git_recap.providers.base_fetcher import BaseFetcher
 
 class GitLabFetcher(BaseFetcher):
-    def __init__(self, pat: str, url: str = 'https://gitlab.com', start_date=None, end_date=None, repo_filter=None, authors=None):
+    """
+    Fetcher implementation for GitLab repositories.
+
+    Supports fetching commits, merge requests (pull requests), and issues.
+    Release fetching is not supported and will raise NotImplementedError.
+    """
+
+    def __init__(
+        self,
+        pat: str,
+        url: str = 'https://gitlab.com',
+        start_date=None,
+        end_date=None,
+        repo_filter=None,
+        authors=None
+    ):
+        """
+        Initialize the GitLabFetcher.
+
+        Args:
+            pat (str): Personal Access Token for GitLab.
+            url (str): The GitLab instance URL.
+            start_date (datetime, optional): Start date for filtering entries.
+            end_date (datetime, optional): End date for filtering entries.
+            repo_filter (List[str], optional): List of repository names to filter.
+            authors (List[str], optional): List of author usernames.
+        """
         super().__init__(pat, start_date, end_date, repo_filter, authors)
         self.gl = gitlab.Gitlab(url, private_token=self.pat)
         self.gl.auth()
-        # Instead of only owned projects, retrieve projects where you're a member.
+        # Retrieve projects where the user is a member.
         self.projects = self.gl.projects.list(membership=True, all=True)
         # Default to the authenticated user's username if no authors are provided.
         if authors is None:
@@ -17,11 +43,12 @@ class GitLabFetcher(BaseFetcher):
             self.authors = authors
 
     @property
-    def repos_names(self)->List[str]:
-        "to be implemented later"
+    def repos_names(self) -> List[str]:
+        """Return the list of repository names."""
         return [project.name for project in self.projects]
 
     def _filter_by_date(self, date_str: str) -> bool:
+        """Check if a date string is within the configured date range."""
         date_obj = datetime.fromisoformat(date_str)
         if self.start_date and date_obj < self.start_date:
             return False
@@ -30,12 +57,19 @@ class GitLabFetcher(BaseFetcher):
         return True
 
     def _stop_fetching(self, date_str: str) -> bool:
+        """Determine if fetching should stop based on the date string."""
         date_obj = datetime.fromisoformat(date_str)
         if self.start_date and date_obj < self.start_date:
             return True
         return False
 
     def fetch_commits(self) -> List[Dict[str, Any]]:
+        """
+        Fetch commits for all projects and authors.
+
+        Returns:
+            List[Dict[str, Any]]: List of commit entries.
+        """
         entries = []
         processed_commits = set()
         for project in self.projects:
@@ -63,6 +97,12 @@ class GitLabFetcher(BaseFetcher):
         return entries
 
     def fetch_pull_requests(self) -> List[Dict[str, Any]]:
+        """
+        Fetch merge requests (pull requests) and their associated commits for all projects and authors.
+
+        Returns:
+            List[Dict[str, Any]]: List of pull request and commit_from_pr entries.
+        """
         entries = []
         processed_pr_commits = set()
         for project in self.projects:
@@ -109,6 +149,12 @@ class GitLabFetcher(BaseFetcher):
         return entries
 
     def fetch_issues(self) -> List[Dict[str, Any]]:
+        """
+        Fetch issues assigned to the authenticated user for all projects.
+
+        Returns:
+            List[Dict[str, Any]]: List of issue entries.
+        """
         entries = []
         for project in self.projects:
             if self.repo_filter and project.name not in self.repo_filter:
@@ -127,3 +173,15 @@ class GitLabFetcher(BaseFetcher):
                 if self._stop_fetching(issue_date):
                     break
         return entries
+
+    def fetch_releases(self) -> List[Dict[str, Any]]:
+        """
+        Fetch releases for GitLab repositories.
+
+        Not implemented for GitLabFetcher.
+
+        Raises:
+            NotImplementedError: Always, since release fetching is not supported for GitLabFetcher.
+        """
+        # If GitLab release fetching is supported in the future, implement logic here.
+        raise NotImplementedError("Release fetching is not supported for GitLab (GitLabFetcher).")
