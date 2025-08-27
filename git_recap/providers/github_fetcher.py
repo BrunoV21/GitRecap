@@ -4,15 +4,21 @@ from typing import List, Dict, Any
 from git_recap.providers.base_fetcher import BaseFetcher
 
 class GitHubFetcher(BaseFetcher):
+    """
+    Fetcher implementation for GitHub repositories.
+
+    Supports fetching commits, pull requests, issues, and releases.
+    """
+
     def __init__(self, pat: str, start_date=None, end_date=None, repo_filter=None, authors=None):
         super().__init__(pat, start_date, end_date, repo_filter, authors)
         self.github = Github(self.pat)
-        self.user = self.github.get_user()        
+        self.user = self.github.get_user()
         self.repos = self.user.get_repos(affiliation="owner,collaborator,organization_member")
         self.authors.append(self.user.login)
 
     @property
-    def repos_names(self)->List[str]:
+    def repos_names(self) -> List[str]:
         return [repo.name for repo in self.repos]
 
     def _stop_fetching(self, date_obj: datetime) -> bool:
@@ -101,7 +107,6 @@ class GitHubFetcher(BaseFetcher):
                     break
         return entries
 
-
     def fetch_issues(self) -> List[Dict[str, Any]]:
         entries = []
         issues = self.user.get_issues()
@@ -118,3 +123,55 @@ class GitHubFetcher(BaseFetcher):
             if self._stop_fetching(issue_date):
                 break
         return entries
+
+    def fetch_releases(self) -> List[Dict[str, Any]]:
+        """
+        Fetch releases for all repositories accessible to the user.
+
+        Returns:
+            List[Dict[str, Any]]: List of releases, each as a structured dictionary with:
+                - tag_name: str
+                - name: str
+                - repo: str
+                - author: str
+                - published_at: datetime
+                - created_at: datetime
+                - draft: bool
+                - prerelease: bool
+                - body: str
+                - assets: List[Dict[str, Any]] (each with name, size, download_url, content_type, etc.)
+        """
+        releases = []
+        for repo in self.repos:
+            if self.repo_filter and repo.name not in self.repo_filter:
+                continue
+            try:
+                for rel in repo.get_releases():
+                    # Compose asset list
+                    assets = []
+                    for asset in rel.get_assets():
+                        assets.append({
+                            "name": asset.name,
+                            "size": asset.size,
+                            "download_url": asset.browser_download_url,
+                            "content_type": asset.content_type,
+                            "created_at": asset.created_at,
+                            "updated_at": asset.updated_at,
+                        })
+                    release_entry = {
+                        "tag_name": rel.tag_name,
+                        "name": rel.title if hasattr(rel, "title") else rel.name,
+                        "repo": repo.name,
+                        "author": rel.author.login if rel.author else None,
+                        "published_at": rel.published_at,
+                        "created_at": rel.created_at,
+                        "draft": rel.draft,
+                        "prerelease": rel.prerelease,
+                        "body": rel.body,
+                        "assets": assets,
+                    }
+                    releases.append(release_entry)
+            except Exception:
+                # If fetching releases fails for a repo, skip it (could be permissions or no releases)
+                continue
+        return releases
