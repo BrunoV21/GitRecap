@@ -54,40 +54,96 @@ def parse_entries_to_txt(entries: List[Dict[str, Any]]) -> str:
     
     return "\n".join(lines)
 
-# Example usage:
-if __name__ == "__main__":
-    # Assuming `output` is the list of dict entries from your fetcher.
-    output = [
-        {
-            "type": "commit_from_pr",
-            "repo": "AiCore",
-            "message": "feat: update TODOs for ObservabilityDashboard with new input/output tokens and cross workspace analysis",
-            "timestamp": "2025-03-14T00:17:02+00:00",
-            "sha": "d1f185f09e4fcb775374b9468755b8463c94a605",
-            "pr_title": "Unified ai integration error monitoring"
-        },
-        {
-            "type": "commit_from_pr",
-            "repo": "AiCore",
-            "message": "feat: enhance token usage visualization in ObservabilityDashboard with grouped bar chart",
-            "timestamp": "2025-03-15T00:20:15+00:00",
-            "sha": "875457b9c80076d821f36cc646ec354ef5124088",
-            "pr_title": "Unified ai integration error monitoring"
-        },
-        {
-            "type": "pull_request",
-            "repo": "AiCore",
-            "message": "Unified ai integration error monitoring",
-            "timestamp": "2025-03-15T21:47:13+00:00",
-            "pr_number": 5
-        },
-        {
-            "type": "commit",
-            "repo": "AiCore",
-            "message": "feat: update openai package version to 1.66.3 in requirements.txt and setup.py",
-            "timestamp": "2025-03-15T23:22:28+00:00",
-            "sha": "9f7e30ebcca8c909274dd8ca91fcfbd17bbf9195"
-        },
-    ]
-    context_txt = parse_entries_to_txt(output)
-    print(context_txt)
+def parse_releases_to_txt(releases: List[Dict[str, Any]]) -> str:
+    """
+    Groups releases by day (YYYY-MM-DD, using published_at or created_at) and produces a plain text summary.
+
+    Each day's header is the date string, followed by bullet points for each release:
+      - tag name and release name
+      - repo name
+      - author
+      - draft/prerelease status
+      - body/notes (if present)
+      - assets (if present)
+
+    The output is analogous to parse_entries_to_txt but tailored for release data.
+    """
+    # Group releases by date (prefer published_at, fallback to created_at)
+    grouped = defaultdict(list)
+    for rel in releases:
+        ts = rel.get("published_at") or rel.get("created_at")
+        # Convert timestamp to a datetime object if necessary
+        if isinstance(ts, str):
+            dt = datetime.fromisoformat(ts)
+        else:
+            dt = ts
+        day = dt.strftime("%Y-%m-%d")
+        grouped[day].append(rel)
+
+    # Sort the days chronologically
+    sorted_days = sorted(grouped.keys())
+
+    # Build the output text
+    lines = []
+    for day in sorted_days:
+        lines.append(day + ":")
+        # Optionally, sort the releases for that day if needed (e.g., by published_at)
+        day_releases = sorted(grouped[day], key=lambda x: x.get("published_at") or x.get("created_at"))
+        for rel in day_releases:
+            tag = rel.get("tag_name", "N/A")
+            name = rel.get("name", "")
+            repo = rel.get("repo", "N/A")
+            author = rel.get("author", "N/A")
+            draft = rel.get("draft", False)
+            prerelease = rel.get("prerelease", False)
+            body = rel.get("body", "")
+            assets = rel.get("assets", [])
+            # Compose status
+            status = []
+            if draft:
+                status.append("draft")
+            if prerelease:
+                status.append("prerelease")
+            status_str = f" ({', '.join(status)})" if status else ""
+            # Compose main bullet
+            bullet = f" - [Release] {tag}: {name} in {repo} by {author}{status_str}"
+            lines.append(bullet)
+            # Add body/notes if present
+            if body and body.strip():
+                # Indent notes
+                lines.append(f"    Notes: {body.strip()}")
+            # Add assets if present
+            if assets:
+                lines.append("    Assets:")
+                for asset in assets:
+                    asset_name = asset.get("name", "N/A")
+                    asset_size = asset.get("size", "N/A")
+                    asset_url = asset.get("download_url", "")
+                    lines.append(f"      - {asset_name} ({asset_size} bytes){' - ' + asset_url if asset_url else ''}")
+        lines.append("")  # blank line between days
+
+    return "\n".join(lines)
+
+# Example usage for releases:
+# if __name__ == "__main__":
+#     releases = [
+#         {
+#             "tag_name": "v1.0.0",
+#             "name": "Release 1.0.0",
+#             "repo": "test-repo",
+#             "author": "testuser",
+#             "published_at": "2025-03-15T10:00:00",
+#             "created_at": "2025-03-15T09:00:00",
+#             "draft": False,
+#             "prerelease": False,
+#             "body": "This is a test release",
+#             "assets": [
+#                 {
+#                     "name": "test-asset.zip",
+#                     "size": 1024,
+#                     "download_url": "https://github.com/test/releases/download/v1.0.0/test-asset.zip",
+#                 }
+#             ],
+#         }
+#     ]
+#     print(parse_releases_to_txt(releases))
