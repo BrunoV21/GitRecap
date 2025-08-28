@@ -58,21 +58,17 @@ def parse_releases_to_txt(releases: List[Dict[str, Any]]) -> str:
     """
     Groups releases by day (YYYY-MM-DD, using published_at or created_at) and produces a plain text summary.
 
-    Each day's header is the date string, followed by bullet points for each release:
+    Each day's header is the date string, followed by a clear, LLM-friendly separator between releases:
       - tag name and release name
       - repo name
       - author
       - draft/prerelease status
       - body/notes (if present)
       - assets (if present)
-
-    The output is analogous to parse_entries_to_txt but tailored for release data.
     """
-    # Group releases by date (prefer published_at, fallback to created_at)
     grouped = defaultdict(list)
     for rel in releases:
         ts = rel.get("published_at") or rel.get("created_at")
-        # Convert timestamp to a datetime object if necessary
         if isinstance(ts, str):
             dt = datetime.fromisoformat(ts)
         else:
@@ -80,16 +76,14 @@ def parse_releases_to_txt(releases: List[Dict[str, Any]]) -> str:
         day = dt.strftime("%Y-%m-%d")
         grouped[day].append(rel)
 
-    # Sort the days chronologically
     sorted_days = sorted(grouped.keys())
 
-    # Build the output text
     lines = []
     for day in sorted_days:
-        lines.append(day + ":")
-        # Optionally, sort the releases for that day if needed (e.g., by published_at)
+        lines.append(f"Date: {day}")
         day_releases = sorted(grouped[day], key=lambda x: x.get("published_at") or x.get("created_at"))
         for rel in day_releases:
+            lines.append("----- Release Start -----")
             tag = rel.get("tag_name", "N/A")
             name = rel.get("name", "")
             repo = rel.get("repo", "N/A")
@@ -98,31 +92,35 @@ def parse_releases_to_txt(releases: List[Dict[str, Any]]) -> str:
             prerelease = rel.get("prerelease", False)
             body = rel.get("body", "")
             assets = rel.get("assets", [])
-            # Compose status
+            
             status = []
             if draft:
                 status.append("draft")
             if prerelease:
                 status.append("prerelease")
             status_str = f" ({', '.join(status)})" if status else ""
-            # Compose main bullet
-            bullet = f" - [Release] {tag}: {name} in {repo} by {author}{status_str}"
-            lines.append(bullet)
-            # Add body/notes if present
+
+            lines.append(f"Release: {name}")
+            lines.append(f"Repository: {repo}")
+            lines.append(f"Tag: {tag}")
+            lines.append(f"Author: {author}")
+            if status_str:
+                lines.append(f"Status: {status_str.strip()}")
             if body and body.strip():
-                # Indent notes
-                lines.append(f"    Notes: {body.strip()}")
-            # Add assets if present
+                lines.append(f"Notes: {body.strip()}")
             if assets:
-                lines.append("    Assets:")
+                lines.append("Assets:")
                 for asset in assets:
                     asset_name = asset.get("name", "N/A")
                     asset_size = asset.get("size", "N/A")
                     asset_url = asset.get("download_url", "")
-                    lines.append(f"      - {asset_name} ({asset_size} bytes){' - ' + asset_url if asset_url else ''}")
+                    lines.append(f"  - {asset_name} ({asset_size} bytes){' - ' + asset_url if asset_url else ''}")
+            lines.append("----- Release End -----\n")  # clear end of release
+
         lines.append("")  # blank line between days
 
     return "\n".join(lines)
+
 
 # Example usage for releases:
 # if __name__ == "__main__":
