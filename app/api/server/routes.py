@@ -21,7 +21,7 @@ async def get_release_notes(
 ):
     """
     Generate release notes for the latest release of a single repository.
-    Validates input, fetches releases, and returns error if invalid.
+    Validates input, fetches releases, fetches actions since latest release, and returns compiled release notes.
     """
     # Validate repo_filter: must be a single repo
     if repo_filter is None or len(repo_filter) != 1:
@@ -60,12 +60,41 @@ async def get_release_notes(
         raise HTTPException(status_code=500, detail="Failed to sort releases by date.")
 
     latest_release = repo_releases[0]
-    # For now, just return the validated info and latest release (step 2 will fetch actions)
+    old_releases = repo_releases[1:num_old_releases+1]
+
+    # Determine the start_date for actions (latest release date)
+    release_date = latest_release.get("published_at") or latest_release.get("created_at")
+    if not release_date:
+        raise HTTPException(status_code=500, detail="Latest release does not have a valid date.")
+    # Accept both datetime and string
+    if isinstance(release_date, datetime):
+        start_date_iso = release_date.astimezone(timezone.utc).isoformat()
+    else:
+        try:
+            dt = datetime.fromisoformat(release_date)
+            start_date_iso = dt.astimezone(timezone.utc).isoformat()
+        except Exception:
+            raise HTTPException(status_code=500, detail="Release date is not a valid ISO format.")
+
+    # Fetch actions since latest release for this repo
+    # Reuse get_actions logic, but inline to avoid async call
+    # Set fetcher filters
+    fetcher.start_date = datetime.fromisoformat(start_date_iso)
+    fetcher.end_dt = None
+    fetcher.repo_filter = [repo]
+    fetcher.authors = None
+
+    llm = get_llm(session_id)
+    actions = fetcher.get_authored_messages()
+    actions = trim_messages(actions, llm.tokenizer)
+    actions_txt = parse_entries_to_txt(actions)
+
     return {
         "repo": repo,
         "num_old_releases": num_old_releases,
         "latest_release": latest_release,
-        "old_releases": repo_releases[1:num_old_releases+1]
+        "old_releases": old_releases,
+        "actions_since_latest_release": actions_txt
     }
 class CloneRequest(BaseModel):
     """Request model for repository cloning endpoint."""
