@@ -11,8 +11,80 @@ from typing import Optional, List
 import requests
 import os
 
+
 router = APIRouter()
 
+@router.get("/release_notes")
+async def get_release_notes(
+    session_id: str,
+    repo_filter: Optional[List[str]] = Query(None),
+    n_old_releases: int = Query(..., ge=1)
+):
+    """
+    Generate release notes for the latest release of a single repository, including actions since the last release and previous releases as reference.
+    Args:
+        session_id: The session identifier
+        repo_filter: List of repositories to filter (must be length 1)
+        n_old_releases: Number of previous releases to include as reference (min 1, max < number of releases)
+    Returns:
+        dict: Contains formatted release notes, actions since last release, and previous releases as reference
+    Raises:
+        HTTPException: 400 for invalid input, 404 if session not found, 422 if releases not supported
+    """
+    if repo_filter is None:
+        raise HTTPException(status_code=400, detail="repo_filter is required and must contain exactly one repository.")
+    repo_filter = sum([repo.split(",") for repo in repo_filter], [])
+    if len(repo_filter) != 1:
+        raise HTTPException(status_code=400, detail="repo_filter must contain exactly one repository.")
+    repo_name = repo_filter[0]
+    fetcher = get_fetcher(session_id)
+    fetcher.repo_filter = [repo_name]
+    try:
+        releases = fetcher.fetch_releases()
+    except NotImplementedError:
+        raise HTTPException(status_code=422, detail="Release fetching is not supported for this provider.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching releases: {str(e)}")
+    # Filter releases for the selected repo (should be only one, but be robust)
+    releases = [r for r in releases if r.get("repo") == repo_name]
+    if not releases:
+        raise HTTPException(status_code=404, detail=f"No releases found for repository '{repo_name}'.")
+    # Sort releases by published_at (or created_at) descending (latest first)
+    def get_release_dt(rel):
+        ts = rel.get("published_at") or rel.get("created_at")
+        if isinstance(ts, str):
+            return datetime.fromisoformat(ts)
+        return ts
+    releases_sorted = sorted(releases, key=get_release_dt, reverse=True)
+    if n_old_releases < 1 or n_old_releases >= len(releases_sorted):
+        raise HTTPException(
+            status_code=400,
+            detail=f"n_old_releases must be at least 1 and less than the number of releases ({len(releases_sorted)})."
+        )
+    latest_release = releases_sorted[0]
+    # Use published_at or created_at as start_date for actions
+    start_ts = latest_release.get("published_at") or latest_release.get("created_at")
+    if isinstance(start_ts, str):
+        start_dt = datetime.fromisoformat(start_ts)
+    else:
+        start_dt = start_ts
+    # Set fetcher start_date to latest release date
+    fetcher.start_date = start_dt
+    # Get actions since last release
+    llm = get_llm(session_id)
+    actions = fetcher.get_authored_messages()
+    actions = trim_messages(actions, llm.tokenizer)
+    actions_txt = parse_entries_to_txt(actions)
+    # Get previous n_old_releases releases (excluding the latest)
+    reference_releases = releases_sorted[1:n_old_releases+1]
+    from git_recap.utils import parse_releases_to_txt
+    reference_releases_txt = parse_releases_to_txt(reference_releases)
+    latest_release_txt = parse_releases_to_txt([latest_release])
+    return {
+        "latest_release": latest_release_txt,
+        "actions_since_last_release": actions_txt,
+        "reference_releases": reference_releases_txt
+    }
 class CloneRequest(BaseModel):
     """Request model for repository cloning endpoint."""
     url: str
