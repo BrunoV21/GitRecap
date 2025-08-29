@@ -13,6 +13,60 @@ import os
 
 router = APIRouter()
 
+@router.get("/release_notes")
+async def get_release_notes(
+    session_id: str,
+    repo_filter: Optional[List[str]] = Query(None),
+    num_old_releases: int = Query(..., ge=1)
+):
+    """
+    Generate release notes for the latest release of a single repository.
+    Validates input, fetches releases, and returns error if invalid.
+    """
+    # Validate repo_filter: must be a single repo
+    if repo_filter is None or len(repo_filter) != 1:
+        raise HTTPException(status_code=400, detail="repo_filter must be a list containing exactly one repository name.")
+    repo = repo_filter[0]
+
+    # Get fetcher for session
+    try:
+        fetcher = get_fetcher(session_id)
+    except HTTPException as e:
+        raise
+
+    # Check if fetcher supports fetch_releases
+    try:
+        releases = fetcher.fetch_releases()
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="Release fetching is not supported for this provider.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching releases: {str(e)}")
+
+    # Filter releases for the requested repo
+    repo_releases = [r for r in releases if r.get("repo") == repo]
+    n_releases = len(repo_releases)
+    if n_releases < 2:
+        raise HTTPException(status_code=400, detail="Not enough releases found for the specified repository (need at least 2).")
+    if num_old_releases < 1 or num_old_releases >= n_releases:
+        raise HTTPException(
+            status_code=400,
+            detail=f"num_old_releases must be at least 1 and less than the number of releases available ({n_releases}) for this repository."
+        )
+
+    # Sort releases by published_at descending (latest first)
+    try:
+        repo_releases.sort(key=lambda r: r.get("published_at") or r.get("created_at"), reverse=True)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to sort releases by date.")
+
+    latest_release = repo_releases[0]
+    # For now, just return the validated info and latest release (step 2 will fetch actions)
+    return {
+        "repo": repo,
+        "num_old_releases": num_old_releases,
+        "latest_release": latest_release,
+        "old_releases": repo_releases[1:num_old_releases+1]
+    }
 class CloneRequest(BaseModel):
     """Request model for repository cloning endpoint."""
     url: str
