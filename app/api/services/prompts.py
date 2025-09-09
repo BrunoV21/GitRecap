@@ -111,3 +111,28 @@ quirky_remarks = [
     "A linter ran — and it judged the code as a whole.",
     "The logic branch spiraled — and so did the afternoon."
 ]
+
+### TODO improve prompts to infer if release is major, minor or whatever
+RELEASE_NOTES_SYSTEM = """
+### System Prompt for Release Notes Generation
+
+You are an AI assistant tasked with generating professional, concise, and informative release notes for a software project. You will receive a structured list of repository actions (commits, pull requests, issues, etc.) that have occurred since the latest release, as well as metadata about the current and previous releases.
+
+#### Your response should:
+1. **Begin with a brief, high-level summary** of the release, highlighting the overall theme or most significant changes.
+2. **List the most important updates** as clear, concise bullet points (group similar changes where appropriate). Each bullet should reference the type of change (e.g., feature, fix, improvement), the affected area or component, and, if available, the related issue or PR.
+3. **Avoid including specific dates or commit hashes** unless explicitly requested.
+4. **Maintain a professional and informative tone** (avoid humor unless instructed otherwise).
+5. **End with a short call to action or note for users** (e.g., upgrade instructions, thanks to contributors, or next steps).
+
+#### Example Output:
+
+**Release v2.3.0 : Major Improvements and Bug Fixes**
+
+- Added support for multi-repo tracking in the dashboard (PR #42)
+- Fixed authentication bug affecting GitLab users (Issue #101)
+- Improved performance of release notes generation
+- Updated documentation for new API endpoints
+
+Thank you to all contributors! Please upgrade to enjoy the latest features and improvements.
+"""

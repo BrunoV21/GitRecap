@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from fastapi import HTTPException
 import asyncio
 import random
@@ -10,7 +10,6 @@ from aicore.logger import _logger
 from aicore.config import Config
 from aicore.llm import Llm
 from aicore.llm.config import LlmConfig
-from services.prompts import SELECT_QUIRKY_REMARK_SYSTEM, SYSTEM, quirky_remarks
 
 def get_random_quirky_remarks(remarks_list, n=5):
     """
@@ -113,7 +112,7 @@ def trim_messages(messages, tokenizer_fn, max_tokens: Optional[int] = None):
         messages.pop(0)  # Remove from the beginning
     return messages
     
-async def run_concurrent_tasks(llm, message):
+async def run_concurrent_tasks(llm, message, system_prompt :Union[str, List[str]]):
     """
     Run concurrent tasks for the LLM and logger.
     
@@ -124,10 +123,7 @@ async def run_concurrent_tasks(llm, message):
     Yields:
         Chunks of logs from the logger.
     """
-    QUIRKY_SYSTEM = SELECT_QUIRKY_REMARK_SYSTEM.format(
-        examples=json.dumps(get_random_quirky_remarks(quirky_remarks), indent=4)
-    )
-    asyncio.create_task(llm.acomplete(message, system_prompt=[SYSTEM, QUIRKY_SYSTEM]))
+    asyncio.create_task(llm.acomplete(message, system_prompt=system_prompt))
     asyncio.create_task(_logger.distribute())
     # Stream logger output while LLM is running.
     while True:        

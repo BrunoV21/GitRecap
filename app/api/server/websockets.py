@@ -1,10 +1,10 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 import json
 from typing import Optional
 
-from services.llm_service import initialize_llm_session, trim_messages, run_concurrent_tasks, get_llm
+from services.prompts import SELECT_QUIRKY_REMARK_SYSTEM, SYSTEM, RELEASE_NOTES_SYSTEM, quirky_remarks
+from services.llm_service import get_random_quirky_remarks, run_concurrent_tasks, get_llm
 from aicore.const import SPECIAL_TOKENS, STREAM_END_TOKEN
-import ulid
 import asyncio
 
 router = APIRouter()
@@ -14,17 +14,39 @@ active_connections = {}
 active_histories = {}
 
 TRIGGER_PROMPT = """
-Consider the following history of actionables from Git and in return me the summary with N = '{N}' bullet points:
+Consider the following history of actionables from Git and return me the summary with N = '{N}' bullet points:
 
 {ACTIONS}
 """
 
-@router.websocket("/ws/{session_id}")
+TRIGGER_RELEASE_PROMPT = """
+Consider the following history of actionables from Git and the previous Release Notes (if available).
+Generate me the next Release Notes based on the new Git Actionables matching the format of the previous releases:
+
+{ACTIONS}
+"""
+
+
+@router.websocket("/ws/{session_id}/{action_type}")
 async def websocket_endpoint(
     websocket: WebSocket, 
-    session_id: Optional[str] = None
+    session_id: Optional[str] = None,
+    action_type: str="recap"
 ):
     await websocket.accept()
+
+    if action_type == "recap":
+        QUIRKY_SYSTEM = SELECT_QUIRKY_REMARK_SYSTEM.format(
+            examples=json.dumps(get_random_quirky_remarks(quirky_remarks), indent=4)
+        )
+        
+        system = [SYSTEM, QUIRKY_SYSTEM]
+
+    elif action_type == "release":
+        system = RELEASE_NOTES_SYSTEM
+
+    else:
+        raise HTTPException(status_code=404)
     
     # Store the connection
     active_connections[session_id] = websocket
@@ -40,16 +62,23 @@ async def websocket_endpoint(
             N = msg_json.get("n", 5)
             assert int(N) <= 15
             assert message
-            history = [
-                TRIGGER_PROMPT.format(
-                    N=N,
-                    ACTIONS=message
-                )
-            ]
+            if action_type == "recap":
+                history = [
+                    TRIGGER_PROMPT.format(
+                        N=N,
+                        ACTIONS=message
+                    )
+                ]
+            elif action_type == "release":
+                history = [
+                    TRIGGER_RELEASE_PROMPT.format(ACTIONS=message)
+                ]
+
             response = []
             async for chunk in run_concurrent_tasks(
                 llm,
-                message=history
+                message=history,
+                system_prompt=system
             ):
                 if chunk == STREAM_END_TOKEN:
                     await websocket.send_text(json.dumps({"chunk": chunk}))
