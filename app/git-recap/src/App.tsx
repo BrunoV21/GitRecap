@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Github, Hammer, BookText } from 'lucide-react';
+import { Github, Hammer, BookText, Plus, Minus } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
 
@@ -40,6 +39,10 @@ function App() {
   const [progressActions, setProgressActions] = useState(0);
   const [progressWs, setProgressWs] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
+
+  // Release Notes states
+  const [numOldReleases, setNumOldReleases] = useState(1);
+  const [isExecutingReleaseNotes, setIsExecutingReleaseNotes] = useState(false);
 
   // Auth states
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
@@ -168,9 +171,9 @@ function App() {
     }, 0);
   };
   
-  const recallWebSocket = (actions: string, n?: number) => {
+  const recallWebSocket = (actions: string, n?: number, actionType: string = "recap") => {
     const backendUrl = import.meta.env.VITE_AICORE_API;
-    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
+    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}/${actionType}`;
     const ws = new WebSocket(wsUrl);
     
     setCurrentWebSocket(ws);
@@ -217,6 +220,100 @@ function App() {
   
   const handleRecap = async () => {
     await fetchInitialActions();
+  };
+
+  const handleReleaseNotes = async () => {
+    // Validation for GitHub provider
+    if (codeHost !== 'github') {
+      setPopupMessage('Release Notes generation is only supported for GitHub repositories. Please select GitHub as your provider.');
+      setIsPopupOpen(true);
+      return;
+    }
+
+    // Validation for single repo selection
+    if (selectedRepos.length === 0) {
+      setPopupMessage('Please select exactly one repository to generate release notes.');
+      setIsPopupOpen(true);
+      return;
+    }
+
+    if (selectedRepos.length > 1) {
+      setPopupMessage('Please select only one repository for release notes generation. Multiple repositories are not supported for this feature.');
+      setIsPopupOpen(true);
+      return;
+    }
+
+    if (currentWebSocket) {
+      currentWebSocket.close();
+    }
+  
+    setCommitsOutput('');
+    setDummyOutput('');
+    setProgressActions(0);
+    setProgressWs(0);
+    setIsExecuting(true);    
+    
+    setTimeout(() => {
+      actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+
+    await fetchReleaseNotes();
+  };
+
+  const fetchReleaseNotes = async () => {
+    if (currentWebSocket) {
+      currentWebSocket.close();
+    }
+
+    setIsExecutingReleaseNotes(true);    
+    
+    setTimeout(() => {
+      actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+
+    const progressReleaseNotesInterval = setInterval(() => {
+      setProgressActions((prev) => (prev < 95 ? prev + 1 : prev));
+    }, 500);
+
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const queryParams = new URLSearchParams({
+        session_id: sessionId,
+        num_old_releases: numOldReleases.toString(),
+        repo_filter: selectedRepos[0] // Use the single selected repo
+      }).toString();
+
+      const response = await fetch(`${backendUrl}/release_notes?${queryParams}`, {
+        method: 'GET'
+      });
+
+      if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
+
+      const data = await response.json();
+      
+      if (!data.actions) {
+        setPopupMessage('Got no actionables for release notes. Please check your repository selection or ensure the repository has releases.');
+        setIsPopupOpen(true);
+        clearInterval(progressReleaseNotesInterval);
+        setProgressActions(100);
+        return;
+      }
+      
+      // Merge release notes with existing commits output
+      const mergedOutput = commitsOutput + (commitsOutput ? '\n\n' : '') + data.actions;
+      setCommitsOutput(mergedOutput);
+      
+      clearInterval(progressReleaseNotesInterval);
+      setProgressActions(100);
+      summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+      recallWebSocket(mergedOutput, undefined, "release");
+    } catch (error) {
+      console.error('Error during release notes generation:', error);
+      setPopupMessage('Error retrieving release notes. Please try again.');
+      setIsPopupOpen(true);
+    } finally {
+      setIsExecutingReleaseNotes(false);
+    }
   };
   
   const fetchInitialActions = async () => {
@@ -589,16 +686,52 @@ function App() {
           </AccordionItem>
         </Accordion>
       </Card>            
-      <div className="recap-button mt-8">
+      
+      <div className="recap-button-container mt-8 flex gap-4">
         <Button 
           onClick={handleFullRecap} 
           disabled={isExecuting || !isAuthorized}
           color="accent"
-          className="w-full"
+          className="flex-1"
         >
           {isExecuting ? 'Processing...' : 'Recap'}
         </Button>
+        
+        <div className="release-notes-section flex items-center gap-2">
+          <Button 
+            onClick={handleReleaseNotes} 
+            disabled={isExecutingReleaseNotes || !isAuthorized}
+            color="accent"
+            className="whitespace-nowrap"
+          >
+            {isExecutingReleaseNotes ? 'Generating...' : 'Generate Release Notes'}
+          </Button>
+          
+          <div className="release-counter flex items-center gap-1">
+            <Button
+              onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
+              disabled={numOldReleases <= 1}
+              className="counter-btn p-1"
+              style={{ minWidth: '32px', height: '32px' }}
+            >
+              <Minus className="h-3 w-3" />
+            </Button>
+            
+            <span className="counter-value px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm min-w-[2rem] text-center">
+              {numOldReleases}
+            </span>
+            
+            <Button
+              onClick={() => setNumOldReleases(numOldReleases + 1)}
+              className="counter-btn p-1"
+              style={{ minWidth: '32px', height: '32px' }}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
       </div>
+      
       <div className="output-section mt-8" ref={actionsLogRef}>
         <Card className="output-box p-6">
           <h2 className="text-xl font-bold mb-4">Actions Log</h2>
@@ -654,6 +787,7 @@ function App() {
           />
         </Card>
       </div>
+
       <Popup
         isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
