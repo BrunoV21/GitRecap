@@ -225,7 +225,7 @@ async def get_release_notes(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching releases: {str(e)}")
 
-    releases_txt = parse_releases_to_txt(releases[-num_old_releases:])
+    releases_txt = parse_releases_to_txt(releases[:num_old_releases])
     # Filter releases for the requested repo
     repo_releases = [r for r in releases if r.get("repo") == repo]
     n_releases = len(repo_releases)
