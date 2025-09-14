@@ -61,6 +61,7 @@ function App() {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [selectedN, setSelectedN] = useState(5);
+  const [recapDone, setRecapDone] = useState(true);
   const [isReposLoading, setIsReposLoading] = useState(true);
   const [repoProgress, setRepoProgress] = useState(0);
 
@@ -139,11 +140,11 @@ function App() {
     if (currentWebSocket) {
       currentWebSocket.close();
     }
-    
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
+    setRecapDone(true);
     handleRecap();
   };
   
@@ -152,14 +153,11 @@ function App() {
       currentWebSocket.close();
       setCurrentWebSocket(null);
     }
-  
     setProgressWs(0);
     setDummyOutput('');
-    
     if (commitsOutput) {
       recallWebSocket(commitsOutput, n);
     }
-    
     setSelectedN(n);
   };
   
@@ -246,17 +244,15 @@ function App() {
     if (currentWebSocket) {
       currentWebSocket.close();
     }
-  
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
-    setIsExecuting(true);    
-    
+    setIsExecutingReleaseNotes(true);
+    setRecapDone(false);
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-
     await fetchReleaseNotes();
   };
 
@@ -264,33 +260,25 @@ function App() {
     if (currentWebSocket) {
       currentWebSocket.close();
     }
-
-    setIsExecutingReleaseNotes(true);    
-    
+    setIsExecutingReleaseNotes(true);
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-
     const progressReleaseNotesInterval = setInterval(() => {
       setProgressActions((prev) => (prev < 95 ? prev + 1 : prev));
     }, 500);
-
     try {
       const backendUrl = import.meta.env.VITE_AICORE_API;
       const queryParams = new URLSearchParams({
         session_id: sessionId,
         num_old_releases: numOldReleases.toString(),
-        repo_filter: selectedRepos[0] // Use the single selected repo
+        repo_filter: selectedRepos[0]
       }).toString();
-
       const response = await fetch(`${backendUrl}/release_notes?${queryParams}`, {
         method: 'GET'
       });
-
       if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
-
       const data = await response.json();
-      
       if (!data.actions) {
         setPopupMessage('Got no actionables for release notes. Please check your repository selection or ensure the repository has releases.');
         setIsPopupOpen(true);
@@ -298,11 +286,8 @@ function App() {
         setProgressActions(100);
         return;
       }
-      
-      // Merge release notes with existing commits output
       const mergedOutput = commitsOutput + (commitsOutput ? '\n\n' : '') + data.actions;
       setCommitsOutput(mergedOutput);
-      
       clearInterval(progressReleaseNotesInterval);
       setProgressActions(100);
       summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -320,21 +305,17 @@ function App() {
     if (currentWebSocket) {
       currentWebSocket.close();
     }
-  
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
-    setIsExecuting(true);    
-    
+    setIsExecuting(true);
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-  
     const progressActionsInterval = setInterval(() => {
       setProgressActions((prev) => (prev < 95 ? prev + 1 : prev));
     }, 500);
-  
     try {
       const backendUrl = import.meta.env.VITE_AICORE_API;
       const queryParams = new URLSearchParams({
@@ -344,15 +325,11 @@ function App() {
         ...(selectedRepos.length ? { repo_filter: selectedRepos.join(",") } : {}),
         ...(authors.length ? { authors: authors.join(",") } : {}),
       }).toString();
-  
       const response = await fetch(`${backendUrl}/actions?${queryParams}`, {
         method: 'GET'
       });
-  
       if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
-  
       const data = await response.json();
-      
       if (!data.actions) {
         setPopupMessage('Got no actionables from Git. Please check your filters or date range. If you are signing with GitHub, you will need to install GitRecap from the Marketplace or authenticate with a PAT instead.');
         setIsPopupOpen(true);
@@ -360,7 +337,6 @@ function App() {
         setProgressActions(100);
         return;
       }
-      
       setCommitsOutput(data.actions);
       clearInterval(progressActionsInterval);
       setProgressActions(100);
@@ -688,41 +664,38 @@ function App() {
       </Card>            
       
       <div className="recap-button-container mt-8 flex gap-4">
-        <Button 
-          onClick={handleFullRecap} 
-          disabled={isExecuting || !isAuthorized}
+        <Button
+          onClick={handleFullRecap}
+          disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
           color="accent"
           className="flex-1"
         >
           {isExecuting ? 'Processing...' : 'Recap'}
         </Button>
-        
         <div className="release-notes-section flex items-center gap-2">
-          <Button 
-            onClick={handleReleaseNotes} 
-            disabled={isExecutingReleaseNotes || !isAuthorized}
+          <Button
+            onClick={handleReleaseNotes}
+            disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized}
             color="accent"
             className="whitespace-nowrap"
           >
-            {isExecutingReleaseNotes ? 'Generating...' : 'Generate Release Notes'}
+            {isExecutingReleaseNotes ? 'Processing...' : 'Generate Release Notes'}
           </Button>
-          
           <div className="release-counter flex items-center gap-1">
             <Button
               onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
-              disabled={numOldReleases <= 1}
+              disabled={numOldReleases <= 1 || isExecutingReleaseNotes || isExecuting}
               className="counter-btn p-1"
               style={{ minWidth: '32px', height: '32px' }}
             >
               <Minus className="h-3 w-3" />
             </Button>
-            
             <span className="counter-value px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm min-w-[2rem] text-center">
               {numOldReleases}
             </span>
-            
             <Button
               onClick={() => setNumOldReleases(numOldReleases + 1)}
+              disabled={isExecutingReleaseNotes || isExecuting}
               className="counter-btn p-1"
               style={{ minWidth: '32px', height: '32px' }}
             >
@@ -754,13 +727,25 @@ function App() {
           <div className="summary-header">
             <h2>Summary (by `{import.meta.env.VITE_LLM_MODEL}`)</h2>
             <div className="n-selector">
-              <Button onClick={() => handleNSelection(5)} className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}>
+              <Button
+                onClick={() => handleNSelection(5)}
+                className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
+                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+              >
                 5
               </Button>
-              <Button onClick={() => handleNSelection(10)} className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}>
+              <Button
+                onClick={() => handleNSelection(10)}
+                className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
+                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+              >
                 10
               </Button>
-              <Button onClick={() => handleNSelection(15)} className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}>
+              <Button
+                onClick={() => handleNSelection(15)}
+                className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
+                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+              >
                 15
               </Button>
             </div>
@@ -772,9 +757,9 @@ function App() {
             borderColor="black"
             className="w-full mb-4"
           />
-          <TextArea 
-            readOnly 
-            value={dummyOutput} 
+          <TextArea
+            readOnly
+            value={dummyOutput}
             rows={10}
             ref={textAreaRef}
             style={{
