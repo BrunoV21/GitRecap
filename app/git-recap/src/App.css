@@ -406,19 +406,270 @@ button, .Button {
   width: -webkit-fill-available;
 }
 
-.recap-button.mt-8 {
-  display: inline-block;
-  font-family: Minecraft, sans-serif;
-  margin: .0rem auto;
-  padding: 0rem; /* Increased padding for height */
-  width: 30%; /* Slightly wider */
-  text-align: center;
+/* Recap/Release Switcher Styles */
+.recap-release-switcher-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80px;
+  position: relative;
 }
 
-/* Preserve styles when disabled */
-.recap-button.mt-8:disabled {
-  opacity: 0.7; /* Optional: make it look slightly faded */
+.recap-release-switcher {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-height: 80px;
+}
+
+.recap-main-btn-area,
+.release-main-btn-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  transition: opacity 0.5s cubic-bezier(0.77,0,0.18,1), transform 0.5s cubic-bezier(0.77,0,0.18,1);
+  min-height: 80px;
+  z-index: 2;
+}
+
+/* Recap mode visible, release hidden */
+.recap-main-btn-area.slide-in {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+.recap-main-btn-area.slide-left-out {
+  opacity: 0;
+  transform: translateX(-80px) scale(0.95);
+  pointer-events: none;
+}
+
+/* Release mode visible, recap hidden */
+.release-main-btn-area.slide-in {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+.release-main-btn-area.slide-right-out {
+  opacity: 0;
+  transform: translateX(80px) scale(0.95);
+  pointer-events: none;
+}
+
+/* Recap main button styling */
+/* Recap main button styling - more lengthy, less boxy, retro shadow */
+.recap-main-btn {
+  width: 400px;
+  max-width: 90vw;
+  font-size: 1.15rem;
+  font-family: Minecraft, sans-serif;
+  font-weight: bold;
+  margin: 0 auto;
+  padding: 0.7rem 0;
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
+  border: 3px solid #e0cda9;
+  transition: box-shadow 0.2s, border 0.2s;
+  z-index: 2;
+  height: 44px;
+  min-height: 44px;
+}
+.recap-main-btn:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
+}
+
+/* 3-dots retro rectangle button with badge */
+.recap-3dots-rect-btn {
+  position: relative;
+  margin-left: 18px;
+  background: #fff8e1;
+  border: 3px solid #e0cda9;
+  border-radius: 6px;
+  width: 54px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s, background 0.2s;
+  box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
+  outline: none;
+  padding: 0;
+}
+.recap-3dots-rect-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.recap-3dots-rect-btn:hover {
+  background: #ffe4b5;
+}
+.recap-3dots-rect-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 3px;
+}
+.recap-dot {
+  width: 7px;
+  height: 7px;
+  background: #5c4033;
+  border-radius: 2px;
+  margin: 0 0;
+  display: block;
+  box-shadow: 1px 1px 0 #bfa16b;
+}
+.recap-3dots-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff7f50;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border-radius: 8px;
+  padding: 2px 7px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  z-index: 3;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+}
+
+/* Release mode main area */
+/* Release mode main area - more compact, retro, boxy */
+.release-main-btn-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 60px;
+  gap: 1.2rem;
+  z-index: 2;
+}
+.release-main-btn {
+  min-width: 200px;
+  font-size: 1.05rem;
+  font-family: Minecraft, sans-serif;
+  font-weight: bold;
+  padding: 0.6rem 0.5rem;
+  border-radius: 8px;
+  margin-right: 1.2rem;
+  height: 44px;
+  min-height: 44px;
+  box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
+  border: 3px solid #e0cda9;
+}
+
+/* Retro boxy back button */
+.release-back-rect-btn {
+  min-width: 90px;
+  height: 44px;
+  font-size: 1rem;
+  font-family: Minecraft, sans-serif;
+  font-weight: bold;
+  padding: 0.6rem 0.7rem;
+  border-radius: 8px;
+  background: #e0cda9;
+  color: #5c4033;
+  border: 3px solid #bfa16b;
+  margin-right: 1.2rem;
+  box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s, border 0.2s;
+}
+.release-back-rect-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.release-back-arrow {
+  font-size: 1.2rem;
+  margin-right: 0.3rem;
+  font-family: Minecraft, monospace;
+}
+.release-back-label {
+  font-family: Minecraft, monospace;
+}
+
+/* Boxy retro counter container */
+.release-counter-rect {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fff8e1;
+  border-radius: 8px;
+  padding: 0.2rem 0.7rem;
+  border: 3px solid #e0cda9;
+  min-width: 110px;
+  height: 44px;
+  box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
+}
+.counter-btn-rect {
+  background: #e0cda9;
+  color: #5c4033;
+  border: 2px solid #bfa16b;
+  border-radius: 6px;
+  min-width: 32px;
+  height: 32px;
+  box-shadow: 2px 2px 0 #bfa16b;
+  font-size: 1.1rem;
+  padding: 0 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 2px;
+}
+.counter-btn-rect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.counter-value-rect {
+  display: inline-block;
+  min-width: 2rem;
+  text-align: center;
+  font-size: 1.1rem;
+  font-family: Minecraft, monospace;
+  color: #5c4033;
+  background: #fff8e1;
+  border: none;
+  margin: 0 4px;
+}
+
+/* Animation for the switcher */
+.recap-release-switcher {
+  position: relative;
+  min-height: 80px;
+  height: 80px;
+}
+
+@media (max-width: 700px) {
+  .recap-main-btn, .release-main-btn {
+    width: 90vw;
+    min-width: 0;
+    font-size: 1.05rem;
+    padding: 0.6rem 0.2rem;
+    height: 40px;
+    min-height: 40px;
+  }
+  .release-main-btn-area, .recap-main-btn-area {
+    gap: 0.5rem;
+  }
+  .recap-3dots-rect-btn, .release-back-rect-btn, .release-counter-rect {
+    height: 40px;
+    min-height: 40px;
+  }
 }
 
 .retro-input {

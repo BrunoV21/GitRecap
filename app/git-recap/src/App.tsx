@@ -64,6 +64,8 @@ function App() {
   const [recapDone, setRecapDone] = useState(true);
   const [isReposLoading, setIsReposLoading] = useState(true);
   const [repoProgress, setRepoProgress] = useState(0);
+  // UI mode for recap/release
+  const [showReleaseMode, setShowReleaseMode] = useState(false);
 
   const actionsLogRef = useRef<HTMLDivElement>(null);
   const summaryLogRef = useRef<HTMLDivElement>(null);
@@ -663,44 +665,73 @@ function App() {
         </Accordion>
       </Card>            
       
-      <div className="recap-button-container mt-8 flex gap-4">
-        <Button
-          onClick={handleFullRecap}
-          disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
-          color="accent"
-          className="flex-1"
-        >
-          {isExecuting ? 'Processing...' : 'Recap'}
-        </Button>
-        <div className="release-notes-section flex items-center gap-2">
-          <Button
-            onClick={handleReleaseNotes}
-            disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized}
-            color="accent"
-            className="whitespace-nowrap"
-          >
-            {isExecutingReleaseNotes ? 'Processing...' : 'Generate Release Notes'}
-          </Button>
-          <div className="release-counter flex items-center gap-1">
+      <div className="recap-release-switcher-container mt-8">
+        <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}`}>
+          {/* Recap Mode */}
+          <div className={`recap-main-btn-area${showReleaseMode ? ' slide-left-out' : ' slide-in'}`}>
             <Button
-              onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
-              disabled={numOldReleases <= 1 || isExecutingReleaseNotes || isExecuting}
-              className="counter-btn p-1"
-              style={{ minWidth: '32px', height: '32px' }}
+              onClick={handleFullRecap}
+              disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+              color="accent"
+              className="recap-main-btn"
             >
-              <Minus className="h-3 w-3" />
+              {isExecuting ? 'Processing...' : 'Recap'}
             </Button>
-            <span className="counter-value px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm min-w-[2rem] text-center">
-              {numOldReleases}
-            </span>
+            <button
+              className="recap-3dots-rect-btn"
+              onClick={() => setShowReleaseMode(true)}
+              aria-label="Show release notes options"
+              disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+              type="button"
+            >
+              <span className="recap-3dots-rect-inner">
+                <span className="recap-dot"></span>
+                <span className="recap-dot"></span>
+                <span className="recap-dot"></span>
+              </span>
+              <span className="recap-3dots-badge">New</span>
+            </button>
+          </div>
+          {/* Release Notes Mode */}
+          <div className={`release-main-btn-area${showReleaseMode ? ' slide-in' : ' slide-right-out'}`}>
+            <button
+              className="release-back-rect-btn"
+              onClick={() => setShowReleaseMode(false)}
+              disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+              type="button"
+            >
+              <span className="release-back-arrow">&#8592;</span>
+              <span className="release-back-label">Back</span>
+            </button>
             <Button
-              onClick={() => setNumOldReleases(numOldReleases + 1)}
-              disabled={isExecutingReleaseNotes || isExecuting}
-              className="counter-btn p-1"
-              style={{ minWidth: '32px', height: '32px' }}
+              onClick={handleReleaseNotes}
+              disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized}
+              color="accent"
+              className="release-main-btn"
             >
-              <Plus className="h-3 w-3" />
+              {isExecutingReleaseNotes ? 'Processing...' : 'Generate Release Notes'}
             </Button>
+            <div className="release-counter-rect">
+              <Button
+                onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
+                disabled={numOldReleases <= 1 || isExecutingReleaseNotes || isExecuting}
+                className="counter-btn-rect"
+                style={{ minWidth: '32px', height: '32px' }}
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <span className="counter-value-rect">
+                {numOldReleases}
+              </span>
+              <Button
+                onClick={() => setNumOldReleases(numOldReleases + 1)}
+                disabled={isExecutingReleaseNotes || isExecuting}
+                className="counter-btn-rect"
+                style={{ minWidth: '32px', height: '32px' }}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
