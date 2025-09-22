@@ -475,9 +475,11 @@ button, .Button {
   margin: 0 auto;
   padding: 0.7rem 0;
   border-radius: 8px;
+  background: #ff7f50;
+  color: #fff;
+  border: 3px solid #e06e42;
   box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
-  border: 3px solid #e0cda9;
-  transition: box-shadow 0.2s, border 0.2s;
+  transition: box-shadow 0.2s, border 0.2s, background 0.2s;
   z-index: 2;
   height: 44px;
   min-height: 44px;
@@ -487,30 +489,53 @@ button, .Button {
   cursor: not-allowed;
 }
 
+.recap-main-btn:hover,
+.recap-main-btn:focus {
+  background: #e06e42;
+  border-color: #e06e42;
+}
+
 /* 3-dots retro rectangle button with badge */
 .recap-3dots-rect-btn {
   position: relative;
   margin-left: 18px;
-  background: #fff8e1;
-  border: 3px solid #e0cda9;
+  background: #ff7f50;
+  color: #fff;
+  border: 3px solid #e06e42;
   border-radius: 6px;
-  width: 54px;
+  width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 44px;
+  max-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: box-shadow 0.2s, background 0.2s;
+  transition: box-shadow 0.2s, background 0.2s, border 0.2s;
   box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
   outline: none;
   padding: 0;
 }
+.recap-3dots-rect-btn:hover,
+.recap-3dots-rect-btn:focus {
+  background: #e06e42;
+  border-color: #e06e42;
+  color: #fff;
+  box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.13);
+}
+.recap-3dots-rect-btn:active {
+  background: #e06e42;
+  border-color: #e06e42;
+  color: #fff;
+  box-shadow: 2px 2px 0 #bfa16b;
+}
 .recap-3dots-rect-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-.recap-3dots-rect-btn:hover {
-  background: #ffe4b5;
+  background: #ff7f50;
+  color: #fff;
 }
 .recap-3dots-rect-inner {
   display: flex;
@@ -524,11 +549,11 @@ button, .Button {
 .recap-dot {
   width: 7px;
   height: 7px;
-  background: #5c4033;
+  background: #fff;
   border-radius: 2px;
   margin: 0 0;
   display: block;
-  box-shadow: 1px 1px 0 #bfa16b;
+  box-shadow: 1px 1px 0 #e06e42;
 }
 .recap-3dots-badge {
   position: absolute;
@@ -567,8 +592,16 @@ button, .Button {
   margin-right: 1.2rem;
   height: 44px;
   min-height: 44px;
+  background: #ff7f50;
+  color: #fff;
+  border: 3px solid #e06e42;
   box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
-  border: 3px solid #e0cda9;
+  transition: box-shadow 0.2s, border 0.2s, background 0.2s;
+}
+.release-main-btn:hover,
+.release-main-btn:focus {
+  background: #e06e42;
+  border-color: #e06e42;
 }
 
 /* Retro boxy back button */
@@ -580,9 +613,9 @@ button, .Button {
   font-weight: bold;
   padding: 0.6rem 0.7rem;
   border-radius: 8px;
-  background: #e0cda9;
-  color: #5c4033;
-  border: 3px solid #bfa16b;
+  background: #ff7f50;
+  color: #fff;
+  border: 3px solid #e06e42;
   margin-right: 1.2rem;
   box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
   display: flex;
@@ -593,6 +626,12 @@ button, .Button {
 .release-back-rect-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.release-back-rect-btn:hover,
+.release-back-rect-btn:focus {
+  background: #e06e42;
+  border-color: #e06e42;
 }
 .release-back-arrow {
   font-size: 1.2rem;
@@ -608,18 +647,19 @@ button, .Button {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  background: #fff8e1;
+  background: #ff7f50;
   border-radius: 8px;
   padding: 0.2rem 0.7rem;
-  border: 3px solid #e0cda9;
+  border: 3px solid #e06e42;
   min-width: 110px;
   height: 44px;
   box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
+  transition: box-shadow 0.2s, border 0.2s, background 0.2s;
 }
 .counter-btn-rect {
-  background: #e0cda9;
-  color: #5c4033;
-  border: 2px solid #bfa16b;
+  background: #ff7f50;
+  color: #fff;
+  border: 2px solid #e06e42;
   border-radius: 6px;
   min-width: 32px;
   height: 32px;
@@ -630,10 +670,28 @@ button, .Button {
   align-items: center;
   justify-content: center;
   margin: 0 2px;
+  transition: background 0.2s, border 0.2s, box-shadow 0.2s;
+}
+.counter-btn-rect:hover:not(:disabled),
+.counter-btn-rect:focus:not(:disabled) {
+  background: #e06e42;
+  border-color: #e06e42;
+  color: #fff;
+  box-shadow: 2px 2px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
+}
+.counter-btn-rect:active:not(:disabled) {
+  background: #e06e42;
+  border-color: #e06e42;
+  color: #fff;
+  box-shadow: 1px 1px 0 #bfa16b;
 }
 .counter-btn-rect:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background: #ff7f50;
+  color: #fff;
+  border-color: #e06e42;
+  box-shadow: none;
 }
 .counter-value-rect {
   display: inline-block;
@@ -641,10 +699,17 @@ button, .Button {
   text-align: center;
   font-size: 1.1rem;
   font-family: Minecraft, monospace;
-  color: #5c4033;
-  background: #fff8e1;
-  border: none;
+  color: #fff;
+  background: #ff7f50;
+  border: 2px solid #e06e42;
+  border-radius: 6px;
   margin: 0 4px;
+  box-shadow: 1px 1px 0 #bfa16b;
+  padding: 0 0.7rem;
+  height: 32px;
+  line-height: 32px;
+  vertical-align: middle;
+  transition: border 0.2s, box-shadow 0.2s, background 0.2s, color 0.2s;
 }
 
 /* Animation for the switcher */
