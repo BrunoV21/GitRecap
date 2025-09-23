@@ -677,7 +677,7 @@ function App() {
             >
               {isExecuting ? 'Processing...' : 'Recap'}
             </Button>
-            <button
+            <Button
               className="recap-3dots-rect-btn"
               onClick={() => setShowReleaseMode(true)}
               aria-label="Show release notes options"
@@ -690,19 +690,20 @@ function App() {
                 <span className="recap-dot"></span>
               </span>
               <span className="recap-3dots-badge">New</span>
-            </button>
+            </Button>
           </div>
           {/* Release Notes Mode */}
           <div className={`release-main-btn-area${showReleaseMode ? ' slide-in' : ' slide-right-out'}`}>
-            <button
+            <Button
               className="release-back-rect-btn"
               onClick={() => setShowReleaseMode(false)}
               disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
               type="button"
+              style={{ minWidth: '32px', height: '32px' }}
             >
               <span className="release-back-arrow">&#8592;</span>
               <span className="release-back-label">Back</span>
-            </button>
+            </Button>
             <Button
               onClick={handleReleaseNotes}
               disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized}
