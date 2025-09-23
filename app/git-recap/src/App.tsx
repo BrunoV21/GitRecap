@@ -713,25 +713,25 @@ function App() {
               {isExecutingReleaseNotes ? 'Processing...' : 'Generate Release Notes'}
             </Button>
             <div className="release-counter-rect">
-              <Button
+              <button
                 onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
                 disabled={numOldReleases <= 1 || isExecutingReleaseNotes || isExecuting}
                 className="counter-btn-rect"
                 style={{ minWidth: '32px', height: '32px' }}
               >
                 <Minus className="h-3 w-3" />
-              </Button>
+              </button>
               <span className="counter-value-rect">
                 {numOldReleases}
               </span>
-              <Button
+              <button
                 onClick={() => setNumOldReleases(numOldReleases + 1)}
                 disabled={isExecutingReleaseNotes || isExecuting}
                 className="counter-btn-rect"
                 style={{ minWidth: '32px', height: '32px' }}
               >
                 <Plus className="h-3 w-3" />
-              </Button>
+              </button>
             </div>
           </div>
         </div>
