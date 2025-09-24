@@ -733,14 +733,14 @@ button, .Button {
 }
 
 /* Desktop heights */
-@media (min-width: 768px) {
+@media (min-width: 700px) {
   .recap-release-switcher {
     height: 60px; /* Single row height for desktop */
   }
 }
 
 /* Mobile heights */
-@media (max-width: 767px) {
+@media (max-width: 700px) {
   .recap-release-switcher:not(.show-release) {
     height: 120px; /* Height for recap mode (2 buttons vertically) */
   }
