@@ -505,7 +505,7 @@ button, .Button {
 
 /* Recap mode buttons */
 .recap-main-btn {
-  width: 400px;
+  width: 70vw;
   font-size: 1.15rem;
   padding: 0.7rem 0;
   height: 44px;
@@ -581,6 +581,46 @@ button, .Button {
   justify-content: center;
 }
 
+/* Base styles for button areas */
+.recap-main-btn-area,
+.release-main-btn-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+/* Desktop styles - horizontal layout (default) */
+@media (min-width: 768px) {
+  .recap-main-btn-area,
+  .release-main-btn-area {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: nowrap;
+  }
+}
+
+/* Mobile styles - vertical layout */
+@media (max-width: 767px) {
+  .recap-main-btn-area,
+  .release-main-btn-area {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+  }
+  
+  /* Remove margin-right on mobile for back button */
+  .release-back-rect-btn {
+    margin-right: 0;
+  }
+}
+
+/* Your existing component styles */
 .release-back-rect-btn {
   background-color: beige;
   min-width: 90px;
@@ -666,9 +706,26 @@ button, .Button {
   box-shadow: 1px 1px 0 #bfa16b;
 }
 
+/* Animation classes */
+.slide-in {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-left-out {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.slide-right-out {
+  transform: translateX(100%);
+  opacity: 0;
+}
+/* TODO make mobile friendly */
+
 @media (max-width: 700px) {
   .recap-main-btn, .release-main-btn {
-    width: 90vw;
+    width: 70vw;
     min-width: 0;
     font-size: 1.05rem;
     padding: 0.6rem 0.2rem;

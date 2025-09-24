@@ -663,8 +663,8 @@ function App() {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </Card>            
-      
+      </Card>
+
       <div className="recap-release-switcher-container mt-8">
         <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}`}>
           {/* Recap Mode */}
