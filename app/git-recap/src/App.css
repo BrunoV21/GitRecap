@@ -721,7 +721,24 @@ button, .Button {
   transform: translateX(100%);
   opacity: 0;
 }
-/* TODO make mobile friendly */
+
+/* Desktop heights */
+@media (min-width: 768px) {
+  .recap-release-switcher {
+    height: 60px; /* Single row height for desktop */
+  }
+}
+
+/* Mobile heights */
+@media (max-width: 767px) {
+  .recap-release-switcher:not(.show-release) {
+    height: 120px; /* Height for recap mode (2 buttons vertically) */
+  }
+  
+  .recap-release-switcher.show-release {
+    height: 180px; /* Height for release mode (3 elements vertically) */
+  }
+}
 
 @media (max-width: 700px) {
   .recap-main-btn, .release-main-btn {
