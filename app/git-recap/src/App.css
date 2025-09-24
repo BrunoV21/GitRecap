@@ -653,6 +653,16 @@ button, .Button {
   box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09);
 }
 
+.counter-btn-rect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #cccccc;
+  color: #333;
+  border-color: #333;
+  width: auto !important; /* Override any inherited width */
+  max-width: none !important; /* Remove any max-width constraints */
+}
+
 .counter-btn-rect {
   background: #cccccc;
   color: #333;
