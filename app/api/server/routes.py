@@ -1,10 +1,9 @@
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel
 
-from models.schemas import ChatRequest
-from services.llm_service import initialize_llm_session, set_llm, get_llm, trim_messages
+from services.llm_service import set_llm, get_llm, trim_messages
 from services.fetcher_service import store_fetcher, get_fetcher
-from git_recap.utils import parse_entries_to_txt
+from git_recap.utils import parse_entries_to_txt, parse_releases_to_txt
 from aicore.llm.config import LlmConfig
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -196,6 +195,83 @@ async def get_actions(
     print(f"\n\n\n{actions=}\n\n\n")
     
     return {"actions": parse_entries_to_txt(actions)}
+
+@router.get("/release_notes")
+async def get_release_notes(
+    session_id: str,
+    repo_filter: Optional[List[str]] = Query(None),
+    num_old_releases: int = Query(..., ge=1)
+):
+    """
+    Generate release notes for the latest release of a single repository.
+    Validates input, fetches releases, fetches actions since latest release, and returns compiled release notes.
+    """
+    # Validate repo_filter: must be a single repo
+    if repo_filter is None or len(repo_filter) != 1:
+        raise HTTPException(status_code=400, detail="repo_filter must be a list containing exactly one repository name.")
+    repo = repo_filter[0]
+
+    # Get fetcher for session
+    try:
+        fetcher = get_fetcher(session_id)
+    except HTTPException as e:
+        raise
+
+    # Check if fetcher supports fetch_releases
+    try:
+        releases = fetcher.fetch_releases()
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="Release fetching is not supported for this provider.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching releases: {str(e)}")
+
+    releases_txt = parse_releases_to_txt(releases[:num_old_releases])
+    # Filter releases for the requested repo
+    repo_releases = [r for r in releases if r.get("repo") == repo]
+    n_releases = len(repo_releases)
+    if n_releases < 1:
+        raise HTTPException(status_code=400, detail="Not enough releases found for the specified repository (need at least 1).")
+    if num_old_releases < 1 or num_old_releases >= n_releases:
+        raise HTTPException(
+            status_code=400,
+            detail=f"num_old_releases must be at least 1 and less than the number of releases available ({n_releases}) for this repository."
+        )
+
+    # Sort releases by published_at descending (latest first)
+    try:
+        repo_releases.sort(key=lambda r: r.get("published_at") or r.get("created_at"), reverse=True)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to sort releases by date.")
+
+    latest_release = repo_releases[0]
+
+    # Determine the start_date for actions (latest release date)
+    release_date = latest_release.get("published_at") or latest_release.get("created_at")
+    if not release_date:
+        raise HTTPException(status_code=500, detail="Latest release does not have a valid date.")
+    # Accept both datetime and string
+    if isinstance(release_date, datetime):
+        start_date_iso = release_date.astimezone(timezone.utc).isoformat()
+    else:
+        try:
+            dt = datetime.fromisoformat(release_date)
+            start_date_iso = dt.astimezone(timezone.utc).isoformat()
+        except Exception:
+            raise HTTPException(status_code=500, detail="Release date is not a valid ISO format.")
+
+    # Fetch actions since latest release for this repo
+    # Reuse get_actions logic, but inline to avoid async call
+    # Set fetcher filters
+    fetcher.start_date = datetime.fromisoformat(start_date_iso)
+    fetcher.end_dt = None
+    fetcher.repo_filter = [repo]
+
+    llm = get_llm(session_id)
+    actions = fetcher.get_authored_messages()
+    actions = trim_messages(actions, llm.tokenizer)
+    actions_txt = parse_entries_to_txt(actions)
+
+    return {"actions": "\n\n".join([actions_txt, releases_txt])}
 
 # @router.post("/chat")
 # async def chat(

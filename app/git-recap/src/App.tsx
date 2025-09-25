@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Github, Hammer, BookText } from 'lucide-react';
+import { Github, Hammer, BookText, Plus, Minus } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
 import './App.css';
 
@@ -41,6 +40,10 @@ function App() {
   const [progressWs, setProgressWs] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
 
+  // Release Notes states
+  const [numOldReleases, setNumOldReleases] = useState(1);
+  const [isExecutingReleaseNotes, setIsExecutingReleaseNotes] = useState(false);
+
   // Auth states
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
@@ -58,8 +61,11 @@ function App() {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [selectedN, setSelectedN] = useState(5);
+  const [recapDone, setRecapDone] = useState(true);
   const [isReposLoading, setIsReposLoading] = useState(true);
   const [repoProgress, setRepoProgress] = useState(0);
+  // UI mode for recap/release
+  const [showReleaseMode, setShowReleaseMode] = useState(false);
 
   const actionsLogRef = useRef<HTMLDivElement>(null);
   const summaryLogRef = useRef<HTMLDivElement>(null);
@@ -136,11 +142,11 @@ function App() {
     if (currentWebSocket) {
       currentWebSocket.close();
     }
-    
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
+    setRecapDone(true);
     handleRecap();
   };
   
@@ -149,14 +155,11 @@ function App() {
       currentWebSocket.close();
       setCurrentWebSocket(null);
     }
-  
     setProgressWs(0);
     setDummyOutput('');
-    
     if (commitsOutput) {
       recallWebSocket(commitsOutput, n);
     }
-    
     setSelectedN(n);
   };
   
@@ -168,9 +171,9 @@ function App() {
     }, 0);
   };
   
-  const recallWebSocket = (actions: string, n?: number) => {
+  const recallWebSocket = (actions: string, n?: number, actionType: string = "recap") => {
     const backendUrl = import.meta.env.VITE_AICORE_API;
-    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}`;
+    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}/${actionType}`;
     const ws = new WebSocket(wsUrl);
     
     setCurrentWebSocket(ws);
@@ -218,26 +221,103 @@ function App() {
   const handleRecap = async () => {
     await fetchInitialActions();
   };
+
+  const handleReleaseNotes = async () => {
+    // Validation for GitHub provider
+    if (codeHost !== 'github') {
+      setPopupMessage('Release Notes generation is only supported for GitHub repositories. Please select GitHub as your provider.');
+      setIsPopupOpen(true);
+      return;
+    }
+
+    // Validation for single repo selection
+    if (selectedRepos.length === 0) {
+      setPopupMessage('Please select exactly one repository to generate release notes.');
+      setIsPopupOpen(true);
+      return;
+    }
+
+    if (selectedRepos.length > 1) {
+      setPopupMessage('Please select only one repository for release notes generation. Multiple repositories are not supported for this feature.');
+      setIsPopupOpen(true);
+      return;
+    }
+
+    if (currentWebSocket) {
+      currentWebSocket.close();
+    }
+    setCommitsOutput('');
+    setDummyOutput('');
+    setProgressActions(0);
+    setProgressWs(0);
+    setIsExecutingReleaseNotes(true);
+    setRecapDone(false);
+    setTimeout(() => {
+      actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+    await fetchReleaseNotes();
+  };
+
+  const fetchReleaseNotes = async () => {
+    if (currentWebSocket) {
+      currentWebSocket.close();
+    }
+    setIsExecutingReleaseNotes(true);
+    setTimeout(() => {
+      actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+    const progressReleaseNotesInterval = setInterval(() => {
+      setProgressActions((prev) => (prev < 95 ? prev + 1 : prev));
+    }, 500);
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const queryParams = new URLSearchParams({
+        session_id: sessionId,
+        num_old_releases: numOldReleases.toString(),
+        repo_filter: selectedRepos[0]
+      }).toString();
+      const response = await fetch(`${backendUrl}/release_notes?${queryParams}`, {
+        method: 'GET'
+      });
+      if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
+      const data = await response.json();
+      if (!data.actions) {
+        setPopupMessage('Got no actionables for release notes. Please check your repository selection or ensure the repository has releases.');
+        setIsPopupOpen(true);
+        clearInterval(progressReleaseNotesInterval);
+        setProgressActions(100);
+        return;
+      }
+      const mergedOutput = commitsOutput + (commitsOutput ? '\n\n' : '') + data.actions;
+      setCommitsOutput(mergedOutput);
+      clearInterval(progressReleaseNotesInterval);
+      setProgressActions(100);
+      summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+      recallWebSocket(mergedOutput, undefined, "release");
+    } catch (error) {
+      console.error('Error during release notes generation:', error);
+      setPopupMessage('Error retrieving release notes. Please try again.');
+      setIsPopupOpen(true);
+    } finally {
+      setIsExecutingReleaseNotes(false);
+    }
+  };
   
   const fetchInitialActions = async () => {
     if (currentWebSocket) {
       currentWebSocket.close();
     }
-  
     setCommitsOutput('');
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
-    setIsExecuting(true);    
-    
+    setIsExecuting(true);
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-  
     const progressActionsInterval = setInterval(() => {
       setProgressActions((prev) => (prev < 95 ? prev + 1 : prev));
     }, 500);
-  
     try {
       const backendUrl = import.meta.env.VITE_AICORE_API;
       const queryParams = new URLSearchParams({
@@ -247,15 +327,11 @@ function App() {
         ...(selectedRepos.length ? { repo_filter: selectedRepos.join(",") } : {}),
         ...(authors.length ? { authors: authors.join(",") } : {}),
       }).toString();
-  
       const response = await fetch(`${backendUrl}/actions?${queryParams}`, {
         method: 'GET'
       });
-  
       if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
-  
       const data = await response.json();
-      
       if (!data.actions) {
         setPopupMessage('Got no actionables from Git. Please check your filters or date range. If you are signing with GitHub, you will need to install GitRecap from the Marketplace or authenticate with a PAT instead.');
         setIsPopupOpen(true);
@@ -263,7 +339,6 @@ function App() {
         setProgressActions(100);
         return;
       }
-      
       setCommitsOutput(data.actions);
       clearInterval(progressActionsInterval);
       setProgressActions(100);
@@ -588,17 +663,87 @@ function App() {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </Card>            
-      <div className="recap-button mt-8">
-        <Button 
-          onClick={handleFullRecap} 
-          disabled={isExecuting || !isAuthorized}
-          color="accent"
-          className="w-full"
-        >
-          {isExecuting ? 'Processing...' : 'Recap'}
-        </Button>
+      </Card>
+
+      <div className="recap-release-switcher-container mt-8">
+        <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}`}>
+          {/* Recap Mode */}
+          <div className={`recap-main-btn-area${showReleaseMode ? ' slide-left-out' : ' slide-in'}`}>
+            <Button
+              onClick={handleFullRecap}
+              disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+              color="accent"
+              className="recap-main-btn"
+            >
+              {isExecuting ? 'Processing...' : 'Recap'}
+            </Button>
+            <div className="button-with-tooltip">
+              <Button
+                className="recap-3dots-rect-btn"
+                onClick={() => setShowReleaseMode(true)}
+                aria-label="Show release notes options"
+                disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+                type="button"
+              >
+                <span className="recap-3dots-rect-inner">
+                  <span className="recap-dot"></span>
+                  <span className="recap-dot"></span>
+                  <span className="recap-dot"></span>
+                </span>
+                <span className="recap-3dots-badge">
+                  New
+                </span>
+              </Button>
+              <div className="tooltip-text">
+                You can now generate releases - only supported for GitHub repos (requires sign in or PAT authorization) and select one repo from a dropdown from above!
+              </div>
+            </div>
+          </div>
+          {/* Release Notes Mode */}
+          <div className={`release-main-btn-area${showReleaseMode ? ' slide-in' : ' slide-right-out'}`}>
+            <Button
+              className="release-back-rect-btn"
+              onClick={() => setShowReleaseMode(false)}
+              disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+              type="button"
+              style={{ minWidth: '32px', height: '32px' }}
+            >
+              <span className="release-back-arrow">&#8592;</span>
+              <span className="release-back-label">Back</span>
+            </Button>
+            <Button
+              onClick={handleReleaseNotes}
+              disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized}
+              color="accent"
+              className="release-main-btn"
+            >
+              {isExecutingReleaseNotes ? 'Processing...' : 'Generate Release Notes'}
+            </Button>
+            <div className="release-counter-rect">
+              <button
+                onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
+                disabled={numOldReleases <= 1 || isExecutingReleaseNotes || isExecuting}
+                className="counter-btn-rect"
+                style={{ minWidth: '32px', height: '32px' }}
+              >
+                <Minus className="h-3 w-3" />
+              </button>
+              <span className="counter-value-rect">
+                {numOldReleases}
+              </span>
+              <button
+                onClick={() => setNumOldReleases(numOldReleases + 1)}
+                disabled={isExecutingReleaseNotes || isExecuting}
+                className="counter-btn-rect"
+                style={{ minWidth: '32px', height: '32px' }}
+              >
+                <Plus className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+      
       <div className="output-section mt-8" ref={actionsLogRef}>
         <Card className="output-box p-6">
           <h2 className="text-xl font-bold mb-4">Actions Log</h2>
@@ -621,13 +766,25 @@ function App() {
           <div className="summary-header">
             <h2>Summary (by `{import.meta.env.VITE_LLM_MODEL}`)</h2>
             <div className="n-selector">
-              <Button onClick={() => handleNSelection(5)} className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}>
+              <Button
+                onClick={() => handleNSelection(5)}
+                className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
+                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+              >
                 5
               </Button>
-              <Button onClick={() => handleNSelection(10)} className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}>
+              <Button
+                onClick={() => handleNSelection(10)}
+                className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
+                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+              >
                 10
               </Button>
-              <Button onClick={() => handleNSelection(15)} className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}>
+              <Button
+                onClick={() => handleNSelection(15)}
+                className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
+                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+              >
                 15
               </Button>
             </div>
@@ -639,9 +796,9 @@ function App() {
             borderColor="black"
             className="w-full mb-4"
           />
-          <TextArea 
-            readOnly 
-            value={dummyOutput} 
+          <TextArea
+            readOnly
+            value={dummyOutput}
             rows={10}
             ref={textAreaRef}
             style={{
@@ -654,6 +811,7 @@ function App() {
           />
         </Card>
       </div>
+
       <Popup
         isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
