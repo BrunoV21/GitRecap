@@ -581,6 +581,20 @@ button, .Button {
   justify-content: center;
 }
 
+.release-main-btn:disabled {
+  min-width: 200px;
+  font-size: 1.05rem;
+  padding: 0.6rem 0.5rem;
+  height: 44px;
+  min-height: 44px;
+  background-color: #cccccc;
+  margin-right: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto !important;
+}
+
 /* Base styles for button areas */
 .recap-main-btn-area,
 .release-main-btn-area {
@@ -632,6 +646,20 @@ button, .Button {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.release-back-rect-btn:disabled {
+  background-color: beige;
+  min-width: 90px;
+  height: 44px;
+  font-size: 1rem;
+  padding: 0.6rem 0.7rem;
+  margin-right: 1.2rem;
+  gap: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto !important;
 }
 
 .release-back-arrow {
