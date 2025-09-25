@@ -1015,12 +1015,14 @@ button, .Button {
   left: 50%;
   transform: translateX(-50%);
   margin-bottom: 8px;
+
+  height: 230%;
   
   background-color: #f5f5dc;
   border: 1px solid #d2b48c;
   color: #5c4033;
   border-radius: 4px;
-  padding: 8px;
+  padding: 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   z-index: 100;
   
@@ -1028,15 +1030,24 @@ button, .Button {
   white-space: normal;
   width: 280px;
   text-align: center;
-
-  height: 250%;
+  line-height: 1.4;
+  min-height: auto;
   
   transition: opacity 0.2s ease, visibility 0.2s ease;
   visibility: hidden;
-  pointer-events: none; /* Important: prevents tooltip from blocking interactions */
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
-.button-with-tooltip:hover .tooltip-text {
+/* Show tooltip when the container is clicked and contains a disabled button */
+.button-with-tooltip:active .recap-3dots-rect-btn:disabled ~ .tooltip-text {
+  display: block;
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Alternative: Show on hover if button is disabled */
+.button-with-tooltip:hover .recap-3dots-rect-btn:disabled ~ .tooltip-text {
   display: block;
   opacity: 1;
   visibility: visible;
@@ -1047,7 +1058,7 @@ button, .Button {
   content: "";
   position: absolute;
   top: 100%;
-  left: 75%; /* Adjust to point to the badge position */
+  left: 75%;
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
