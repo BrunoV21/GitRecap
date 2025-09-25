@@ -50,6 +50,12 @@ button,
   margin-right: auto;
 }
 
+.authorize-btn,
+.authorized-btn,
+.Button {
+  width: 100%;
+}
+
 /* Headings styling with a dark brown tone */
 h1 {
   font-size: 5rem;
