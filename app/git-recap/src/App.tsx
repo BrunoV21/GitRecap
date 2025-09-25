@@ -677,20 +677,27 @@ function App() {
             >
               {isExecuting ? 'Processing...' : 'Recap'}
             </Button>
-            <Button
-              className="recap-3dots-rect-btn"
-              onClick={() => setShowReleaseMode(true)}
-              aria-label="Show release notes options"
-              disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
-              type="button"
-            >
-              <span className="recap-3dots-rect-inner">
-                <span className="recap-dot"></span>
-                <span className="recap-dot"></span>
-                <span className="recap-dot"></span>
-              </span>
-              <span className="recap-3dots-badge">New</span>
-            </Button>
+            <div className="button-with-tooltip">
+              <Button
+                className="recap-3dots-rect-btn"
+                onClick={() => setShowReleaseMode(true)}
+                aria-label="Show release notes options"
+                disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+                type="button"
+              >
+                <span className="recap-3dots-rect-inner">
+                  <span className="recap-dot"></span>
+                  <span className="recap-dot"></span>
+                  <span className="recap-dot"></span>
+                </span>
+                <span className="recap-3dots-badge">
+                  New
+                </span>
+              </Button>
+              <div className="tooltip-text">
+                You can now generate releases - only supported for GitHub repos (requires sign in or PAT authorization) and select one repo from a dropdown from above!
+              </div>
+            </div>
           </div>
           {/* Release Notes Mode */}
           <div className={`release-main-btn-area${showReleaseMode ? ' slide-in' : ' slide-right-out'}`}>
