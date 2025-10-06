@@ -90,6 +90,40 @@ class BaseFetcher(ABC):
         """
         raise NotImplementedError("Release fetching is not implemented for this provider.")
 
+    @abstractmethod
+    def open_pr(
+        self,
+        repo_name: str,
+        head_branch: str,
+        base_branch: str,
+        title: str,
+        body: str,
+        draft: bool = False,
+        reviewers: Optional[List[str]] = None,
+        assignees: Optional[List[str]] = None,
+        labels: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create a new pull request in the provider.
+
+        Args:
+            repo_name (str): Name of the repository.
+            head_branch (str): The name of the branch where your changes are implemented (source).
+            base_branch (str): The name of the branch you want the changes pulled into (target).
+            title (str): Title of the pull request.
+            body (str): Body/description of the pull request (supports markdown).
+            draft (bool): Whether to create the PR as a draft.
+            reviewers (List[str], optional): List of usernames to request review from.
+            assignees (List[str], optional): List of usernames to assign to the PR.
+            labels (List[str], optional): List of label names to add to the PR.
+
+        Returns:
+            Dict[str, Any]: Information about the created pull request (number, url, etc.).
+        Raises:
+            NotImplementedError: If the provider does not support PR creation.
+        """
+        raise NotImplementedError("Pull request creation is not implemented for this provider.")
+
     def get_authored_messages(self) -> List[Dict[str, Any]]:
         """
         Aggregates all commit, pull request, and issue entries into a single list,

@@ -1,6 +1,6 @@
 from github import Github
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from git_recap.providers.base_fetcher import BaseFetcher
 
 class GitHubFetcher(BaseFetcher):
@@ -175,3 +175,95 @@ class GitHubFetcher(BaseFetcher):
                 # If fetching releases fails for a repo, skip it (could be permissions or no releases)
                 continue
         return releases
+
+    def open_pr(
+        self,
+        repo_name: str,
+        head_branch: str,
+        base_branch: str,
+        title: str,
+        body: str,
+        draft: bool = False,
+        reviewers: Optional[List[str]] = None,
+        assignees: Optional[List[str]] = None,
+        labels: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create a new pull request on GitHub.
+
+        Args:
+            repo_name (str): Name of the repository.
+            head_branch (str): The name of the branch where your changes are implemented (source).
+            base_branch (str): The name of the branch you want the changes pulled into (target).
+            title (str): Title of the pull request.
+            body (str): Body/description of the pull request (supports markdown).
+            draft (bool): Whether to create the PR as a draft.
+            reviewers (List[str], optional): List of GitHub usernames to request review from.
+            assignees (List[str], optional): List of GitHub usernames to assign to the PR.
+            labels (List[str], optional): List of label names to add to the PR.
+
+        Returns:
+            Dict[str, Any]: Information about the created pull request (number, url, etc.).
+        """
+        print(f"Listing branches for repository '{repo_name}'...")
+        repo = None
+        for r in self.repos:
+            if r.name == repo_name:
+                repo = r
+                break
+        if not repo:
+            raise ValueError(f"Repository '{repo_name}' not found or not accessible.")
+
+        branches = [b.name for b in repo.get_branches()]
+        print(f"Available branches: {branches}")
+        if head_branch not in branches:
+            raise ValueError(f"Source branch '{head_branch}' not found in repository '{repo_name}'.")
+        if base_branch not in branches:
+            raise ValueError(f"Target branch '{base_branch}' not found in repository '{repo_name}'.")
+
+        print(f"Checking for existing pull requests from '{head_branch}' to '{base_branch}'...")
+        existing_prs = repo.get_pulls(state="open", head=f"{repo.owner.login}:{head_branch}", base=base_branch)
+        for pr in existing_prs:
+            if pr.head.ref == head_branch and pr.base.ref == base_branch:
+                print(f"Pull request already exists: #{pr.number} {pr.html_url}")
+                return {"number": pr.number, "url": pr.html_url, "already_exists": True}
+
+        print(f"Creating pull request: {title}")
+        try:
+            pr = repo.create_pull(
+                title=title,
+                body=body,
+                head=head_branch,
+                base=base_branch,
+                draft=draft
+            )
+        except Exception as e:
+            print(f"Error creating pull request: {e}")
+            raise
+
+        # Optionally add reviewers, assignees, and labels
+        if reviewers:
+            try:
+                pr.create_review_request(reviewers=reviewers)
+                print(f"Requested reviewers: {reviewers}")
+            except Exception as e:
+                print(f"Could not add reviewers: {e}")
+        if assignees:
+            try:
+                pr.add_to_assignees(*assignees)
+                print(f"Added assignees: {assignees}")
+            except Exception as e:
+                print(f"Could not add assignees: {e}")
+        if labels:
+            try:
+                pr.add_to_labels(*labels)
+                print(f"Added labels: {labels}")
+            except Exception as e:
+                print(f"Could not add labels: {e}")
+
+        print(f"Pull request created: #{pr.number} {pr.html_url}")
+        return {
+            "number": pr.number,
+            "url": pr.html_url,
+            "already_exists": False
+        }
