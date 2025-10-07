@@ -229,9 +229,66 @@ class URLFetcher(BaseFetcher):
         Raises:
             NotImplementedError: Always, since release fetching is not supported for URLFetcher.
         """
-        # If in the future, support for fetching releases from generic git repos is added,
-        # implement logic here (e.g., parse tags and annotate with metadata).
         raise NotImplementedError("Release fetching is not supported for generic Git URLs (URLFetcher).")
+
+    def get_branches(self) -> List[str]:
+        """
+        Get all branches in the repository.
+        
+        Returns:
+            List[str]: List of branch names.
+        
+        Raises:
+            NotImplementedError: Always, since branch listing is not yet implemented for URLFetcher.
+        """
+        raise NotImplementedError("Branch listing is not yet implemented for generic Git URLs (URLFetcher).")
+
+    def get_valid_target_branches(self, source_branch: str) -> List[str]:
+        """
+        Get branches that can receive a pull request from the source branch.
+        
+        Args:
+            source_branch (str): The source branch name.
+        
+        Returns:
+            List[str]: List of valid target branch names.
+        
+        Raises:
+            NotImplementedError: Always, since PR target validation is not supported for URLFetcher.
+        """
+        raise NotImplementedError("Pull request target branch validation is not supported for generic Git URLs (URLFetcher).")
+
+    def create_pull_request(
+        self,
+        head_branch: str,
+        base_branch: str,
+        title: str,
+        body: str,
+        draft: bool = False,
+        reviewers: Optional[List[str]] = None,
+        assignees: Optional[List[str]] = None,
+        labels: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Create a pull request between two branches.
+        
+        Args:
+            head_branch: Source branch for the PR.
+            base_branch: Target branch for the PR.
+            title: PR title.
+            body: PR description.
+            draft: Whether to create as draft PR (default: False).
+            reviewers: List of reviewer usernames (optional).
+            assignees: List of assignee usernames (optional).
+            labels: List of label names (optional).
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing PR metadata or error information.
+        
+        Raises:
+            NotImplementedError: Always, since PR creation is not supported for URLFetcher.
+        """
+        raise NotImplementedError("Pull request creation is not supported for generic Git URLs (URLFetcher).")
 
     def clear(self) -> None:
         """Clean up temporary directory."""

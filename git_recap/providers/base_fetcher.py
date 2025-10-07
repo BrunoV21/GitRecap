@@ -90,6 +90,72 @@ class BaseFetcher(ABC):
         """
         raise NotImplementedError("Release fetching is not implemented for this provider.")
 
+    @abstractmethod
+    def get_branches(self) -> List[str]:
+        """
+        Get all branches in the repository.
+        
+        Returns:
+            List[str]: List of branch names.
+        
+        Raises:
+            NotImplementedError: Subclasses must implement this method.
+        """
+        raise NotImplementedError("Subclasses must implement get_branches() to return all repository branches")
+
+    @abstractmethod
+    def get_valid_target_branches(self, source_branch: str) -> List[str]:
+        """
+        Get branches that can receive a pull request from the source branch.
+        
+        Validates that the source branch exists, filters out branches with existing
+        open PRs from source, excludes the source branch itself, and optionally
+        checks if source is ahead of target.
+        
+        Args:
+            source_branch (str): The source branch name.
+        
+        Returns:
+            List[str]: List of valid target branch names.
+        
+        Raises:
+            NotImplementedError: Subclasses must implement this method.
+        """
+        raise NotImplementedError("Subclasses must implement get_valid_target_branches() to return valid PR target branches for the given source branch")
+
+    @abstractmethod
+    def create_pull_request(
+        self,
+        head_branch: str,
+        base_branch: str,
+        title: str,
+        body: str,
+        draft: bool = False,
+        reviewers: Optional[List[str]] = None,
+        assignees: Optional[List[str]] = None,
+        labels: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Create a pull request between two branches with optional metadata.
+        
+        Args:
+            head_branch: Source branch for the PR.
+            base_branch: Target branch for the PR.
+            title: PR title.
+            body: PR description.
+            draft: Whether to create as draft PR (default: False).
+            reviewers: List of reviewer usernames (optional).
+            assignees: List of assignee usernames (optional).
+            labels: List of label names (optional).
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing PR metadata (url, number, state, success) or error information.
+        
+        Raises:
+            NotImplementedError: Subclasses must implement this method.
+        """
+        raise NotImplementedError("Subclasses must implement create_pull_request() to create a pull request with the specified parameters")
+
     def get_authored_messages(self) -> List[Dict[str, Any]]:
         """
         Aggregates all commit, pull request, and issue entries into a single list,
