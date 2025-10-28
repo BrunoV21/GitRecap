@@ -64,6 +64,32 @@ class GitHubFetcher(BaseFetcher):
                         break
         return entries
 
+    def fetch_branch_diff_commits(self, source_branch: str, target_branch: str) -> List[Dict[str, Any]]:
+        entries = []
+        processed_commits = set()
+        for repo in self.repos:
+            if self.repo_filter and repo.name not in self.repo_filter:
+                continue
+            try:
+                comparison = repo.compare(target_branch, source_branch)
+                for commit in comparison.commits:
+                    commit_date = commit.commit.author.date
+                    sha = commit.sha
+                    if sha not in processed_commits:
+                        entry = {
+                            "type": "commit",
+                            "repo": repo.name,
+                            "message": commit.commit.message.strip(),
+                            "timestamp": commit_date,
+                            "sha": sha,
+                        }
+                        entries.append(entry)
+                        processed_commits.add(sha)
+            except GithubException as e:
+                logger.error(f"Failed to compare branches in {repo.name}: {str(e)}")
+                continue
+        return entries
+
     def fetch_pull_requests(self) -> List[Dict[str, Any]]:
         entries = []
         # Maintain a local set to skip duplicate commits already captured in a PR.
