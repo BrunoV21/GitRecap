@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel
 
-from services.llm_service import set_llm, get_llm, trim_messages
+from services.llm_service import set_llm, get_llm, trim_messages, generate_pr_description_from_commits
 from services.fetcher_service import store_fetcher, get_fetcher
 from git_recap.utils import parse_entries_to_txt, parse_releases_to_txt
 from aicore.llm.config import LlmConfig
@@ -273,13 +273,111 @@ async def get_release_notes(
 
     return {"actions": "\n\n".join([actions_txt, releases_txt])}
 
-# @router.post("/chat")
-# async def chat(
-#     chat_request: ChatRequest
-# ):
-#     try:
-#         llm = await initialize_llm_session(chat_request.session_id)
-#         response = await llm.acomplete(chat_request.message)
-#         return {"response": response}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+# --- Branch and Pull Request Management Endpoints ---
+from app.api.models.schemas import (
+    BranchListResponse,
+    ValidTargetBranchesRequest,
+    ValidTargetBranchesResponse,
+    CreatePullRequestRequest,
+    CreatePullRequestResponse,
+)
+
+@router.get("/branches", response_model=BranchListResponse)
+async def get_branches(
+    session_id: str,
+    repo: str
+):
+    """
+    Get all branches for a given repository in the current session.
+    """
+    fetcher = get_fetcher(session_id)
+    try:
+        fetcher.repo_filter = [repo]
+        branches = fetcher.get_branches()
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="Branch listing is not supported for this provider.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch branches: {str(e)}")
+    return BranchListResponse(branches=branches)
+
+@router.post("/valid-target-branches", response_model=ValidTargetBranchesResponse)
+async def get_valid_target_branches(
+    req: ValidTargetBranchesRequest
+):
+    """
+    Get all valid target branches for a given source branch in a repository.
+    """
+    fetcher = get_fetcher(req.session_id)
+    try:
+        fetcher.repo_filter = [req.repo]
+        valid_targets = fetcher.get_valid_target_branches(req.source_branch)
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="Target branch validation is not supported for this provider.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to validate target branches: {str(e)}")
+    return ValidTargetBranchesResponse(valid_target_branches=valid_targets)
+
+@router.post("/create-pull-request", response_model=CreatePullRequestResponse)
+async def create_pull_request(
+    req: CreatePullRequestRequest
+):
+    """
+    Create a pull request between two branches, generating a description with LLM if not provided.
+    """
+    fetcher = get_fetcher(req.session_id)
+    fetcher.repo_filter = [req.repo]
+
+    generated_description = None
+    pr_description = req.description
+
+    if not pr_description:
+        # Fetch commit messages between source and target branch
+        try:
+            # For GitHubFetcher, we can use the underlying PyGithub API
+            # to get the repo object and compare branches
+            repo_obj = None
+            for repo in fetcher.repos:
+                if repo.name == req.repo:
+                    repo_obj = repo
+                    break
+            if repo_obj is None:
+                raise HTTPException(status_code=404, detail=f"Repository '{req.repo}' not found in session.")
+
+            # Compare source and target branches to get commits in source not in target
+            comparison = repo_obj.compare(req.target_branch, req.source_branch)
+            commit_messages = [commit.commit.message.strip() for commit in comparison.commits]
+            if not commit_messages:
+                commit_messages = [f"Merge {req.source_branch} into {req.target_branch}"]
+
+            generated_description = await generate_pr_description_from_commits(commit_messages, req.session_id)
+            pr_description = generated_description
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to generate PR description: {str(e)}")
+
+    try:
+        result = fetcher.create_pull_request(
+            head_branch=req.source_branch,
+            base_branch=req.target_branch,
+            title=req.title or f"Merge {req.source_branch} into {req.target_branch}",
+            body=pr_description,
+            draft=req.draft or False,
+            reviewers=req.reviewers,
+            assignees=req.assignees,
+            labels=req.labels,
+        )
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="Pull request creation is not supported for this provider.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create pull request: {str(e)}")
+
+    return CreatePullRequestResponse(
+        url=result.get("url"),
+        number=result.get("number"),
+        state=result.get("state"),
+        success=result.get("success", False),
+        generated_description=generated_description
+    )

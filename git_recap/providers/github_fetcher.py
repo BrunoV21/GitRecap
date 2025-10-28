@@ -184,22 +184,18 @@ class GitHubFetcher(BaseFetcher):
     def get_branches(self) -> List[str]:
         """
         Get all branches in the repository.
-        
         Returns:
             List[str]: List of branch names.
-        
         Raises:
             Exception: If API rate limits are exceeded or authentication fails.
         """
         logger.debug("Fetching branches from all accessible repositories")
         try:
             branches = []
-            # Iterate through all repos accessible to the user
             for repo in self.repos:
                 if self.repo_filter and repo.name not in self.repo_filter:
                     continue
                 logger.debug(f"Fetching branches for repository: {repo.name}")
-                # Fetch branches using PyGithub
                 repo_branches = repo.get_branches()
                 for branch in repo_branches:
                     branches.append(branch.name)
@@ -222,71 +218,49 @@ class GitHubFetcher(BaseFetcher):
     def get_valid_target_branches(self, source_branch: str) -> List[str]:
         """
         Get branches that can receive a pull request from the source branch.
-        
         Validates that the source branch exists, filters out branches with existing
         open PRs from source, excludes the source branch itself, and optionally
         checks if source is ahead of target.
-        
         Args:
             source_branch (str): The source branch name.
-        
         Returns:
             List[str]: List of valid target branch names.
-        
         Raises:
             ValueError: If source branch does not exist.
             Exception: If API errors occur during validation.
         """
         logger.debug(f"Validating target branches for source branch: {source_branch}")
         try:
-            # Validate that source branch exists
             all_branches = self.get_branches()
             if source_branch not in all_branches:
                 logger.error(f"Source branch '{source_branch}' does not exist")
                 raise ValueError(f"Source branch '{source_branch}' does not exist")
-            
             valid_targets = []
-            
-            # Iterate through repos to find valid target branches
             for repo in self.repos:
                 if self.repo_filter and repo.name not in self.repo_filter:
                     continue
-                
                 logger.debug(f"Processing repository: {repo.name}")
-                
-                # Get all branches for this repo
                 repo_branches = [branch.name for branch in repo.get_branches()]
-                
                 # Get existing open PRs from source branch
-                open_prs = repo.get_pulls(state='open', head=source_branch)
+                try:
+                    open_prs = repo.get_pulls(state='open', head=source_branch)
+                except GithubException as e:
+                    logger.error(f"GitHub API error while getting PRs: {str(e)}")
+                    raise Exception(f"Failed to validate target branches: {str(e)}")
                 existing_pr_targets = set()
                 for pr in open_prs:
                     existing_pr_targets.add(pr.base.ref)
                     logger.debug(f"Found existing PR from {source_branch} to {pr.base.ref}")
-                
-                # Filter branches
                 for branch_name in repo_branches:
-                    # Exclude source branch itself
                     if branch_name == source_branch:
                         logger.debug(f"Excluding source branch: {branch_name}")
                         continue
-                    # Exclude branches with existing open PRs
                     if branch_name in existing_pr_targets:
                         logger.debug(f"Excluding branch with existing PR: {branch_name}")
                         continue
-                    # Optional: Check if source is ahead of target
-                    # This is commented out for performance reasons, but can be enabled if needed
-                    # try:
-                    #     comparison = repo.compare(branch_name, source_branch)
-                    #     if comparison.ahead_by == 0:
-                    #         logger.debug(f"Excluding branch (source not ahead): {branch_name}")
-                    #         continue
-                    # except GithubException:
-                    #     # If comparison fails, include the branch anyway
-                    #     pass
+                    # Optionally check if source is ahead of target (performance cost)
                     valid_targets.append(branch_name)
                     logger.debug(f"Valid target branch: {branch_name}")
-            
             logger.debug(f"Found {len(valid_targets)} valid target branches")
             return valid_targets
         except ValueError:
@@ -311,7 +285,6 @@ class GitHubFetcher(BaseFetcher):
     ) -> Dict[str, Any]:
         """
         Create a pull request between two branches with optional metadata.
-        
         Args:
             head_branch: Source branch for the PR.
             base_branch: Target branch for the PR.
@@ -321,16 +294,13 @@ class GitHubFetcher(BaseFetcher):
             reviewers: List of reviewer usernames (optional).
             assignees: List of assignee usernames (optional).
             labels: List of label names (optional).
-        
         Returns:
             Dict[str, Any]: Dictionary containing PR metadata or error information.
-        
         Raises:
             ValueError: If branches don't exist or PR already exists.
         """
         logger.info(f"Creating pull request from {head_branch} to {base_branch}")
         try:
-            # Verify both branches exist
             all_branches = self.get_branches()
             if head_branch not in all_branches:
                 logger.error(f"Head branch '{head_branch}' does not exist")
@@ -338,19 +308,21 @@ class GitHubFetcher(BaseFetcher):
             if base_branch not in all_branches:
                 logger.error(f"Base branch '{base_branch}' does not exist")
                 raise ValueError(f"Base branch '{base_branch}' does not exist")
-            
-            # Check if PR already exists between these branches
             for repo in self.repos:
                 if self.repo_filter and repo.name not in self.repo_filter:
                     continue
-                
                 logger.debug(f"Checking for existing PRs in repository: {repo.name}")
-                existing_prs = repo.get_pulls(state='open', head=head_branch, base=base_branch)
-                if existing_prs.totalCount > 0:
+                try:
+                    existing_prs = repo.get_pulls(state='open', head=head_branch, base=base_branch)
+                except GithubException as e:
+                    logger.error(f"GitHub API error while getting PRs: {str(e)}")
+                    raise
+                if hasattr(existing_prs, "totalCount") and existing_prs.totalCount > 0:
                     logger.error(f"Pull request already exists from {head_branch} to {base_branch}")
                     raise ValueError(f"Pull request already exists from {head_branch} to {base_branch}")
-                
-                # Create PR using repo.create_pull()
+                elif isinstance(existing_prs, list) and len(existing_prs) > 0:
+                    logger.error(f"Pull request already exists from {head_branch} to {base_branch}")
+                    raise ValueError(f"Pull request already exists from {head_branch} to {base_branch}")
                 logger.info(f"Creating pull request in repository: {repo.name}")
                 try:
                     pr = repo.create_pull(
@@ -361,8 +333,6 @@ class GitHubFetcher(BaseFetcher):
                         draft=draft
                     )
                     logger.info(f"Pull request created successfully: {pr.html_url}")
-                    
-                    # Add reviewers if provided
                     if reviewers and len(reviewers) > 0:
                         try:
                             logger.debug(f"Adding reviewers: {reviewers}")
@@ -370,9 +340,6 @@ class GitHubFetcher(BaseFetcher):
                             logger.info(f"Successfully added reviewers: {reviewers}")
                         except GithubException as e:
                             logger.warning(f"Failed to add reviewers: {str(e)}")
-                            # Continue even if adding reviewers fails
-                    
-                    # Add assignees if provided
                     if assignees and len(assignees) > 0:
                         try:
                             logger.debug(f"Adding assignees: {assignees}")
@@ -380,9 +347,6 @@ class GitHubFetcher(BaseFetcher):
                             logger.info(f"Successfully added assignees: {assignees}")
                         except GithubException as e:
                             logger.warning(f"Failed to add assignees: {str(e)}")
-                            # Continue even if adding assignees fails
-                    
-                    # Add labels if provided
                     if labels and len(labels) > 0:
                         try:
                             logger.debug(f"Adding labels: {labels}")
@@ -390,16 +354,12 @@ class GitHubFetcher(BaseFetcher):
                             logger.info(f"Successfully added labels: {labels}")
                         except GithubException as e:
                             logger.warning(f"Failed to add labels: {str(e)}")
-                            # Continue even if adding labels fails
-                    
-                    # Return success response
                     return {
                         "url": pr.html_url,
                         "number": pr.number,
                         "state": pr.state,
                         "success": True
                     }
-                
                 except GithubException as e:
                     if e.status == 404:
                         logger.error(f"Branch not found: {str(e)}")
@@ -413,11 +373,8 @@ class GitHubFetcher(BaseFetcher):
                     else:
                         logger.error(f"GitHub API error: {str(e)}")
                         raise
-            
-            # If we reach here, no repo was processed (shouldn't happen with valid branches)
             logger.error("No repository found to create pull request")
             raise ValueError("No repository found to create pull request")
-            
         except (ValueError, GithubException):
             raise
         except Exception as e:

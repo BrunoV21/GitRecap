@@ -184,3 +184,50 @@ async def expire_session(session_id: str):
     # Expire any active websocket connections associated with session_id.
     from server.websockets import close_websocket_connection
     close_websocket_connection(session_id)
+
+
+# --- LLM PR Description Generation Utility ---
+from aicore.const import SPECIAL_TOKENS, STREAM_END_TOKEN
+
+async def generate_pr_description_from_commits(commit_messages: List[str], session_id: str) -> str:
+    """
+    Generate a pull request description using the LLM, given a list of commit messages.
+    This function is intended to be called from REST endpoints for PR creation.
+
+    Args:
+        commit_messages: List of commit message strings to summarize.
+        session_id: The LLM session ID to use for the LLM call.
+
+    Returns:
+        str: The generated PR description.
+    """
+    if not commit_messages:
+        raise ValueError("No commit messages provided for PR description generation.")
+
+    llm = get_llm(session_id)
+
+    pr_prompt = (
+        "You are an AI assistant tasked with generating a concise, clear, and professional pull request description "
+        "based on the following commit messages. Summarize the overall changes, highlight key improvements or fixes, "
+        "and provide a brief, readable description suitable for a pull request body. Do not include commit hashes or dates. "
+        "Group similar changes and avoid repetition. Use markdown formatting for clarity if appropriate.\n\n"
+        "Commit messages:\n"
+        + "\n".join(f"- {msg.strip()}" for msg in commit_messages)
+    )
+
+    response_chunks = []
+    async for chunk in run_concurrent_tasks(
+        llm,
+        message=[pr_prompt],
+        system_prompt="You are a helpful assistant that writes clear, professional pull request descriptions for developers."
+    ):
+        if chunk == STREAM_END_TOKEN:
+            break
+        elif chunk in SPECIAL_TOKENS:
+            continue
+        response_chunks.append(chunk)
+
+    pr_description = "".join(response_chunks).strip()
+    if not pr_description:
+        raise RuntimeError("LLM did not return a PR description.")
+    return pr_description

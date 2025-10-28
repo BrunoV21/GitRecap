@@ -1,11 +1,20 @@
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 import json
-from typing import Optional
-
-from services.prompts import SELECT_QUIRKY_REMARK_SYSTEM, SYSTEM, RELEASE_NOTES_SYSTEM, quirky_remarks
-from services.llm_service import get_random_quirky_remarks, run_concurrent_tasks, get_llm
-from aicore.const import SPECIAL_TOKENS, STREAM_END_TOKEN
+from typing import Optional, List
 import asyncio
+
+from services.prompts import (
+    SELECT_QUIRKY_REMARK_SYSTEM,
+    SYSTEM,
+    RELEASE_NOTES_SYSTEM,
+    quirky_remarks,
+)
+from services.llm_service import (
+    get_random_quirky_remarks,
+    run_concurrent_tasks,
+    get_llm,
+)
+from aicore.const import SPECIAL_TOKENS, STREAM_END_TOKEN
 
 router = APIRouter()
 
@@ -26,12 +35,11 @@ Generate me the next Release Notes based on the new Git Actionables matching the
 {ACTIONS}
 """
 
-
 @router.websocket("/ws/{session_id}/{action_type}")
 async def websocket_endpoint(
-    websocket: WebSocket, 
+    websocket: WebSocket,
     session_id: Optional[str] = None,
-    action_type: str="recap"
+    action_type: str = "recap"
 ):
     await websocket.accept()
 
@@ -39,15 +47,12 @@ async def websocket_endpoint(
         QUIRKY_SYSTEM = SELECT_QUIRKY_REMARK_SYSTEM.format(
             examples=json.dumps(get_random_quirky_remarks(quirky_remarks), indent=4)
         )
-        
         system = [SYSTEM, QUIRKY_SYSTEM]
-
     elif action_type == "release":
         system = RELEASE_NOTES_SYSTEM
-
     else:
         raise HTTPException(status_code=404)
-    
+
     # Store the connection
     active_connections[session_id] = websocket
 
@@ -85,12 +90,11 @@ async def websocket_endpoint(
                     break
                 elif chunk in SPECIAL_TOKENS:
                     continue
-                
                 await websocket.send_text(json.dumps({"chunk": chunk}))
                 response.append(chunk)
-            
+
             history.append("".join(response))
-    
+
     except WebSocketDisconnect:
         if session_id in active_connections:
             del active_connections[session_id]
@@ -99,6 +103,7 @@ async def websocket_endpoint(
             await websocket.send_text(json.dumps({"error": str(e)}))
             del active_connections[session_id]
 
+
 def close_websocket_connection(session_id: str):
     """
     Clean up and close the active websocket connection associated with the given session_id.
@@ -106,3 +111,51 @@ def close_websocket_connection(session_id: str):
     websocket = active_connections.pop(session_id, None)
     if websocket:
         asyncio.create_task(websocket.close())
+
+
+async def generate_pr_description_from_commits(commit_messages: List[str], session_id: str) -> str:
+    """
+    Generate a pull request description using the LLM, given a list of commit messages.
+    This function is intended to be called from REST endpoints for PR creation.
+
+    Args:
+        commit_messages: List of commit message strings to summarize.
+        session_id: The LLM session ID to use for the LLM call.
+
+    Returns:
+        str: The generated PR description.
+    """
+    if not commit_messages:
+        raise ValueError("No commit messages provided for PR description generation.")
+
+    llm = get_llm(session_id)
+
+    # Construct a prompt for the LLM to generate a PR description
+    # The prompt should instruct the LLM to summarize the commit messages in a PR-friendly way.
+    pr_prompt = (
+        "You are an AI assistant tasked with generating a concise, clear, and professional pull request description "
+        "based on the following commit messages. Summarize the overall changes, highlight key improvements or fixes, "
+        "and provide a brief, readable description suitable for a pull request body. Do not include commit hashes or dates. "
+        "Group similar changes and avoid repetition. Use markdown formatting for clarity if appropriate.\n\n"
+        "Commit messages:\n"
+        + "\n".join(f"- {msg.strip()}" for msg in commit_messages)
+    )
+
+    # For compatibility with the LLM streaming logic, we use the same run_concurrent_tasks utility.
+    # We'll collect the streamed chunks into a single string.
+    response_chunks = []
+    async for chunk in run_concurrent_tasks(
+        llm,
+        message=[pr_prompt],
+        system_prompt="You are a helpful assistant that writes clear, professional pull request descriptions for developers."
+    ):
+        if chunk == STREAM_END_TOKEN:
+            break
+        elif chunk in SPECIAL_TOKENS:
+            continue
+        response_chunks.append(chunk)
+
+    pr_description = "".join(response_chunks).strip()
+    if not pr_description:
+        raise RuntimeError("LLM did not return a PR description.")
+    return pr_description
