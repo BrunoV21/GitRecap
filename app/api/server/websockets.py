@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 import json
-from typing import Optional, List
+from typing import Literal, Optional, List
 import asyncio
 
 from services.prompts import (
+    PR_DESCRIPTION_SYSTEM,
     SELECT_QUIRKY_REMARK_SYSTEM,
     SYSTEM,
     RELEASE_NOTES_SYSTEM,
@@ -35,11 +36,27 @@ Generate me the next Release Notes based on the new Git Actionables matching the
 {ACTIONS}
 """
 
+TRIGGER_PULL_REQUEST_PROMPT = """
+You will now receive a list of commit messages between two branches.  
+Using the system instructions provided above, generate a clear, concise, and professional **Pull Request Description** summarizing all changes.
+
+Commits:
+{COMMITS}
+
+Please follow these steps:
+1. Read and analyze the commit messages.
+2. Identify and group related changes under appropriate markdown headers (e.g., Features, Bug Fixes, Improvements, Documentation, Tests).
+3. Write a short **summary paragraph** explaining the overall purpose of this pull request.
+4. Format the final output as a complete markdown-formatted PR description, ready to paste into GitHub.
+
+Begin your response directly with the formatted PR description—no extra commentary or explanation.
+"""
+
 @router.websocket("/ws/{session_id}/{action_type}")
 async def websocket_endpoint(
     websocket: WebSocket,
     session_id: Optional[str] = None,
-    action_type: str = "recap"
+    action_type: Literal["recap", "release", "pull_request"] = "recap"
 ):
     await websocket.accept()
 
@@ -50,6 +67,8 @@ async def websocket_endpoint(
         system = [SYSTEM, QUIRKY_SYSTEM]
     elif action_type == "release":
         system = RELEASE_NOTES_SYSTEM
+    elif action_type == "pull_request":
+        system = PR_DESCRIPTION_SYSTEM
     else:
         raise HTTPException(status_code=404)
 
@@ -78,6 +97,8 @@ async def websocket_endpoint(
                 history = [
                     TRIGGER_RELEASE_PROMPT.format(ACTIONS=message)
                 ]
+            elif action_type == "pull_request":
+                system = TRIGGER_PULL_REQUEST_PROMPT.format(COMMITS=message)
 
             response = []
             async for chunk in run_concurrent_tasks(
@@ -111,51 +132,3 @@ def close_websocket_connection(session_id: str):
     websocket = active_connections.pop(session_id, None)
     if websocket:
         asyncio.create_task(websocket.close())
-
-
-async def generate_pr_description_from_commits(commit_messages: List[str], session_id: str) -> str:
-    """
-    Generate a pull request description using the LLM, given a list of commit messages.
-    This function is intended to be called from REST endpoints for PR creation.
-
-    Args:
-        commit_messages: List of commit message strings to summarize.
-        session_id: The LLM session ID to use for the LLM call.
-
-    Returns:
-        str: The generated PR description.
-    """
-    if not commit_messages:
-        raise ValueError("No commit messages provided for PR description generation.")
-
-    llm = get_llm(session_id)
-
-    # Construct a prompt for the LLM to generate a PR description
-    # The prompt should instruct the LLM to summarize the commit messages in a PR-friendly way.
-    pr_prompt = (
-        "You are an AI assistant tasked with generating a concise, clear, and professional pull request description "
-        "based on the following commit messages. Summarize the overall changes, highlight key improvements or fixes, "
-        "and provide a brief, readable description suitable for a pull request body. Do not include commit hashes or dates. "
-        "Group similar changes and avoid repetition. Use markdown formatting for clarity if appropriate.\n\n"
-        "Commit messages:\n"
-        + "\n".join(f"- {msg.strip()}" for msg in commit_messages)
-    )
-
-    # For compatibility with the LLM streaming logic, we use the same run_concurrent_tasks utility.
-    # We'll collect the streamed chunks into a single string.
-    response_chunks = []
-    async for chunk in run_concurrent_tasks(
-        llm,
-        message=[pr_prompt],
-        system_prompt="You are a helpful assistant that writes clear, professional pull request descriptions for developers."
-    ):
-        if chunk == STREAM_END_TOKEN:
-            break
-        elif chunk in SPECIAL_TOKENS:
-            continue
-        response_chunks.append(chunk)
-
-    pr_description = "".join(response_chunks).strip()
-    if not pr_description:
-        raise RuntimeError("LLM did not return a PR description.")
-    return pr_description
