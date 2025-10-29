@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 import json
-from typing import Literal, Optional, List
+from typing import Literal, Optional
 import asyncio
 
 from services.prompts import (
@@ -52,14 +52,32 @@ Please follow these steps:
 Begin your response directly with the formatted PR description—no extra commentary or explanation.
 """
 
+
 @router.websocket("/ws/{session_id}/{action_type}")
 async def websocket_endpoint(
     websocket: WebSocket,
     session_id: Optional[str] = None,
     action_type: Literal["recap", "release", "pull_request"] = "recap"
 ):
+    """
+    WebSocket endpoint for real-time LLM operations.
+    
+    Handles three action types:
+    - recap: Generate commit summaries with quirky remarks
+    - release: Generate release notes based on git history
+    - pull_request: Generate PR descriptions from commit diffs
+    
+    Args:
+        websocket: WebSocket connection instance
+        session_id: Session identifier for LLM and fetcher management
+        action_type: Type of operation to perform
+        
+    Raises:
+        HTTPException: If action_type is invalid
+    """
     await websocket.accept()
 
+    # Select appropriate system prompt based on action type
     if action_type == "recap":
         QUIRKY_SYSTEM = SELECT_QUIRKY_REMARK_SYSTEM.format(
             examples=json.dumps(get_random_quirky_remarks(quirky_remarks), indent=4)
@@ -70,36 +88,44 @@ async def websocket_endpoint(
     elif action_type == "pull_request":
         system = PR_DESCRIPTION_SYSTEM
     else:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=404, detail="Invalid action type")
 
-    # Store the connection
+    # Store the active WebSocket connection
     active_connections[session_id] = websocket
 
-    # Initialize LLM
+    # Initialize LLM session
     llm = get_llm(session_id)
 
     try:
         while True:
+            # Receive message from client
             message = await websocket.receive_text()
             msg_json = json.loads(message)
-            message = msg_json.get("actions")
+            message_content = msg_json.get("actions")
             N = msg_json.get("n", 5)
-            assert int(N) <= 15
-            assert message
+            
+            # Validate inputs
+            assert int(N) <= 15, "N must be <= 15"
+            assert message_content, "Message content is required"
+            
+            # Build history/prompt based on action type
             if action_type == "recap":
                 history = [
                     TRIGGER_PROMPT.format(
                         N=N,
-                        ACTIONS=message
+                        ACTIONS=message_content
                     )
                 ]
             elif action_type == "release":
                 history = [
-                    TRIGGER_RELEASE_PROMPT.format(ACTIONS=message)
+                    TRIGGER_RELEASE_PROMPT.format(ACTIONS=message_content)
                 ]
             elif action_type == "pull_request":
-                system = TRIGGER_PULL_REQUEST_PROMPT.format(COMMITS=message)
+                history = [
+                    TRIGGER_PULL_REQUEST_PROMPT.format(COMMITS=message_content)
+                ]
 
+            # Stream LLM response back to client
             response = []
             async for chunk in run_concurrent_tasks(
                 llm,
@@ -114,12 +140,20 @@ async def websocket_endpoint(
                 await websocket.send_text(json.dumps({"chunk": chunk}))
                 response.append(chunk)
 
+            # Store response in history for potential follow-up
             history.append("".join(response))
 
     except WebSocketDisconnect:
+        # Clean up connection on disconnect
         if session_id in active_connections:
             del active_connections[session_id]
+    except AssertionError as e:
+        # Handle validation errors
+        if session_id in active_connections:
+            await websocket.send_text(json.dumps({"error": f"Validation error: {str(e)}"}))
+            del active_connections[session_id]
     except Exception as e:
+        # Handle unexpected errors
         if session_id in active_connections:
             await websocket.send_text(json.dumps({"error": str(e)}))
             del active_connections[session_id]
@@ -127,7 +161,13 @@ async def websocket_endpoint(
 
 def close_websocket_connection(session_id: str):
     """
-    Clean up and close the active websocket connection associated with the given session_id.
+    Clean up and close the active WebSocket connection associated with the given session_id.
+    
+    This function is called during session expiration to ensure proper cleanup
+    of WebSocket resources.
+    
+    Args:
+        session_id: The session identifier whose WebSocket connection should be closed
     """
     websocket = active_connections.pop(session_id, None)
     if websocket:

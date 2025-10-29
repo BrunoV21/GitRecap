@@ -44,6 +44,23 @@ function App() {
   const [numOldReleases, setNumOldReleases] = useState(1);
   const [isExecutingReleaseNotes, setIsExecutingReleaseNotes] = useState(false);
 
+  // PR Mode states
+  const [showPRMode, setShowPRMode] = useState(false);
+  const [availableBranches, setAvailableBranches] = useState<string[]>([]);
+  const [sourceBranch, setSourceBranch] = useState('');
+  const [targetBranches, setTargetBranches] = useState<string[]>([]);
+  const [targetBranch, setTargetBranch] = useState('');
+  const [prDiff, setPrDiff] = useState('');
+  const [prDescription, setPrDescription] = useState('');
+  const [isGeneratingPR, setIsGeneratingPR] = useState(false);
+  const [prValidationMessage, setPrValidationMessage] = useState('');
+  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
+  const [isLoadingTargets, setIsLoadingTargets] = useState(false);
+  const [isLoadingDiff, setIsLoadingDiff] = useState(false);
+  const [isCreatingPR, setIsCreatingPR] = useState(false);
+  const [prCreationSuccess, setPrCreationSuccess] = useState(false);
+  const [prUrl, setPrUrl] = useState('');
+
   // Auth states
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
@@ -64,7 +81,7 @@ function App() {
   const [recapDone, setRecapDone] = useState(true);
   const [isReposLoading, setIsReposLoading] = useState(true);
   const [repoProgress, setRepoProgress] = useState(0);
-  // UI mode for recap/release
+  // UI mode for recap/release/pr
   const [showReleaseMode, setShowReleaseMode] = useState(false);
 
   const actionsLogRef = useRef<HTMLDivElement>(null);
@@ -354,6 +371,268 @@ function App() {
     }
   };
 
+  // PR Mode Navigation Handlers
+  const handleShowPRMode = useCallback(() => {
+    // Validation: single repository selection
+    if (selectedRepos.length !== 1) {
+      setPopupMessage('Please select exactly one repository to create a pull request.');
+      setIsPopupOpen(true);
+      return;
+    }
+    
+    // Validation: GitHub provider only
+    if (codeHost !== 'github') {
+      setPopupMessage('Pull request creation is only supported for GitHub repositories.');
+      setIsPopupOpen(true);
+      return;
+    }
+    
+    // Reset PR mode state
+    setSourceBranch('');
+    setTargetBranch('');
+    setTargetBranches([]);
+    setPrDiff('');
+    setPrDescription('');
+    setPrValidationMessage('');
+    setPrCreationSuccess(false);
+    setPrUrl('');
+    
+    setShowPRMode(true);
+    
+    // Fetch available branches
+    fetchAvailableBranches();
+  }, [selectedRepos, codeHost, sessionId]);
+
+  const handleBackFromPR = useCallback(() => {
+    if (currentWebSocket) {
+      currentWebSocket.close();
+      setCurrentWebSocket(null);
+    }
+    setShowPRMode(false);
+  }, [currentWebSocket]);
+
+  // Fetch available branches when entering PR mode
+  const fetchAvailableBranches = useCallback(async () => {
+    if (!sessionId || selectedRepos.length !== 1) return;
+    
+    setIsLoadingBranches(true);
+    setPrValidationMessage('');
+    
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(
+        `${backendUrl}/branches?session_id=${sessionId}&repo=${encodeURIComponent(selectedRepos[0])}`,
+        { method: 'GET' }
+      );
+      
+      if (!response.ok) throw new Error('Failed to fetch branches');
+      
+      const data = await response.json();
+      setAvailableBranches(data.branches || []);
+      
+      if (!data.branches || data.branches.length === 0) {
+        setPrValidationMessage('No branches found in this repository.');
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+      setPrValidationMessage('Failed to fetch branches. Please try again.');
+    } finally {
+      setIsLoadingBranches(false);
+    }
+  }, [sessionId, selectedRepos]);
+
+  // Handle source branch selection
+  const handleSourceBranchChange = useCallback(async (branch: string) => {
+    setSourceBranch(branch);
+    setTargetBranch('');
+    setTargetBranches([]);
+    setPrDiff('');
+    setPrDescription('');
+    setPrValidationMessage('');
+    
+    if (!branch) return;
+    
+    // Fetch valid target branches
+    setIsLoadingTargets(true);
+    
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(`${backendUrl}/valid-target-branches`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          repo: selectedRepos[0],
+          source_branch: branch
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch valid target branches');
+      
+      const data = await response.json();
+      setTargetBranches(data.valid_target_branches || []);
+      
+      if (!data.valid_target_branches || data.valid_target_branches.length === 0) {
+        setPrValidationMessage('No valid target branches available for the selected source branch.');
+      }
+    } catch (error) {
+      console.error('Error fetching target branches:', error);
+      setPrValidationMessage('Failed to fetch valid target branches. Please try again.');
+    } finally {
+      setIsLoadingTargets(false);
+    }
+  }, [sessionId, selectedRepos]);
+
+  // Handle target branch selection and fetch diff
+  const handleTargetBranchChange = useCallback(async (branch: string) => {
+    setTargetBranch(branch);
+    setPrDiff('');
+    setPrDescription('');
+    setPrValidationMessage('');
+    
+    if (!branch || !sourceBranch) return;
+    
+    // Fetch PR diff
+    setIsLoadingDiff(true);
+    
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(`${backendUrl}/get-pull-request-diff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          repo: selectedRepos[0],
+          source_branch: sourceBranch,
+          target_branch: branch
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch pull request diff');
+      
+      const data = await response.json();
+      
+      if (!data.commits || data.commits.length === 0) {
+        setPrValidationMessage('No changes found between the selected branches.');
+        setPrDiff('');
+        return;
+      }
+      
+      // Format commits as readable log
+      const formattedDiff = data.commits
+        .map((commit: any) => `[${commit.sha?.substring(0, 7) || 'N/A'}] ${commit.message}`)
+        .join('\n');
+      
+      setPrDiff(formattedDiff);
+    } catch (error) {
+      console.error('Error fetching PR diff:', error);
+      setPrValidationMessage('Failed to fetch pull request diff. Please try again.');
+    } finally {
+      setIsLoadingDiff(false);
+    }
+  }, [sessionId, selectedRepos, sourceBranch]);
+
+  // Generate PR description using WebSocket
+  const generatePRDescription = useCallback(() => {
+    if (!sourceBranch || !targetBranch || !prDiff) {
+      setPrValidationMessage('Please select both branches and ensure there are changes to summarize.');
+      return;
+    }
+    
+    if (currentWebSocket) {
+      currentWebSocket.close();
+    }
+    
+    setPrDescription('');
+    setIsGeneratingPR(true);
+    setPrValidationMessage('');
+    
+    const backendUrl = import.meta.env.VITE_AICORE_API;
+    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}/pull_request`;
+    const ws = new WebSocket(wsUrl);
+    
+    setCurrentWebSocket(ws);
+    
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ actions: prDiff }));
+    };
+    
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data.toString()).chunk;
+      if (message === "</end>") {
+        setIsGeneratingPR(false);
+        ws.close();
+        setCurrentWebSocket(null);
+      } else {
+        setPrDescription((prev) => prev + message);
+      }
+    };
+    
+    ws.onerror = (event) => {
+      console.error("WebSocket error:", event);
+      setIsGeneratingPR(false);
+      setPrValidationMessage('Failed to generate PR description. Please try again.');
+      setCurrentWebSocket(null);
+    };
+    
+    ws.onclose = () => {
+      setIsGeneratingPR(false);
+      setCurrentWebSocket(null);
+    };
+  }, [sessionId, sourceBranch, targetBranch, prDiff, currentWebSocket]);
+
+  // Create pull request
+  const createPullRequest = useCallback(async () => {
+    if (!prDescription || !prDescription.trim()) {
+      setPrValidationMessage('Please generate a PR description before creating the pull request.');
+      return;
+    }
+    
+    // Parse title from first line of description
+    const lines = prDescription.split('\n');
+    const title = lines[0]?.replace(/^#+\s*/, '').trim() || `Merge ${sourceBranch} into ${targetBranch}`;
+    const body = lines.slice(1).join('\n').trim();
+    
+    setIsCreatingPR(true);
+    setPrValidationMessage('');
+    
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(`${backendUrl}/create-pull-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          repo: selectedRepos[0],
+          source_branch: sourceBranch,
+          target_branch: targetBranch,
+          title: title,
+          description: body || prDescription
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to create pull request');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setPrCreationSuccess(true);
+        setPrUrl(data.url);
+        setPrValidationMessage('');
+      } else {
+        throw new Error('Pull request creation was not successful');
+      }
+    } catch (error: any) {
+      console.error('Error creating pull request:', error);
+      setPrValidationMessage(error.message || 'Failed to create pull request. Please try again.');
+    } finally {
+      setIsCreatingPR(false);
+    }
+  }, [prDescription, sourceBranch, targetBranch, sessionId, selectedRepos]);
+
   // Handle GitHub OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -457,8 +736,8 @@ function App() {
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
                   placeholder="Enter Git repository URL"
-                  className="flex-grow min-w-0"  // Takes remaining space
-                  style={{ flex: '2 1 0%' }}     // Explicit 2:1 ratio
+                  className="flex-grow min-w-0"
+                  style={{ flex: '2 1 0%' }}
                 />
                 <Button
                   onClick={handleCloneRepo}
@@ -466,9 +745,9 @@ function App() {
                   color="accent"
                   className="flex-shrink-0"
                   style={{ 
-                    width: '33.333%',           // Force 1/3 width
-                    flex: '1 1 0%',             // Flex basis 0%
-                    minWidth: 'fit-content'     // Prevent squeezing
+                    width: '33.333%',
+                    flex: '1 1 0%',
+                    minWidth: 'fit-content'
                   }}
                 >
                   {isCloning ? 'Cloning...' : 'Clone'}
@@ -666,9 +945,9 @@ function App() {
       </Card>
 
       <div className="recap-release-switcher-container mt-8">
-        <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}`}>
+        <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}${showPRMode ? ' show-pr' : ''}`}>
           {/* Recap Mode */}
-          <div className={`recap-main-btn-area${showReleaseMode ? ' slide-left-out' : ' slide-in'}`}>
+          <div className={`recap-main-btn-area${showReleaseMode || showPRMode ? ' slide-left-out' : ' slide-in'}`}>
             <Button
               onClick={handleFullRecap}
               disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
@@ -700,7 +979,7 @@ function App() {
             </div>
           </div>
           {/* Release Notes Mode */}
-          <div className={`release-main-btn-area${showReleaseMode ? ' slide-in' : ' slide-right-out'}`}>
+          <div className={`release-main-btn-area${showReleaseMode && !showPRMode ? ' slide-in' : ' slide-right-out'}`}>
             <Button
               className="release-back-rect-btn"
               onClick={() => setShowReleaseMode(false)}
@@ -710,6 +989,16 @@ function App() {
             >
               <span className="release-back-arrow">&#8592;</span>
               <span className="release-back-label">Back</span>
+            </Button>
+            <Button
+              className="release-pr-rect-btn"
+              onClick={handleShowPRMode}
+              disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
+              type="button"
+              style={{ minWidth: '90px', height: '44px' }}
+              color="accent"
+            >
+              <span className="release-pr-label">New PR</span>
             </Button>
             <Button
               onClick={handleReleaseNotes}
@@ -741,8 +1030,137 @@ function App() {
               </button>
             </div>
           </div>
+          
+          {/* PR Mode */}
+          <div className={`pr-main-area${showPRMode ? ' slide-in' : ' slide-right-out'}`}>
+            <Button
+              className="pr-back-rect-btn"
+              onClick={handleBackFromPR}
+              disabled={isGeneratingPR || isCreatingPR}
+              type="button"
+              style={{ minWidth: '90px', height: '44px' }}
+            >
+              <span className="pr-back-arrow">&#8592;</span>
+              <span className="pr-back-label">Back</span>
+            </Button>
+            
+            <div className="pr-controls-container">
+              <div className="pr-branch-selectors">
+                <div className="pr-branch-group">
+                  <label className="pr-branch-label">Source Branch:</label>
+                  <select
+                    className="pr-branch-dropdown"
+                    value={sourceBranch}
+                    onChange={(e) => handleSourceBranchChange(e.target.value)}
+                    disabled={isLoadingBranches || isGeneratingPR || isCreatingPR}
+                  >
+                    <option value="">Select source branch</option>
+                    {availableBranches.map((branch) => (
+                      <option key={branch} value={branch}>
+                        {branch}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="pr-branch-group">
+                  <label className="pr-branch-label">Target Branch:</label>
+                  <select
+                    className="pr-branch-dropdown"
+                    value={targetBranch}
+                    onChange={(e) => handleTargetBranchChange(e.target.value)}
+                    disabled={!sourceBranch || isLoadingTargets || isGeneratingPR || isCreatingPR}
+                  >
+                    <option value="">Select target branch</option>
+                    {targetBranches.map((branch) => (
+                      <option key={branch} value={branch}>
+                        {branch}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {prValidationMessage && (
+                <div className="pr-validation-message">
+                  {prValidationMessage}
+                </div>
+              )}
+              
+              <Button
+                onClick={generatePRDescription}
+                disabled={!sourceBranch || !targetBranch || !prDiff || isGeneratingPR || isCreatingPR}
+                color="accent"
+                className="pr-generate-btn"
+              >
+                {isGeneratingPR ? 'Generating...' : 'Generate PR Description'}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
+      
+      {/* PR Mode Output Section */}
+      {showPRMode && (
+        <>
+          <div className="output-section mt-8">
+            <Card className="output-box p-6">
+              <h2 className="text-xl font-bold mb-4">Commit Diff</h2>
+              {isLoadingDiff && (
+                <ProgressBar
+                  progress={50}
+                  size="md"
+                  color="orange"
+                  borderColor="black"
+                  className="w-full mb-4"
+                />
+              )}
+              <TextArea 
+                readOnly 
+                value={prDiff} 
+                rows={10}
+                placeholder="Select source and target branches to view commit diff..."
+              />
+            </Card>
+          </div>
+          
+          <div className="output-section mt-8">
+            <Card className="output-box p-6">
+              <h2 className="text-xl font-bold mb-4">PR Description</h2>
+              {isGeneratingPR && (
+                <ProgressBar
+                  progress={50}
+                  size="md"
+                  color="orange"
+                  borderColor="black"
+                  className="w-full mb-4"
+                />
+              )}
+              <TextArea 
+                value={prDescription}
+                onChange={(e) => setPrDescription(e.target.value)}
+                rows={10}
+                placeholder="Click 'Generate PR Description' to create a description..."
+              />
+              
+              {prCreationSuccess && prUrl && (
+                <div className="pr-success-message mt-4">
+                  Pull request created successfully! <a href={prUrl} target="_blank" rel="noopener noreferrer">View PR</a>
+                </div>
+              )}
+              
+              <Button
+                onClick={createPullRequest}
+                disabled={!prDescription || isGeneratingPR || isCreatingPR}
+                color="accent"
+                className="pr-create-btn mt-4"
+              >
+                {isCreatingPR ? 'Creating...' : 'Create PR'}
+              </Button>
+            </Card>
+          </div>
+        </>
+      )}
       
       <div className="output-section mt-8" ref={actionsLogRef}>
         <Card className="output-box p-6">
