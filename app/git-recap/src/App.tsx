@@ -992,24 +992,46 @@ function App() {
             </div>
             
             <div className={`options-menu${showMenu ? ' slide-in-menu' : ' slide-out-menu'}`}>
-              <Button
-                className="menu-option-btn"
-                onClick={handleShowReleaseMode}
-                disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
-                color="accent"
-                style={{ minWidth: '180px', maxWidth: '180px' }}
-              >
-                Generate Release Notes
-              </Button>
-              <Button
-                className="menu-option-btn"
-                onClick={handleShowPRModeFromMenu}
-                disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
-                color="accent"
-                style={{ minWidth: '120px', maxWidth: '120px' }}
-              >
-                Create PR
-              </Button>
+              <div className="menu-button-with-tooltip">
+                <Button
+                  className="menu-option-btn"
+                  onClick={handleShowReleaseMode}
+                  disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
+                  color="accent"
+                  style={{ minWidth: '180px', maxWidth: '180px' }}
+                >
+                  Generate Release Notes
+                </Button>
+                {(selectedRepos.length !== 1 || codeHost !== 'github') && (
+                  <div className="menu-tooltip-text">
+                    {codeHost !== 'github' 
+                      ? 'Only available for GitHub repositories' 
+                      : selectedRepos.length === 0 
+                      ? 'Please select exactly one repository' 
+                      : 'Please select only one repository'}
+                  </div>
+                )}
+              </div>
+              <div className="menu-button-with-tooltip">
+                <Button
+                  className="menu-option-btn"
+                  onClick={handleShowPRModeFromMenu}
+                  disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
+                  color="accent"
+                  style={{ minWidth: '120px', maxWidth: '120px' }}
+                >
+                  Create PR
+                </Button>
+                {(selectedRepos.length !== 1 || codeHost !== 'github') && (
+                  <div className="menu-tooltip-text">
+                    {codeHost !== 'github' 
+                      ? 'Only available for GitHub repositories' 
+                      : selectedRepos.length === 0 
+                      ? 'Please select exactly one repository' 
+                      : 'Please select only one repository'}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

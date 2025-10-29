@@ -1613,3 +1613,54 @@ a {
   display: flex;
   align-items: center;
 }
+
+.menu-button-with-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.menu-tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  width: max-content;
+  max-width: 250px;
+  margin-bottom: 8px;
+  transition: opacity 0.2s;
+  z-index: 10;
+  pointer-events: none;
+  text-align: center;
+}
+
+.menu-tooltip-text::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1f2937;
+}
+
+.menu-button-with-tooltip:hover .menu-tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Show tooltip when button is disabled */
+.menu-button-with-tooltip button:disabled ~ .menu-tooltip-text {
+  display: block;
+}
+
+.menu-button-with-tooltip button:disabled:hover ~ .menu-tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
