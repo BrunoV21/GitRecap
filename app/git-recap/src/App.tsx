@@ -971,44 +971,44 @@ function App() {
             {isExecuting ? 'Processing...' : 'Recap'}
           </Button>
           <div className="button-with-tooltip">
-            <Button
-              className="recap-3dots-rect-btn"
-              onClick={() => setShowMenu(!showMenu)}
-              aria-label="Show options menu"
-              disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
-              type="button"
-            >
-              <span className="recap-3dots-rect-inner">
-                <span className="recap-dot"></span>
-                <span className="recap-dot"></span>
-                <span className="recap-dot"></span>
-              </span>
-              <span className="recap-3dots-badge">
-                New
-              </span>
-            </Button>
-            <div className="tooltip-text">
-              Generate release notes or create a PR - only supported for GitHub repos (requires sign in or PAT authorization)
-            </div>
-            
-            {showMenu && (
-              <div className="options-menu">
-                <button
-                  className="menu-option"
+              <Button
+                className="recap-3dots-rect-btn"
+                onClick={() => setShowMenu(!showMenu)}
+                aria-label="Show options menu"
+                disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+                type="button"
+              >
+                <span className="recap-3dots-rect-inner">
+                  <span className="recap-dot"></span>
+                  <span className="recap-dot"></span>
+                  <span className="recap-dot"></span>
+                </span>
+                <span className="recap-3dots-badge">
+                  New
+                </span>
+              </Button>
+              <div className="tooltip-text">
+                Generate release notes or create a PR - only supported for GitHub repos (requires sign in or PAT authorization)
+              </div>
+              
+              <div className={`options-menu${showMenu ? ' slide-in-menu' : ' slide-out-menu'}`}>
+                <Button
+                  className="menu-option-btn"
                   onClick={handleShowReleaseMode}
                   disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+                  color="accent"
                 >
                   Generate Release Notes
-                </button>
-                <button
-                  className="menu-option"
+                </Button>
+                <Button
+                  className="menu-option-btn"
                   onClick={handleShowPRModeFromMenu}
                   disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
+                  color="accent"
                 >
                   Create PR
-                </button>
+                </Button>
               </div>
-            )}
           </div>
         </div>
 

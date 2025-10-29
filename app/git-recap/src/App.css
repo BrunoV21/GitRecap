@@ -1569,3 +1569,47 @@ a {
     max-width: 100%;
   }
 }
+
+.options-menu {
+  display: flex;
+  gap: 12px;
+  transition: all 0.3s ease;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.slide-in-menu {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.slide-out-menu {
+  opacity: 0;
+  transform: translateX(-20px);
+  pointer-events: none;
+  position: absolute;
+  left: 100%;
+}
+
+.menu-option-btn {
+  min-height: 44px;
+  padding: 10px 20px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Ensure the button container allows horizontal layout */
+.recap-main-btn-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.button-with-tooltip {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
