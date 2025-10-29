@@ -633,6 +633,21 @@ function App() {
     }
   }, [prDescription, sourceBranch, targetBranch, sessionId, selectedRepos]);
 
+  // 1. Add this to your state declarations (around line 60):
+  const [showMenu, setShowMenu] = useState(false);
+
+  // 2. Add these handlers after handleShowPRMode (around line 280):
+  const handleShowReleaseMode = useCallback(() => {
+    setShowMenu(false);
+    setShowReleaseMode(true);
+    setShowPRMode(false);
+  }, []);
+
+  const handleShowPRModeFromMenu = useCallback(() => {
+    setShowMenu(false);
+    handleShowPRMode();
+  }, [handleShowPRMode]);
+
   // Handle GitHub OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -944,158 +959,166 @@ function App() {
         </Accordion>
       </Card>
 
-      <div className="recap-release-switcher-container mt-8">
-        <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}${showPRMode ? ' show-pr' : ''}`}>
-          {/* Recap Mode */}
-          <div className={`recap-main-btn-area${showReleaseMode || showPRMode ? ' slide-left-out' : ' slide-in'}`}>
+      <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}${showPRMode ? ' show-pr' : ''}`}>
+        {/* Recap Mode */}
+        <div className={`recap-main-btn-area${showReleaseMode || showPRMode ? ' slide-left-out' : ' slide-in'}`}>
+          <Button
+            onClick={handleFullRecap}
+            disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+            color="accent"
+            className="recap-main-btn"
+          >
+            {isExecuting ? 'Processing...' : 'Recap'}
+          </Button>
+          <div className="button-with-tooltip">
             <Button
-              onClick={handleFullRecap}
-              disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
-              color="accent"
-              className="recap-main-btn"
-            >
-              {isExecuting ? 'Processing...' : 'Recap'}
-            </Button>
-            <div className="button-with-tooltip">
-              <Button
-                className="recap-3dots-rect-btn"
-                onClick={() => setShowReleaseMode(true)}
-                aria-label="Show release notes options"
-                disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
-                type="button"
-              >
-                <span className="recap-3dots-rect-inner">
-                  <span className="recap-dot"></span>
-                  <span className="recap-dot"></span>
-                  <span className="recap-dot"></span>
-                </span>
-                <span className="recap-3dots-badge">
-                  New
-                </span>
-              </Button>
-              <div className="tooltip-text">
-                You can now generate releases - only supported for GitHub repos (requires sign in or PAT authorization) and select one repo from a dropdown from above!
-              </div>
-            </div>
-          </div>
-          {/* Release Notes Mode */}
-          <div className={`release-main-btn-area${showReleaseMode && !showPRMode ? ' slide-in' : ' slide-right-out'}`}>
-            <Button
-              className="release-back-rect-btn"
-              onClick={() => setShowReleaseMode(false)}
+              className="recap-3dots-rect-btn"
+              onClick={() => setShowMenu(!showMenu)}
+              aria-label="Show options menu"
               disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
               type="button"
+            >
+              <span className="recap-3dots-rect-inner">
+                <span className="recap-dot"></span>
+                <span className="recap-dot"></span>
+                <span className="recap-dot"></span>
+              </span>
+              <span className="recap-3dots-badge">
+                New
+              </span>
+            </Button>
+            <div className="tooltip-text">
+              Generate release notes or create a PR - only supported for GitHub repos (requires sign in or PAT authorization)
+            </div>
+            
+            {showMenu && (
+              <div className="options-menu">
+                <button
+                  className="menu-option"
+                  onClick={handleShowReleaseMode}
+                  disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+                >
+                  Generate Release Notes
+                </button>
+                <button
+                  className="menu-option"
+                  onClick={handleShowPRModeFromMenu}
+                  disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
+                >
+                  Create PR
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Release Notes Mode */}
+        <div className={`release-main-btn-area${showReleaseMode && !showPRMode ? ' slide-in' : ' slide-right-out'}`}>
+          <Button
+            className="release-back-rect-btn"
+            onClick={() => setShowReleaseMode(false)}
+            disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+            type="button"
+            style={{ minWidth: '32px', height: '32px' }}
+          >
+            <span className="release-back-arrow">&#8592;</span>
+            <span className="release-back-label">Back</span>
+          </Button>
+          <Button
+            onClick={handleReleaseNotes}
+            disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized}
+            color="accent"
+            className="release-main-btn"
+          >
+            {isExecutingReleaseNotes ? 'Processing...' : 'Generate Release Notes'}
+          </Button>
+          <div className="release-counter-rect">
+            <button
+              onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
+              disabled={numOldReleases <= 1 || isExecutingReleaseNotes || isExecuting}
+              className="counter-btn-rect"
               style={{ minWidth: '32px', height: '32px' }}
             >
-              <span className="release-back-arrow">&#8592;</span>
-              <span className="release-back-label">Back</span>
-            </Button>
-            <Button
-              className="release-pr-rect-btn"
-              onClick={handleShowPRMode}
-              disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
-              type="button"
-              style={{ minWidth: '90px', height: '44px' }}
-              color="accent"
+              <Minus className="h-3 w-3" />
+            </button>
+            <span className="counter-value-rect">
+              {numOldReleases}
+            </span>
+            <button
+              onClick={() => setNumOldReleases(numOldReleases + 1)}
+              disabled={isExecutingReleaseNotes || isExecuting}
+              className="counter-btn-rect"
+              style={{ minWidth: '32px', height: '32px' }}
             >
-              <span className="release-pr-label">New PR</span>
-            </Button>
-            <Button
-              onClick={handleReleaseNotes}
-              disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized}
-              color="accent"
-              className="release-main-btn"
-            >
-              {isExecutingReleaseNotes ? 'Processing...' : 'Generate Release Notes'}
-            </Button>
-            <div className="release-counter-rect">
-              <button
-                onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
-                disabled={numOldReleases <= 1 || isExecutingReleaseNotes || isExecuting}
-                className="counter-btn-rect"
-                style={{ minWidth: '32px', height: '32px' }}
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="counter-value-rect">
-                {numOldReleases}
-              </span>
-              <button
-                onClick={() => setNumOldReleases(numOldReleases + 1)}
-                disabled={isExecutingReleaseNotes || isExecuting}
-                className="counter-btn-rect"
-                style={{ minWidth: '32px', height: '32px' }}
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
+              <Plus className="h-3 w-3" />
+            </button>
           </div>
+        </div>
+        
+        {/* PR Mode */}
+        <div className={`pr-main-area${showPRMode ? ' slide-in' : ' slide-right-out'}`}>
+          <Button
+            className="pr-back-rect-btn"
+            onClick={handleBackFromPR}
+            disabled={isGeneratingPR || isCreatingPR}
+            type="button"
+            style={{ minWidth: '90px', height: '44px' }}
+          >
+            <span className="pr-back-arrow">&#8592;</span>
+            <span className="pr-back-label">Back</span>
+          </Button>
           
-          {/* PR Mode */}
-          <div className={`pr-main-area${showPRMode ? ' slide-in' : ' slide-right-out'}`}>
-            <Button
-              className="pr-back-rect-btn"
-              onClick={handleBackFromPR}
-              disabled={isGeneratingPR || isCreatingPR}
-              type="button"
-              style={{ minWidth: '90px', height: '44px' }}
-            >
-              <span className="pr-back-arrow">&#8592;</span>
-              <span className="pr-back-label">Back</span>
-            </Button>
-            
-            <div className="pr-controls-container">
-              <div className="pr-branch-selectors">
-                <div className="pr-branch-group">
-                  <label className="pr-branch-label">Source Branch:</label>
-                  <select
-                    className="pr-branch-dropdown"
-                    value={sourceBranch}
-                    onChange={(e) => handleSourceBranchChange(e.target.value)}
-                    disabled={isLoadingBranches || isGeneratingPR || isCreatingPR}
-                  >
-                    <option value="">Select source branch</option>
-                    {availableBranches.map((branch) => (
-                      <option key={branch} value={branch}>
-                        {branch}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="pr-branch-group">
-                  <label className="pr-branch-label">Target Branch:</label>
-                  <select
-                    className="pr-branch-dropdown"
-                    value={targetBranch}
-                    onChange={(e) => handleTargetBranchChange(e.target.value)}
-                    disabled={!sourceBranch || isLoadingTargets || isGeneratingPR || isCreatingPR}
-                  >
-                    <option value="">Select target branch</option>
-                    {targetBranches.map((branch) => (
-                      <option key={branch} value={branch}>
-                        {branch}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <div className="pr-controls-container">
+            <div className="pr-branch-selectors">
+              <div className="pr-branch-group">
+                <label className="pr-branch-label">Source Branch:</label>
+                <select
+                  className="pr-branch-dropdown"
+                  value={sourceBranch}
+                  onChange={(e) => handleSourceBranchChange(e.target.value)}
+                  disabled={isLoadingBranches || isGeneratingPR || isCreatingPR}
+                >
+                  <option value="">Select source branch</option>
+                  {availableBranches.map((branch) => (
+                    <option key={branch} value={branch}>
+                      {branch}
+                    </option>
+                  ))}
+                </select>
               </div>
               
-              {prValidationMessage && (
-                <div className="pr-validation-message">
-                  {prValidationMessage}
-                </div>
-              )}
-              
-              <Button
-                onClick={generatePRDescription}
-                disabled={!sourceBranch || !targetBranch || !prDiff || isGeneratingPR || isCreatingPR}
-                color="accent"
-                className="pr-generate-btn"
-              >
-                {isGeneratingPR ? 'Generating...' : 'Generate PR Description'}
-              </Button>
+              <div className="pr-branch-group">
+                <label className="pr-branch-label">Target Branch:</label>
+                <select
+                  className="pr-branch-dropdown"
+                  value={targetBranch}
+                  onChange={(e) => handleTargetBranchChange(e.target.value)}
+                  disabled={!sourceBranch || isLoadingTargets || isGeneratingPR || isCreatingPR}
+                >
+                  <option value="">Select target branch</option>
+                  {targetBranches.map((branch) => (
+                    <option key={branch} value={branch}>
+                      {branch}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+            
+            {prValidationMessage && (
+              <div className="pr-validation-message">
+                {prValidationMessage}
+              </div>
+            )}
+            
+            <Button
+              onClick={generatePRDescription}
+              disabled={!sourceBranch || !targetBranch || !prDiff || isGeneratingPR || isCreatingPR}
+              color="accent"
+              className="pr-generate-btn"
+            >
+              {isGeneratingPR ? 'Generating...' : 'Generate PR Description'}
+            </Button>
           </div>
         </div>
       </div>
