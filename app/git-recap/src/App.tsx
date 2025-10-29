@@ -995,7 +995,7 @@ function App() {
               <Button
                 className="menu-option-btn"
                 onClick={handleShowReleaseMode}
-                disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+                disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
                 color="accent"
                 style={{ minWidth: '180px', maxWidth: '180px' }}
               >
