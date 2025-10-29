@@ -1593,11 +1593,20 @@ a {
 }
 
 .menu-option-btn {
-  min-height: 44px;
-  padding: 10px 20px;
+  height: 44px;
+  padding: 8px 16px;
   white-space: nowrap;
   font-size: 14px;
   font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Keep Recap button size fixed */
+.recap-main-btn {
+  min-width: 120px;
+  max-width: 120px;
+  padding: 12px 32px;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
