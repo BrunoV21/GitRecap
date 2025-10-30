@@ -1080,7 +1080,9 @@ function App() {
         </div>
         
         {/* PR Mode */}
-        <div className={`pr-main-area${showPRMode ? ' slide-in' : ' slide-right-out'}`}>
+        <div 
+          className={`pr-main-area${showPRMode ? ' slide-in' : ' slide-right-out'}`}
+        >
           <Button
             className="pr-back-rect-btn"
             onClick={handleBackFromPR}
@@ -1092,7 +1094,7 @@ function App() {
             <span className="pr-back-label">Back</span>
           </Button>
           
-          <div className="pr-branch-group-inline">
+          <div className="pr-branch-group-inline" style={{ flex: 1 }}>
             <select
               className="pr-branch-dropdown"
               value={sourceBranch}
@@ -1108,7 +1110,7 @@ function App() {
             </select>
           </div>
           
-          <div className="pr-branch-group-inline">
+          <div className="pr-branch-group-inline" style={{ flex: 1 }}>
             <select
               className="pr-branch-dropdown"
               value={targetBranch}

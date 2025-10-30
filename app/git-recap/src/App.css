@@ -1670,8 +1670,9 @@ a {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
-  gap: 12px !important;
-  flex-wrap: wrap !important;
+  gap: 25px !important;
+  flex-wrap: nowrap !important;
+  justify-content: center !important;
 }
 
 .pr-branch-group-inline {
