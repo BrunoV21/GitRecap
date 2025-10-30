@@ -650,7 +650,7 @@ button, .Button {
 .pr-back-rect-btn {
   background-color: beige;
   min-width: 90px;
-  height: 44px;
+  height: 32px;
   font-size: 1rem;
   padding: 0.6rem 0.7rem;
   margin-right: 1.2rem;
@@ -664,7 +664,7 @@ button, .Button {
 .pr-back-rect-btn:disabled {
   background-color: beige;
   min-width: 90px;
-  height: 44px;
+  height: 32px;
   font-size: 1rem;
   padding: 0.6rem 0.7rem;
   margin-right: 1.2rem;
@@ -1663,4 +1663,60 @@ a {
 .menu-button-with-tooltip button:disabled:hover ~ .menu-tooltip-text {
   visibility: visible;
   opacity: 1;
+}
+
+/* PR Mode - Horizontal Layout */
+.pr-main-area {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.pr-branch-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  max-width: 150px;
+}
+
+.pr-branch-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.pr-branch-dropdown {
+  padding: 8px 12px;
+  height: 44px;
+  border: 2px solid #000;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  min-width: 150px;
+  cursor: pointer;
+}
+
+.pr-branch-dropdown:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pr-generate-btn {
+  white-space: nowrap;
+}
+
+.pr-validation-message-inline {
+  padding: 8px 12px;
+  background: #fef3c7;
+  border: 2px solid #fbbf24;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #92400e;
+  width: 100%;
+  text-align: center;
+  flex-basis: 100%;
 }

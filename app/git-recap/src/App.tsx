@@ -1086,64 +1086,59 @@ function App() {
             onClick={handleBackFromPR}
             disabled={isGeneratingPR || isCreatingPR}
             type="button"
-            style={{ minWidth: '90px', height: '44px' }}
+            style={{ width: '32px', height: '32px', flexShrink: 0 }}
           >
             <span className="pr-back-arrow">&#8592;</span>
             <span className="pr-back-label">Back</span>
           </Button>
           
-          <div className="pr-controls-container">
-            <div className="pr-branch-selectors">
-              <div className="pr-branch-group">
-                <label className="pr-branch-label">Source Branch:</label>
-                <select
-                  className="pr-branch-dropdown"
-                  value={sourceBranch}
-                  onChange={(e) => handleSourceBranchChange(e.target.value)}
-                  disabled={isLoadingBranches || isGeneratingPR || isCreatingPR}
-                >
-                  <option value="">Select source branch</option>
-                  {availableBranches.map((branch) => (
-                    <option key={branch} value={branch}>
-                      {branch}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="pr-branch-group">
-                <label className="pr-branch-label">Target Branch:</label>
-                <select
-                  className="pr-branch-dropdown"
-                  value={targetBranch}
-                  onChange={(e) => handleTargetBranchChange(e.target.value)}
-                  disabled={!sourceBranch || isLoadingTargets || isGeneratingPR || isCreatingPR}
-                >
-                  <option value="">Select target branch</option>
-                  {targetBranches.map((branch) => (
-                    <option key={branch} value={branch}>
-                      {branch}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            {prValidationMessage && (
-              <div className="pr-validation-message">
-                {prValidationMessage}
-              </div>
-            )}
-            
-            <Button
-              onClick={generatePRDescription}
-              disabled={!sourceBranch || !targetBranch || !prDiff || isGeneratingPR || isCreatingPR}
-              color="accent"
-              className="pr-generate-btn"
+          <div className="pr-branch-group-inline">
+            <select
+              className="pr-branch-dropdown"
+              value={sourceBranch}
+              onChange={(e) => handleSourceBranchChange(e.target.value)}
+              disabled={isLoadingBranches || isGeneratingPR || isCreatingPR}
             >
-              {isGeneratingPR ? 'Generating...' : 'Generate PR Description'}
-            </Button>
+              <option value="">Select source</option>
+              {availableBranches.map((branch) => (
+                <option key={branch} value={branch}>
+                  {branch}
+                </option>
+              ))}
+            </select>
           </div>
+          
+          <div className="pr-branch-group-inline">
+            <select
+              className="pr-branch-dropdown"
+              value={targetBranch}
+              onChange={(e) => handleTargetBranchChange(e.target.value)}
+              disabled={!sourceBranch || isLoadingTargets || isGeneratingPR || isCreatingPR}
+            >
+              <option value="">Select target</option>
+              {targetBranches.map((branch) => (
+                <option key={branch} value={branch}>
+                  {branch}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <Button
+            onClick={generatePRDescription}
+            disabled={!sourceBranch || !targetBranch || !prDiff || isGeneratingPR || isCreatingPR}
+            color="accent"
+            className="pr-generate-btn"
+            style={{ width: '120px', height: '32px', flexShrink: 0 }}
+          >
+            {isGeneratingPR ? 'Generating...' : 'Generate PR'}
+          </Button>
+          
+          {prValidationMessage && (
+            <div className="pr-validation-message-inline">
+              {prValidationMessage}
+            </div>
+          )}
         </div>
       </div>
 
