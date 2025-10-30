@@ -1146,74 +1146,14 @@ function App() {
           </div>
         </div>
       </div>
-      
-      {/* PR Mode Output Section */}
-      {showPRMode && (
-        <>
-          <div className="output-section mt-8">
-            <Card className="output-box p-6">
-              <h2 className="text-xl font-bold mb-4">Commit Diff</h2>
-              {isLoadingDiff && (
-                <ProgressBar
-                  progress={50}
-                  size="md"
-                  color="orange"
-                  borderColor="black"
-                  className="w-full mb-4"
-                />
-              )}
-              <TextArea 
-                readOnly 
-                value={prDiff} 
-                rows={10}
-                placeholder="Select source and target branches to view commit diff..."
-              />
-            </Card>
-          </div>
-          
-          <div className="output-section mt-8">
-            <Card className="output-box p-6">
-              <h2 className="text-xl font-bold mb-4">PR Description</h2>
-              {isGeneratingPR && (
-                <ProgressBar
-                  progress={50}
-                  size="md"
-                  color="orange"
-                  borderColor="black"
-                  className="w-full mb-4"
-                />
-              )}
-              <TextArea 
-                value={prDescription}
-                onChange={(e) => setPrDescription(e.target.value)}
-                rows={10}
-                placeholder="Click 'Generate PR Description' to create a description..."
-              />
-              
-              {prCreationSuccess && prUrl && (
-                <div className="pr-success-message mt-4">
-                  Pull request created successfully! <a href={prUrl} target="_blank" rel="noopener noreferrer">View PR</a>
-                </div>
-              )}
-              
-              <Button
-                onClick={createPullRequest}
-                disabled={!prDescription || isGeneratingPR || isCreatingPR}
-                color="accent"
-                className="pr-create-btn mt-4"
-              >
-                {isCreatingPR ? 'Creating...' : 'Create PR'}
-              </Button>
-            </Card>
-          </div>
-        </>
-      )}
-      
+
       <div className="output-section mt-8" ref={actionsLogRef}>
         <Card className="output-box p-6">
-          <h2 className="text-xl font-bold mb-4">Actions Log</h2>
+          <h2 className="text-xl font-bold mb-4">
+            {showPRMode ? 'Commit Diff' : 'Actions Log'}
+          </h2>
           <ProgressBar
-            progress={progressActions}
+            progress={showPRMode && isLoadingDiff ? 50 : progressActions}
             size="md"
             color="orange"
             borderColor="black"
@@ -1221,51 +1161,64 @@ function App() {
           />
           <TextArea 
             readOnly 
-            value={commitsOutput} 
+            value={showPRMode ? prDiff : commitsOutput} 
             rows={10}
+            placeholder={showPRMode ? "Select source and target branches to view commit diff..." : ""}
           />
         </Card>
       </div>
+
       <div className="output-section mt-8" ref={summaryLogRef}>
         <Card className="output-box p-6">
           <div className="summary-header">
-            <h2>Summary (by `{import.meta.env.VITE_LLM_MODEL}`)</h2>
-            <div className="n-selector">
-              <Button
-                onClick={() => handleNSelection(5)}
-                className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
-                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
-              >
-                5
-              </Button>
-              <Button
-                onClick={() => handleNSelection(10)}
-                className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
-                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
-              >
-                10
-              </Button>
-              <Button
-                onClick={() => handleNSelection(15)}
-                className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
-                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
-              >
-                15
-              </Button>
-            </div>
+            <h2>
+              {showPRMode 
+                ? 'Pull Request Description' 
+                : showReleaseMode 
+                ? 'Release Notes' 
+                : `Summary (by \`${import.meta.env.VITE_LLM_MODEL}\`)`
+              }
+            </h2>
+            {!showPRMode && !showReleaseMode && (
+              <div className="n-selector">
+                <Button
+                  onClick={() => handleNSelection(5)}
+                  className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
+                  disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+                >
+                  5
+                </Button>
+                <Button
+                  onClick={() => handleNSelection(10)}
+                  className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
+                  disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+                >
+                  10
+                </Button>
+                <Button
+                  onClick={() => handleNSelection(15)}
+                  className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
+                  disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+                >
+                  15
+                </Button>
+              </div>
+            )}
           </div>
           <ProgressBar
-            progress={progressWs}
+            progress={showPRMode && isGeneratingPR ? 50 : progressWs}
             size="md"
             color="orange"
             borderColor="black"
             className="w-full mb-4"
           />
           <TextArea
-            readOnly
-            value={dummyOutput}
+            readOnly={!showPRMode}
+            value={showPRMode ? prDescription : dummyOutput}
+            onChange={showPRMode ? (e) => setPrDescription(e.target.value) : undefined}
             rows={10}
             ref={textAreaRef}
+            placeholder={showPRMode ? "Click 'Generate PR Description' to create a description..." : ""}
             style={{
               height: '500px',
               overflowY: 'auto',
@@ -1274,6 +1227,23 @@ function App() {
               fontFamily: 'monospace'
             }}
           />
+          
+          {showPRMode && prCreationSuccess && prUrl && (
+            <div className="pr-success-message mt-4">
+              Pull request created successfully! <a href={prUrl} target="_blank" rel="noopener noreferrer">View PR</a>
+            </div>
+          )}
+          
+          {showPRMode && (
+            <Button
+              onClick={createPullRequest}
+              disabled={!prDescription || isGeneratingPR || isCreatingPR}
+              color="accent"
+              className="pr-create-btn mt-4"
+            >
+              {isCreatingPR ? 'Creating...' : 'Create PR'}
+            </Button>
+          )}
         </Card>
       </div>
 
