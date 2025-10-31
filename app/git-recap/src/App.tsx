@@ -620,13 +620,15 @@ function App() {
         if (data.success) {
           setPrCreationSuccess(true);
           setPrUrl(data.url);
-          setPrValidationMessage('');
+          setPopupMessage(`Pull request created successfully on GitHub from ${sourceBranch} to ${targetBranch}!`);
+          setIsPopupOpen(true);
         } else {
           throw new Error('Pull request creation was not successful');
         }
       } catch (error: any) {
         console.error('Error creating pull request:', error);
-        setPrValidationMessage(error.message || 'Failed to create pull request. Please try again.');
+        setPopupMessage(error.message || 'Failed to create pull request. Please try again.');
+        setIsPopupOpen(true);
       } finally {
         setIsCreatingPR(false);
       }
