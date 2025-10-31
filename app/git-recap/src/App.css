@@ -1463,32 +1463,36 @@ a {
 
 /* PR Generate Button */
 .pr-generate-btn {
-  width: 100%;
-  max-width: 300px;
-  padding: 0.8rem 1.6rem;
-  background-color: #ff7f50;
-  color: #fff;
-  border: 3px solid #333;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 4px 4px 0 #bfa16b;
+  min-width: 200px;
+  font-size: 1.05rem;
+  padding: 0.6rem 0.5rem;
+  height: 44px;
+  min-height: 44px;
+  background-color: #cccccc;
+  margin-right: 1.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
+}
+
+.pr-generate-btn:disabled {
+  min-width: 200px;
+  font-size: 1.05rem;
+  padding: 0.6rem 0.5rem;
+  height: 44px;
+  min-height: 44px;
+  background-color: #cccccc;
+  margin-right: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto !important;
 }
 
 .pr-generate-btn:hover:not(:disabled) {
   background-color: #e06e42;
   border-color: #e06e42;
-}
-
-.pr-generate-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background-color: #cccccc;
 }
 
 /* PR Create Button */
