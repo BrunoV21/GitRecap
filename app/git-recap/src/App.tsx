@@ -566,7 +566,11 @@ function App() {
           ws.close();
           setCurrentWebSocket(null);
         } else {
-          setPrDescription((prev) => prev + message);
+          setPrDescription((prev) => {
+            const newOutput = prev + message;
+            scrollToBottom();
+            return newOutput;
+          });
         }
       };
       
