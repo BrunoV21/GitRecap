@@ -549,6 +549,11 @@ function App() {
       setIsGeneratingPR(true);
       setPrValidationMessage('');
       
+      // Scroll to summary section when starting generation
+      setTimeout(() => {
+        summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      
       const backendUrl = import.meta.env.VITE_AICORE_API;
       const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}/pull_request`;
       const ws = new WebSocket(wsUrl);
