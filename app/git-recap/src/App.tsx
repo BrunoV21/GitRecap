@@ -489,11 +489,16 @@ function App() {
     setPrDiff('');
     setPrDescription('');
     setPrValidationMessage('');
+    setProgressActions(0);
     
     if (!branch || !sourceBranch) return;
     
     // Fetch PR diff
     setIsLoadingDiff(true);
+    
+    const progressActionsInterval = setInterval(() => {
+      setProgressActions((prev) => (prev < 95 ? prev + 5 : prev));
+    }, 300);
     
     try {
       const backendUrl = import.meta.env.VITE_AICORE_API;
@@ -515,6 +520,8 @@ function App() {
       if (!data.commits || data.commits.length === 0) {
         setPrValidationMessage('No changes found between the selected branches.');
         setPrDiff('');
+        clearInterval(progressActionsInterval);
+        setProgressActions(100);
         return;
       }
       
@@ -524,9 +531,13 @@ function App() {
         .join('\n');
       
       setPrDiff(formattedDiff);
+      clearInterval(progressActionsInterval);
+      setProgressActions(100);
     } catch (error) {
       console.error('Error fetching PR diff:', error);
       setPrValidationMessage('Failed to fetch pull request diff. Please try again.');
+      clearInterval(progressActionsInterval);
+      setProgressActions(100);
     } finally {
       setIsLoadingDiff(false);
     }
@@ -548,6 +559,7 @@ function App() {
       setPrDescription('');
       setIsGeneratingPR(true);
       setPrValidationMessage('');
+      setProgressWs(0);
       
       // Scroll to summary section when starting generation
       setTimeout(() => {
@@ -560,6 +572,10 @@ function App() {
       
       setCurrentWebSocket(ws);
       
+      const progressWsInterval = setInterval(() => {
+        setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
+      }, 500);
+      
       ws.onopen = () => {
         ws.send(JSON.stringify({ actions: prDiff }));
       };
@@ -567,6 +583,8 @@ function App() {
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data.toString()).chunk;
         if (message === "</end>") {
+          clearInterval(progressWsInterval);
+          setProgressWs(100);
           setIsGeneratingPR(false);
           ws.close();
           setCurrentWebSocket(null);
@@ -581,12 +599,15 @@ function App() {
       
       ws.onerror = (event) => {
         console.error("WebSocket error:", event);
+        clearInterval(progressWsInterval);
+        setProgressWs(100);
         setIsGeneratingPR(false);
         setPrValidationMessage('Failed to generate PR description. Please try again.');
         setCurrentWebSocket(null);
       };
       
       ws.onclose = () => {
+        clearInterval(progressWsInterval);
         setIsGeneratingPR(false);
         setCurrentWebSocket(null);
       };
