@@ -17,6 +17,25 @@ class ChatRequest(BaseModel):
 # --- Branch Listing ---
 class BranchListResponse(BaseModel):
     branches: List[str] = Field(..., description="List of branch names in the repository.")
+    
+    @model_validator(mode='after')
+    def sort_branches(self):
+        """Sort branches with main/master at the top, then alphabetically."""
+        priority_branches = []
+        other_branches = []
+        
+        for branch in self.branches:
+            if branch.lower() in ('main', 'master'):
+                priority_branches.append(branch)
+            else:
+                other_branches.append(branch)
+        
+        # Sort priority branches (main, master) and other branches separately
+        priority_branches.sort(key=lambda x: (x.lower() != 'main', x.lower()))
+        other_branches.sort()
+        
+        self.branches = priority_branches + other_branches
+        return self
 
 
 # --- Valid Target Branches ---
@@ -27,6 +46,25 @@ class ValidTargetBranchesRequest(BaseModel):
 
 class ValidTargetBranchesResponse(BaseModel):
     valid_target_branches: List[str] = Field(..., description="List of valid target branch names.")
+    
+    @model_validator(mode='after')
+    def sort_branches(self):
+        """Sort branches with main/master at the top, then alphabetically."""
+        priority_branches = []
+        other_branches = []
+        
+        for branch in self.valid_target_branches:
+            if branch.lower() in ('main', 'master'):
+                priority_branches.append(branch)
+            else:
+                other_branches.append(branch)
+        
+        # Sort priority branches (main, master) and other branches separately
+        priority_branches.sort(key=lambda x: (x.lower() != 'main', x.lower()))
+        other_branches.sort()
+        
+        self.valid_target_branches = priority_branches + other_branches
+        return self
 
 
 # --- Pull Request Creation ---
