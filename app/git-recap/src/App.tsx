@@ -60,6 +60,7 @@ function App() {
   const [isCreatingPR, setIsCreatingPR] = useState(false);
   const [prCreationSuccess, setPrCreationSuccess] = useState(false);
   const [prUrl, setPrUrl] = useState('');
+  const [prGenerated, setPrGenerated] = useState(false); // New state to track if PR was generated
 
   // Auth states
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
@@ -396,6 +397,7 @@ function App() {
     setPrValidationMessage('');
     setPrCreationSuccess(false);
     setPrUrl('');
+    setPrGenerated(false); // Reset PR generated state
     
     setShowPRMode(true);
     
@@ -449,6 +451,7 @@ function App() {
     setPrDiff('');
     setPrDescription('');
     setPrValidationMessage('');
+    setPrGenerated(false); // Reset PR generated state when branch changes
     
     if (!branch) return;
     
@@ -490,6 +493,7 @@ function App() {
     setPrDescription('');
     setPrValidationMessage('');
     setProgressActions(0);
+    setPrGenerated(false); // Reset PR generated state when branch changes
     
     if (!branch || !sourceBranch) return;
     
@@ -584,6 +588,7 @@ function App() {
         clearInterval(progressWsInterval);
         setProgressWs(100);
         setIsGeneratingPR(false);
+        setPrGenerated(true); // Mark PR as generated
         ws.close();
         setCurrentWebSocket(null);
       } else {
@@ -1154,7 +1159,7 @@ function App() {
           
           <Button
             onClick={handleGeneratePRDescription}
-            disabled={!sourceBranch || !targetBranch || !prDiff || isGeneratingPR || isCreatingPR}
+            disabled={!sourceBranch || !targetBranch || !prDiff || isGeneratingPR || isCreatingPR || prGenerated}
             color="accent"
             className="pr-generate-btn"
             style={{ width: '120px', height: '32px', flexShrink: 0 }}
