@@ -1495,35 +1495,44 @@ a {
   border-color: #e06e42;
 }
 
-/* PR Create Button */
+/* PR Create Button - Updated to match recap-main-btn */
 .pr-create-btn {
-  width: 100%;
-  max-width: 300px;
-  padding: 0.8rem 1.6rem;
-  background-color: #ff7f50;
-  color: #fff;
-  border: 3px solid #333;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 4px 4px 0 #bfa16b;
+  width: 70vw;
+  font-size: 1.15rem;
+  padding: 0.7rem 0;
+  height: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #cccccc;
+  /* border: 3px solid #333; */
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  /* transition: all 0.2s ease; */
+  /* box-shadow: 4px 4px 0 #bfa16b, 0 2px 8px rgba(0,0,0,0.09); */
+  color: #fff;
   margin: 0 auto;
+  max-width: 300px;
 }
 
 .pr-create-btn:hover:not(:disabled) {
-  background-color: #e06e42;
+  background: #e06e42;
   border-color: #e06e42;
+  color: #fff;
+}
+
+.pr-create-btn:active:not(:disabled) {
+  box-shadow: 2px 2px 0 #bfa16b;
 }
 
 .pr-create-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background-color: #cccccc;
+  background: #cccccc;
+  border-color: #333;
+  color: #fff;
 }
 
 /* PR Text Areas */
@@ -1552,6 +1561,28 @@ a {
 .pr-diff-area {
   background-color: #f5f5f5;
   color: #333;
+}
+
+/* PR Creation Section */
+.pr-creation-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.pr-auth-message {
+  padding: 0.75rem;
+  background-color: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  color: #856404;
+  font-size: 0.9rem;
+  text-align: center;
+  box-shadow: 2px 2px 0 #bfa16b;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 /* Responsive PR Mode Adjustments */
