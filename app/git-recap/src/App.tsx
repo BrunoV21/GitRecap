@@ -618,10 +618,6 @@ function App() {
         return;
       }
       
-      const lines = prDescription.split('\n');
-      const title = lines[0]?.replace(/^#+\s*/, '').trim() || `Merge ${sourceBranch} into ${targetBranch}`;
-      const body = lines.slice(1).join('\n').trim();
-      
       setIsCreatingPR(true);
       setPrValidationMessage('');
       
@@ -635,8 +631,7 @@ function App() {
             repo: selectedRepos[0],
             source_branch: sourceBranch,
             target_branch: targetBranch,
-            title: title,
-            description: body || prDescription
+            body: prDescription
           })
         });
         
