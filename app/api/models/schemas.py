@@ -1,6 +1,7 @@
 from pydantic import BaseModel, model_validator, Field
 from typing import Dict, Self, Optional, Any, List
 import ulid
+import re
 
 class ChatRequest(BaseModel):
     session_id: str = ""
@@ -73,12 +74,48 @@ class CreatePullRequestRequest(BaseModel):
     repo: str = Field(..., description="Repository name.")
     source_branch: str = Field(..., description="Source branch name.")
     target_branch: str = Field(..., description="Target branch name.")
-    title: Optional[str] = Field(None, description="Title of the pull request.")
-    description: str = Field(..., description="Description/body of the pull request. This field is required.")
+    body: str = Field(..., description="Body of the pull request. This field is required.")
     draft: Optional[bool] = Field(False, description="Whether to create the PR as a draft.")
     reviewers: Optional[List[str]] = Field(None, description="List of reviewer usernames.")
     assignees: Optional[List[str]] = Field(None, description="List of assignee usernames.")
     labels: Optional[List[str]] = Field(None, description="List of label names.")
+    description: Optional[str]=None
+    title: Optional[str]=None
+
+    @model_validator(mode="after")
+    def get_title_description(self)->Self:
+        title, description = self.extract_title_and_description(self.body)
+        if self.title is None:
+            self.title = title
+        if self.description is None:
+            self.description = description
+
+        return self
+
+    @staticmethod
+    def extract_title_and_description(pr_text: str):
+        """
+        Extracts the PR title and description from a markdown-formatted PR text.
+        
+        Expected format:
+        Title: <title text>
+
+        ## Summary
+        ...
+        """
+
+        # Use regex to find the title (first line starting with 'Title:')
+        title_match = re.search(r'^\s*Title:\s*(.+?)\s*$', pr_text, re.MULTILINE)
+
+        # Everything after the title is the description
+        description_match = re.search(r'^\s*Title:.*?\n+(.*)', pr_text, re.DOTALL)
+
+        title = title_match.group(1).strip() if title_match else ""
+        description = description_match.group(1).strip() if description_match else ""
+
+        return title, description
+
+
 
 # --- Pull Request Diff ---
 class GetPullRequestDiffRequest(BaseModel):
