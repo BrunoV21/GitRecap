@@ -353,7 +353,7 @@ async def create_pull_request(
         generated_description=None
     )
 
-@router.post("/get-pull-request-diff", response_model=GetPullRequestDiffResponse)
+@router.post("/get-pull-request-diff")
 async def get_pull_request_diff(req: GetPullRequestDiffRequest):
     fetcher = get_fetcher(req.session_id)
     fetcher.repo_filter = [req.repo]
@@ -366,4 +366,4 @@ async def get_pull_request_diff(req: GetPullRequestDiffRequest):
         raise HTTPException(status_code=400, detail="Branch diff is not supported for this provider.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch pull request diff: {str(e)}")
-    return GetPullRequestDiffResponse(commits=commits)
+    return {"actions": parse_entries_to_txt(commits)}

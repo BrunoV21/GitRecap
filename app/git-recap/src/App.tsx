@@ -521,7 +521,7 @@ function App() {
       
       const data = await response.json();
       
-      if (!data.commits || data.commits.length === 0) {
+      if (!data.actions) {
         setPrValidationMessage('No changes found between the selected branches.');
         setPrDiff('');
         clearInterval(progressActionsInterval);
@@ -530,9 +530,7 @@ function App() {
       }
       
       // Format commits as readable log
-      const formattedDiff = data.commits
-        .map((commit: any) => `[${commit.sha?.substring(0, 7) || 'N/A'}] ${commit.message}`)
-        .join('\n');
+      const formattedDiff = data.actions;
       
       setPrDiff(formattedDiff);
       clearInterval(progressActionsInterval);
