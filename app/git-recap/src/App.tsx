@@ -543,122 +543,121 @@ function App() {
     }
   }, [sessionId, selectedRepos, sourceBranch]);
 
-  // Generate PR description and create PR
-  const handlePRAction = useCallback(async () => {
-    // If no description exists, generate it first
-    if (!prDescription) {
-      if (!sourceBranch || !targetBranch || !prDiff) {
-        setPrValidationMessage('Please select both branches and ensure there are changes to summarize.');
-        return;
-      }
-      
-      if (currentWebSocket) {
-        currentWebSocket.close();
-      }
-      
-      setPrDescription('');
-      setIsGeneratingPR(true);
-      setPrValidationMessage('');
-      setProgressWs(0);
-      
-      // Scroll to summary section when starting generation
-      setTimeout(() => {
-        summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-      
-      const backendUrl = import.meta.env.VITE_AICORE_API;
-      const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}/pull_request`;
-      const ws = new WebSocket(wsUrl);
-      
-      setCurrentWebSocket(ws);
-      
-      const progressWsInterval = setInterval(() => {
-        setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
-      }, 500);
-      
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ actions: prDiff }));
-      };
-      
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data.toString()).chunk;
-        if (message === "</end>") {
-          clearInterval(progressWsInterval);
-          setProgressWs(100);
-          setIsGeneratingPR(false);
-          ws.close();
-          setCurrentWebSocket(null);
-        } else {
-          setPrDescription((prev) => {
-            const newOutput = prev + message;
-            scrollToBottom();
-            return newOutput;
-          });
-        }
-      };
-      
-      ws.onerror = (event) => {
-        console.error("WebSocket error:", event);
+  // Generate PR description
+  const handleGeneratePRDescription = useCallback(async () => {
+    if (!sourceBranch || !targetBranch || !prDiff) {
+      setPrValidationMessage('Please select both branches and ensure there are changes to summarize.');
+      return;
+    }
+    
+    if (currentWebSocket) {
+      currentWebSocket.close();
+    }
+    
+    setPrDescription('');
+    setIsGeneratingPR(true);
+    setPrValidationMessage('');
+    setProgressWs(0);
+    
+    // Scroll to summary section when starting generation
+    setTimeout(() => {
+      summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+    
+    const backendUrl = import.meta.env.VITE_AICORE_API;
+    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}/pull_request`;
+    const ws = new WebSocket(wsUrl);
+    
+    setCurrentWebSocket(ws);
+    
+    const progressWsInterval = setInterval(() => {
+      setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
+    }, 500);
+    
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ actions: prDiff }));
+    };
+    
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data.toString()).chunk;
+      if (message === "</end>") {
         clearInterval(progressWsInterval);
         setProgressWs(100);
         setIsGeneratingPR(false);
-        setPrValidationMessage('Failed to generate PR description. Please try again.');
+        ws.close();
         setCurrentWebSocket(null);
-      };
-      
-      ws.onclose = () => {
-        clearInterval(progressWsInterval);
-        setIsGeneratingPR(false);
-        setCurrentWebSocket(null);
-      };
-    } else {
-      // Description exists, create the PR
-      if (!prDescription.trim()) {
-        setPrValidationMessage('Please generate a PR description first.');
-        return;
-      }
-      
-      setIsCreatingPR(true);
-      setPrValidationMessage('');
-      
-      try {
-        const backendUrl = import.meta.env.VITE_AICORE_API;
-        const response = await fetch(`${backendUrl}/create-pull-request`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: sessionId,
-            repo: selectedRepos[0],
-            source_branch: sourceBranch,
-            target_branch: targetBranch,
-            body: prDescription
-          })
+      } else {
+        setPrDescription((prev) => {
+          const newOutput = prev + message;
+          scrollToBottom();
+          return newOutput;
         });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'Failed to create pull request');
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          setPrCreationSuccess(true);
-          setPrUrl(data.url);
-          setPopupMessage(`Pull request created successfully on GitHub from ${sourceBranch} to ${targetBranch}!`);
-          setIsPopupOpen(true);
-        } else {
-          throw new Error('Pull request creation was not successful');
-        }
-      } catch (error: any) {
-        console.error('Error creating pull request:', error);
-        setPopupMessage(error.message || 'Failed to create pull request. Please try again.');
-        setIsPopupOpen(true);
-      } finally {
-        setIsCreatingPR(false);
       }
+    };
+    
+    ws.onerror = (event) => {
+      console.error("WebSocket error:", event);
+      clearInterval(progressWsInterval);
+      setProgressWs(100);
+      setIsGeneratingPR(false);
+      setPrValidationMessage('Failed to generate PR description. Please try again.');
+      setCurrentWebSocket(null);
+    };
+    
+    ws.onclose = () => {
+      clearInterval(progressWsInterval);
+      setIsGeneratingPR(false);
+      setCurrentWebSocket(null);
+    };
+  }, [sessionId, sourceBranch, targetBranch, prDiff, currentWebSocket]);
+
+  // Create PR on GitHub
+  const handleCreatePR = useCallback(async () => {
+    if (!prDescription.trim()) {
+      setPrValidationMessage('Please generate a PR description first.');
+      return;
     }
-  }, [sessionId, sourceBranch, targetBranch, prDiff, prDescription, currentWebSocket, selectedRepos]);
+    
+    setIsCreatingPR(true);
+    setPrValidationMessage('');
+    
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(`${backendUrl}/create-pull-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          repo: selectedRepos[0],
+          source_branch: sourceBranch,
+          target_branch: targetBranch,
+          body: prDescription
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to create pull request');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setPrCreationSuccess(true);
+        setPrUrl(data.url);
+        setPopupMessage(`Pull request created successfully on GitHub from ${sourceBranch} to ${targetBranch}!`);
+        setIsPopupOpen(true);
+      } else {
+        throw new Error('Pull request creation was not successful');
+      }
+    } catch (error: any) {
+      console.error('Error creating pull request:', error);
+      setPopupMessage(error.message || 'Failed to create pull request. Please try again.');
+      setIsPopupOpen(true);
+    } finally {
+      setIsCreatingPR(false);
+    }
+  }, [sessionId, sourceBranch, targetBranch, prDescription, selectedRepos]);
 
   // 1. Add this to your state declarations (around line 60):
   const [showMenu, setShowMenu] = useState(false);
@@ -1154,7 +1153,7 @@ function App() {
           </div>
           
           <Button
-            onClick={handlePRAction }
+            onClick={handleGeneratePRDescription}
             disabled={!sourceBranch || !targetBranch || !prDiff || isGeneratingPR || isCreatingPR}
             color="accent"
             className="pr-generate-btn"
@@ -1255,6 +1254,26 @@ function App() {
           {showPRMode && prCreationSuccess && prUrl && (
             <div className="pr-success-message mt-4">
               Pull request created successfully! <a href={prUrl} target="_blank" rel="noopener noreferrer">View PR</a>
+            </div>
+          )}
+          
+          {/* New PR Creation Button or Message */}
+          {showPRMode && prDescription && (
+            <div className="pr-creation-section mt-4">
+              {isPATAuthorized ? (
+                <Button
+                  onClick={handleCreatePR}
+                  disabled={isCreatingPR || !prDescription.trim()}
+                  color="accent"
+                  className="pr-create-btn"
+                >
+                  {isCreatingPR ? 'Creating PR...' : 'Create Pull Request on GitHub'}
+                </Button>
+              ) : (
+                <div className="pr-auth-message">
+                  Automatic creation into GitHub is only available via Personal Access Token (PAT) authentication.
+                </div>
+              )}
             </div>
           )}
         </Card>
