@@ -1756,3 +1756,122 @@ a {
   text-align: center;
   flex-basis: 100%;
 }
+
+/* PR Mode - Mobile Layout */
+@media (max-width: 767px) {
+  .pr-main-area {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 0 16px !important;
+    flex-wrap: wrap !important;
+  }
+}
+
+
+/* Mobile adjustments for PR elements */
+@media (max-width: 767px) {
+  .pr-branch-group-inline {
+    width: 100%;
+    max-width: none;
+    margin-bottom: 8px;
+  }
+  
+  .pr-branch-dropdown {
+    width: 100%;
+    min-width: 0;
+  }
+  
+  .pr-generate-btn {
+    width: 70vw;
+    min-width: 0;
+    max-width: none;
+  }
+  
+  .pr-create-btn {
+    width: 70vw;
+    min-width: 0;
+    max-width: none;
+  }
+  
+  .pr-auth-message {
+    width: 90%;
+    font-size: 0.85rem;
+  }
+}
+
+/* Small screen adjustments */
+@media (max-width: 480px) {
+  .pr-main-area {
+    gap: 6px !important;
+    padding: 0 8px !important;
+  }
+  
+  .pr-branch-dropdown {
+    height: 40px;
+    font-size: 13px;
+  }
+  
+  .pr-generate-btn {
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .pr-create-btn {
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .pr-auth-message {
+    font-size: 0.8rem;
+    padding: 0.6rem;
+  }
+}
+
+/* Medium screen adjustments */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .pr-main-area {
+    max-width: 700px;
+    gap: 16px !important;
+  }
+  
+  .pr-branch-group-inline {
+    min-width: 180px;
+    max-width: 220px;
+  }
+  
+  .pr-generate-btn {
+    min-width: 140px;
+    max-width: 170px;
+  }
+}
+
+/* Large screen adjustments */
+@media (min-width: 1025px) {
+  .pr-main-area {
+    max-width: 800px;
+    gap: 20px !important;
+  }
+  
+  .pr-branch-group-inline {
+    min-width: 200px;
+    max-width: 250px;
+  }
+  
+  .pr-generate-btn {
+    min-width: 160px;
+    max-width: 200px;
+  }
+  
+  .pr-creation-section {
+    max-width: 700px;
+  }
+  
+  .pr-create-btn {
+    max-width: 350px;
+  }
+  
+  .pr-auth-message {
+    max-width: 600px;
+  }
+}
