@@ -1613,6 +1613,71 @@ a {
   margin-left: 12px;
 }
 
+/* Button container - Mobile Layout */
+@media (max-width: 767px) {
+  .button-with-tooltip {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important; /* Space between 3-dots button and menu */
+    width: 100%;
+    margin-bottom: 24px !important; /* More space below to prevent overlap */
+  }
+  
+  .recap-3dots-rect-btn {
+    width: auto !important;
+    align-self: center !important;
+  }
+  
+  .options-menu {
+    position: relative !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important; /* Space between menu buttons */
+    width: 100% !important;
+    max-width: 300px !important;
+    margin: 12 auto !important;
+    padding-bottom: 8px !important; /* Extra padding at bottom of menu */
+  }
+  
+  .menu-option-btn {
+    width: 100% !important;
+    min-width: 180px !important;
+    max-width: 200px !important;
+    margin: 12 auto !important;
+  }
+  
+  .menu-button-with-tooltip {
+    width: 100%;
+    display: flex !important;
+    justify-content: center !important;
+  }
+}
+
+/* Small screen adjustments */
+@media (max-width: 480px) {
+  .button-with-tooltip {
+    gap: 10px !important;
+    margin-bottom: 20px !important;
+  }
+  
+  .options-menu {
+    gap: 10px !important; /* Space between buttons on small screens */
+    max-width: 250px !important;
+    padding-bottom: 6px !important;
+  }
+  
+  .menu-option-btn {
+    height: 40px;
+    font-size: 0.9rem;
+    min-width: 160px !important;
+    max-width: 180px !important;
+  }
+}
+
 .slide-in-menu {
   opacity: 1;
   transform: translateX(0);
