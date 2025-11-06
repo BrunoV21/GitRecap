@@ -1641,6 +1641,23 @@ a {
     max-width: 300px !important;
     margin: 6px auto !important;
     padding-bottom: 8px !important; /* Extra padding at bottom of menu */
+    /* Make sure the menu takes up space when visible */
+    height: auto;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+  }
+  
+  .options-menu.slide-in-menu {
+    max-height: 200px; /* Adjust based on your menu height */
+    padding-bottom: 8px !important;
+  }
+  
+  .options-menu.slide-out-menu {
+    max-height: 0;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
   }
   
   .menu-option-btn {
@@ -1667,7 +1684,10 @@ a {
   .options-menu {
     gap: 10px !important; /* Space between buttons on small screens */
     max-width: 250px !important;
-    padding-bottom: 6px !important;
+  }
+  
+  .options-menu.slide-in-menu {
+    max-height: 160px; /* Adjust for small screens */
   }
   
   .menu-option-btn {
@@ -1675,6 +1695,23 @@ a {
     font-size: 0.9rem;
     min-width: 160px !important;
     max-width: 180px !important;
+  }
+}
+
+/* For larger screens, keep the original behavior */
+@media (min-width: 768px) {
+  .slide-in-menu {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .slide-out-menu {
+    opacity: 0;
+    transform: translateX(-20px);
+    pointer-events: none;
+    position: absolute;
+    left: 100%;
   }
 }
 
