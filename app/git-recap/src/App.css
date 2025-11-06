@@ -33,15 +33,13 @@ button:disabled, .Button:disabled {
 
 /* Form & Output Containers */
 .form-container, 
-.output-section-0,
-.output-section-1 {
+.output-section {
   width: 100%;
 }
 
 /* Centering elements - including buttons */
 .form-container, 
-.output-section-0,
-.output-section-1, 
+.output-section,
 .authorize-btn,
 .recap-button,
 .github-signin-btn,
@@ -273,8 +271,7 @@ button:disabled, .Button:disabled {
 }
 
 /* Output Section */
-.output-section-0,
-.output-section-1 {
+.output-section{
   display: flex;
   gap: 2rem;
   justify-content: space-between;
@@ -388,8 +385,7 @@ progress, .ProgressBar {
     margin-bottom: 1rem;
   }
   
-  .output-section-0,
-  .output-section-1 {
+  .output-section {
     flex-direction: column;
   }
   
@@ -1619,7 +1615,7 @@ a {
 
 /* Button container - Mobile Layout */
 @media (max-width: 767px) {
-  .output-section-0 {
+  .output-section.menu-open {
     margin-top: 10rem;
   }
 
