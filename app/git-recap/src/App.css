@@ -1639,7 +1639,7 @@ a {
     gap: 12px !important; /* Space between menu buttons */
     width: 100% !important;
     max-width: 300px !important;
-    margin: 12 auto !important;
+    margin: 12px auto !important;
     padding-bottom: 8px !important; /* Extra padding at bottom of menu */
   }
   
@@ -1647,7 +1647,7 @@ a {
     width: 100% !important;
     min-width: 180px !important;
     max-width: 200px !important;
-    margin: 12 auto !important;
+    margin: 12px auto !important;
   }
   
   .menu-button-with-tooltip {
