@@ -1173,7 +1173,7 @@ function App() {
         </div>
       </div>
 
-      <div className="output-section mt-8" ref={actionsLogRef}>
+      <div className="output-section-0 mt-8" ref={actionsLogRef}>
         <Card className="output-box p-6">
           <h2 className="text-xl font-bold mb-4">
             {showPRMode ? 'Commit Diff' : 'Actions Log'}
@@ -1194,7 +1194,7 @@ function App() {
         </Card>
       </div>
 
-      <div className="output-section mt-8" ref={summaryLogRef}>
+      <div className="output-section-1 mt-8" ref={summaryLogRef}>
         <Card className="output-box p-6">
           <div className="summary-header">
             <h2>
