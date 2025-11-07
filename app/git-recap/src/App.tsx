@@ -807,9 +807,8 @@ function App() {
       const baseStyles = `
         .gitrecap-badge { 
           font-family: 'Courier New', monospace; 
-          width: 600px; 
-          aspect-ratio: 4/3; 
-          min-height: 450px; 
+          width: 800px; 
+          aspect-ratio: 16/10; 
           height: auto; 
           border-radius: 8px; 
           padding: 24px; 
@@ -853,11 +852,10 @@ function App() {
           padding: 16px; 
           border-radius: 4px; 
           margin-bottom: 16px; 
-          overflow-y: auto; 
         }
         .badge-summary { 
           font-size: 14px; 
-          line-height: 1.6; 
+          line-height: 1.8; 
           white-space: pre-wrap; 
         }
         .badge-summary h1, .badge-summary h2, .badge-summary h3 { 
@@ -1599,7 +1597,7 @@ function App() {
         </div>
       )}
 
-      <div ref={badgeRef} className="badge-preview" style={{ position: 'absolute', left: '-9999px' }}>
+      <div ref={badgeRef} className="badge-preview" style={{ position: 'absolute', left: '-9999px', aspectRatio: '16/10' }}>
         <div className={`gitrecap-badge theme-${badgeTheme}`}>
           <div className="badge-header">
             <img src="https://brunov21.github.io/GitRecap/favicon.ico" alt="GitRecap Logo" className="badge-logo" />
