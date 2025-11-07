@@ -766,13 +766,13 @@ function App() {
 
   const generateBadgeContent = useCallback(() => {
     return {
-      logo: '/GitRecap/favicon.ico',
+      logo: 'https://brunov21.github.io/GitRecap/favicon.ico',
       title: 'GitRecap',
       link: 'https://brunov21.github.io/GitRecap/',
       summary: dummyOutput,
       username: githubUsername,
       repositories: selectedRepos.join(', '),
-      footer: 'Grab your recap at https://brunov21.github.io/GitRecap/'
+      footer: 'github.io/GitRecap'
     };
   }, [dummyOutput, githubUsername, selectedRepos]);
 
@@ -808,15 +808,15 @@ function App() {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GitRecap Badge</title>
   <style>
-    .gitrecap-badge { font-family: 'Courier New', monospace; max-width: 600px; aspect-ratio: 4/3; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: 4px solid #000; border-radius: 8px; padding: 24px; box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3); color: #fff; display: flex; flex-direction: column; justify-content: space-between; }
+    .gitrecap-badge { font-family: 'Courier New', monospace; max-width: 600px; min-height: auto; height: auto; background: linear-gradient(135deg, #f9f4e8 0%, #e0cda9 100%); border: 4px solid #5c4033; border-radius: 8px; padding: 24px; box-shadow: 8px 8px 0 rgba(92, 64, 51, 0.3); color: #5c4033; display: flex; flex-direction: column; justify-content: space-between; }
     .badge-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    .badge-logo { width: 48px; height: 48px; border: 2px solid #fff; border-radius: 4px; }
-    .badge-title { font-size: 28px; font-weight: bold; text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3); }
-    .badge-content { flex: 1; overflow-y: auto; background: rgba(0, 0, 0, 0.2); padding: 16px; border-radius: 4px; margin-bottom: 16px; }
-    .badge-summary { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
-    .badge-meta { font-size: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.3); }
-    .badge-footer { font-size: 11px; text-align: center; opacity: 0.8; }
-    .badge-footer a { color: #fff; text-decoration: underline; }
+    .badge-logo { width: 48px; height: 48px; border: 2px solid #5c4033; border-radius: 4px; }
+    .badge-title { font-size: 28px; font-weight: bold; text-shadow: 2px 2px 0 rgba(92, 64, 51, 0.2); color: #5c4033; }
+    .badge-content { flex: 1; height: auto; min-height: auto; background: rgba(224, 205, 169, 0.3); padding: 16px; border-radius: 4px; margin-bottom: 16px; }
+    .badge-summary { font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #5c4033; }
+    .badge-meta { font-size: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(92, 64, 51, 0.3); color: #5c4033; }
+    .badge-footer { font-size: 11px; text-align: center; opacity: 0.8; color: #5c4033; }
+    .badge-footer a { color: #5c4033; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -832,7 +832,9 @@ function App() {
         <strong>Repositories:</strong> ${badgeData.repositories}
       </div>
     </div>
-    <div class="badge-footer">${badgeData.footer}</div>
+    <div class="badge-footer">
+      Grab your recap at <a href="https://brunov21.github.io/GitRecap/" target="_blank" rel="noopener noreferrer">${badgeData.footer}</a>
+    </div>
   </div>
 </body>
 </html>`;
@@ -1400,7 +1402,7 @@ function App() {
       <div ref={badgeRef} className="badge-preview" style={{ position: 'absolute', left: '-9999px' }}>
         <div className="gitrecap-badge">
           <div className="badge-header">
-            <img src="/GitRecap/favicon.ico" alt="GitRecap Logo" className="badge-logo" />
+            <img src="https://brunov21.github.io/GitRecap/favicon.ico" alt="GitRecap Logo" className="badge-logo" />
             <div className="badge-title">GitRecap</div>
           </div>
           <div className="badge-content">
@@ -1410,7 +1412,9 @@ function App() {
               <strong>Repositories:</strong> {selectedRepos.join(', ')}
             </div>
           </div>
-          <div className="badge-footer">Grab your recap at https://brunov21.github.io/GitRecap/</div>
+          <div className="badge-footer">
+            Grab your recap at <a href="https://brunov21.github.io/GitRecap/" target="_blank" rel="noopener noreferrer">github.io/GitRecap</a>
+          </div>
         </div>
       </div>
 
