@@ -2002,14 +2002,14 @@ a {
   }
 }
 
-/* Export Button */
+/* Export Button - Updated to match GitRecap theme */
 .export-button {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 16px 24px;
-  background: linear-gradient(135deg, #f9f4e8 0%, #e0cda9 100%);
-  color: #5c4033;
+  background: linear-gradient(135deg, #d4b896 0%, #b89968 100%);
+  color: #3d2a1f;
   border: 3px solid #5c4033;
   border-radius: 8px;
   font-family: 'Courier New', monospace;
@@ -2023,6 +2023,7 @@ a {
 .export-button:hover {
   transform: translate(-2px, -2px);
   box-shadow: 6px 6px 0 rgba(92, 64, 51, 0.3);
+  background: linear-gradient(135deg, #c4a886 0%, #a88958 100%);
 }
 
 .export-button:active {
@@ -2087,6 +2088,43 @@ a {
   margin-bottom: 24px;
   text-align: center;
   color: #333;
+}
+
+/* Theme Selector Styles */
+.theme-selector {
+  margin-bottom: 20px;
+}
+
+.theme-selector label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #333;
+  font-family: 'Courier New', monospace;
+}
+
+.theme-option {
+  padding: 8px 16px;
+  background: #f8f9fa;
+  border: 3px solid #333;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.theme-option:hover {
+  background: #e9ecef;
+  transform: translateY(-1px);
+}
+
+.theme-option.active {
+  background: #d4b896;
+  border-color: #5c4033;
+  color: #3d2a1f;
+  box-shadow: 2px 2px 0 rgba(92, 64, 51, 0.3);
 }
 
 /* Export Options */
@@ -2164,59 +2202,184 @@ a {
   left: -9999px;
 }
 
+/* Base Badge Styles with 4:3 Aspect Ratio */
 .gitrecap-badge {
   font-family: 'Courier New', monospace;
   width: 600px;
-  min-height: auto;
+  aspect-ratio: 4/3;
+  min-height: 450px;
   height: auto;
-  background: linear-gradient(135deg, #f9f4e8 0%, #e0cda9 100%);
-  border: 4px solid #5c4033;
+  background: linear-gradient(135deg, #e8dcc8 0%, #c9b896 100%);
+  border: 4px solid #4a3728;
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 8px 8px 0 rgba(92, 64, 51, 0.3);
-  color: #5c4033;
+  box-shadow: 8px 8px 0 rgba(74, 55, 40, 0.3);
+  color: #4a3728;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
+/* Theme Default - Darker GitRecap beige/brown palette */
+.gitrecap-badge.theme-default {
+  background: linear-gradient(135deg, #e8dcc8 0%, #c9b896 100%);
+  border-color: #4a3728;
+  color: #4a3728;
+}
+
+.gitrecap-badge.theme-default .badge-title {
+  color: #4a3728;
+  text-shadow: 2px 2px 0 rgba(74, 55, 40, 0.2);
+}
+
+.gitrecap-badge.theme-default .badge-content {
+  background: rgba(201, 184, 150, 0.4);
+}
+
+.gitrecap-badge.theme-default .badge-summary {
+  color: #4a3728;
+}
+
+.gitrecap-badge.theme-default .badge-meta-header,
+.gitrecap-badge.theme-default .badge-footer {
+  color: #4a3728;
+}
+
+.gitrecap-badge.theme-default .badge-footer a {
+  color: #4a3728;
+}
+
+/* Theme Dark - Darker grays/blacks with high contrast */
+.gitrecap-badge.theme-dark {
+  background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+  border-color: #000000;
+  color: #e0e0e0;
+}
+
+.gitrecap-badge.theme-dark .badge-logo {
+  border-color: #e0e0e0;
+}
+
+.gitrecap-badge.theme-dark .badge-title {
+  color: #e0e0e0;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.gitrecap-badge.theme-dark .badge-content {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.gitrecap-badge.theme-dark .badge-summary {
+  color: #e0e0e0;
+}
+
+.gitrecap-badge.theme-dark .badge-meta-header,
+.gitrecap-badge.theme-dark .badge-footer {
+  color: #e0e0e0;
+}
+
+.gitrecap-badge.theme-dark .badge-footer a {
+  color: #e0e0e0;
+}
+
+.gitrecap-badge.theme-dark .badge-footer a:hover {
+  color: #ffffff;
+}
+
+/* Theme Light - Darker whites/light grays with improved contrast */
+.gitrecap-badge.theme-light {
+  background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
+  border-color: #4a4a4a;
+  color: #2a2a2a;
+}
+
+.gitrecap-badge.theme-light .badge-logo {
+  border-color: #4a4a4a;
+}
+
+.gitrecap-badge.theme-light .badge-title {
+  color: #2a2a2a;
+  text-shadow: 2px 2px 0 rgba(42, 42, 42, 0.2);
+}
+
+.gitrecap-badge.theme-light .badge-content {
+  background: rgba(208, 208, 208, 0.4);
+}
+
+.gitrecap-badge.theme-light .badge-summary {
+  color: #2a2a2a;
+}
+
+.gitrecap-badge.theme-light .badge-meta-header,
+.gitrecap-badge.theme-light .badge-footer {
+  color: #2a2a2a;
+}
+
+.gitrecap-badge.theme-light .badge-footer a {
+  color: #2a2a2a;
+}
+
+.gitrecap-badge.theme-light .badge-footer a:hover {
+  color: #000000;
+}
+
+/* Badge Header with User/Repo Info */
 .badge-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .badge-logo {
   width: 48px;
   height: 48px;
-  border: 2px solid #5c4033;
+  border: 2px solid #4a3728;
   border-radius: 4px;
   background: #fff;
+  flex-shrink: 0;
 }
 
 .badge-title {
   font-size: 28px;
+  font-family: 'Minecraft-Maus', 'Courier New', monospace;
   font-weight: bold;
-  text-shadow: 2px 2px 0 rgba(92, 64, 51, 0.2);
-  color: #5c4033;
+  text-shadow: 2px 2px 0 rgba(74, 55, 40, 0.2);
+  color: #4a3728;
+  flex-grow: 1;
 }
 
+/* Badge Meta Header - User/Repo info in header section */
+.badge-meta-header {
+  font-size: 11px;
+  color: #4a3728;
+  margin-left: auto;
+  text-align: right;
+  line-height: 1.4;
+}
+
+.badge-meta-header strong {
+  font-weight: bold;
+}
+
+/* Badge Content Area */
 .badge-content {
   flex: 1;
   height: auto;
   min-height: auto;
-  background: rgba(224, 205, 169, 0.3);
+  background: rgba(201, 184, 150, 0.4);
   padding: 16px;
   border-radius: 4px;
   margin-bottom: 16px;
+  overflow-y: auto;
 }
 
 .badge-summary {
   font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
-  color: #5c4033;
+  color: #4a3728;
 }
 
 .badge-summary h1,
@@ -2224,7 +2387,7 @@ a {
 .badge-summary h3 {
   margin-top: 12px;
   margin-bottom: 8px;
-  color: #5c4033;
+  color: #4a3728;
 }
 
 .badge-summary p {
@@ -2237,32 +2400,21 @@ a {
   margin-bottom: 8px;
 }
 
-.badge-meta {
-  font-size: 12px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(92, 64, 51, 0.3);
-  color: #5c4033;
-}
-
-.badge-meta strong {
-  font-weight: bold;
-}
-
+/* Badge Footer */
 .badge-footer {
   font-size: 11px;
   text-align: center;
   opacity: 0.8;
-  color: #5c4033;
+  color: #4a3728;
 }
 
 .badge-footer a {
-  color: #5c4033;
+  color: #4a3728;
   text-decoration: underline;
 }
 
 .badge-footer a:hover {
-  color: #3d2a1f;
+  color: #2d1f15;
 }
 
 /* Responsive Design for Export Features */
@@ -2288,10 +2440,16 @@ a {
 
   .gitrecap-badge {
     width: 400px;
+    min-height: 300px;
   }
-}
-
-/* 1:1 Aspect Ratio Variant (Optional) */
-.gitrecap-badge.square {
-  min-height: 600px;
+  
+  .badge-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .badge-meta-header {
+    margin-left: 0;
+    text-align: left;
+  }
 }

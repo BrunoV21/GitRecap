@@ -43,6 +43,7 @@ function App() {
   const [isExecuting, setIsExecuting] = useState(false);
 
   // Release Notes states
+  const [badgeTheme, setBadgeTheme] = useState<'default' | 'dark' | 'light'>('default');
   const [numOldReleases, setNumOldReleases] = useState(1);
   const [isExecutingReleaseNotes, setIsExecutingReleaseNotes] = useState(false);
 
@@ -98,10 +99,10 @@ function App() {
 
   // Track when recap is complete and show export button
   useEffect(() => {
-    if (!showReleaseMode && !showPRMode && progressWs === 100 && dummyOutput) {
+    if (!showReleaseMode && !showPRMode && progressWs === 100 && dummyOutput && recapDone) {
       setShowExportButton(true);
     }
-  }, [showReleaseMode, showPRMode, progressWs, dummyOutput]);
+  }, [showReleaseMode, showPRMode, progressWs, dummyOutput, recapDone]);
 
   const handleCloneRepo = useCallback(async () => {
     if (!repoUrl) return;
@@ -764,12 +765,13 @@ function App() {
     }
   };
 
-  const generateBadgeContent = useCallback(() => {
+  const generateBadgeContent = useCallback((theme: 'default' | 'dark' | 'light' = 'default') => {
     return {
       logo: 'https://brunov21.github.io/GitRecap/favicon.ico',
       title: 'GitRecap',
       link: 'https://brunov21.github.io/GitRecap/',
       summary: dummyOutput,
+      theme: theme,
       username: githubUsername,
       repositories: selectedRepos.join(', '),
       footer: 'github.io/GitRecap'
@@ -777,7 +779,7 @@ function App() {
   }, [dummyOutput, githubUsername, selectedRepos]);
 
   const handleExportPNG = useCallback(() => {
-    if (badgeRef.current === null) {
+    if (!badgeRef.current) {
       return;
     }
 
@@ -799,8 +801,200 @@ function App() {
   }, [badgeRef, githubUsername]);
 
   const handleExportHTML = useCallback(() => {
-    const badgeData = generateBadgeContent();
+    const badgeData = generateBadgeContent(badgeTheme);
     
+    const getThemeStyles = (theme: 'default' | 'dark' | 'light') => {
+      const baseStyles = `
+        .gitrecap-badge { 
+          font-family: 'Courier New', monospace; 
+          width: 600px; 
+          aspect-ratio: 4/3; 
+          min-height: 450px; 
+          height: auto; 
+          border-radius: 8px; 
+          padding: 24px; 
+          display: flex; 
+          flex-direction: column; 
+          justify-content: space-between; 
+        }
+        .badge-header { 
+          display: flex; 
+          align-items: flex-start; 
+          gap: 12px; 
+          margin-bottom: 12px; 
+          flex-wrap: wrap; 
+        }
+        .badge-logo { 
+          width: 48px; 
+          height: 48px; 
+          border-radius: 4px; 
+          background: #fff; 
+          flex-shrink: 0; 
+        }
+        .badge-title { 
+          font-size: 28px; 
+          font-family: 'Minecraft-Maus', 'Courier New', monospace; 
+          font-weight: bold; 
+          flex-grow: 1; 
+        }
+        .badge-meta-header { 
+          font-size: 11px; 
+          margin-left: auto; 
+          text-align: right; 
+          line-height: 1.4; 
+        }
+        .badge-meta-header strong { 
+          font-weight: bold; 
+        }
+        .badge-content { 
+          flex: 1; 
+          height: auto; 
+          min-height: auto; 
+          padding: 16px; 
+          border-radius: 4px; 
+          margin-bottom: 16px; 
+          overflow-y: auto; 
+        }
+        .badge-summary { 
+          font-size: 14px; 
+          line-height: 1.6; 
+          white-space: pre-wrap; 
+        }
+        .badge-summary h1, .badge-summary h2, .badge-summary h3 { 
+          margin-top: 12px; 
+          margin-bottom: 8px; 
+        }
+        .badge-summary p { 
+          margin-bottom: 8px; 
+        }
+        .badge-summary ul, .badge-summary ol { 
+          margin-left: 20px; 
+          margin-bottom: 8px; 
+        }
+        .badge-footer { 
+          font-size: 11px; 
+          text-align: center; 
+          opacity: 0.8; 
+        }
+        .badge-footer a { 
+          text-decoration: underline; 
+        }
+      `;
+
+      if (theme === 'dark') {
+        return baseStyles + `
+          .gitrecap-badge { 
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%); 
+            border: 4px solid #000000; 
+            box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.5); 
+            color: #e0e0e0; 
+          }
+          .badge-logo { 
+            border: 2px solid #e0e0e0; 
+          }
+          .badge-title { 
+            color: #e0e0e0; 
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5); 
+          }
+          .badge-meta-header { 
+            color: #e0e0e0; 
+          }
+          .badge-content { 
+            background: rgba(0, 0, 0, 0.3); 
+          }
+          .badge-summary { 
+            color: #e0e0e0; 
+          }
+          .badge-summary h1, .badge-summary h2, .badge-summary h3 { 
+            color: #e0e0e0; 
+          }
+          .badge-footer { 
+            color: #e0e0e0; 
+          }
+          .badge-footer a { 
+            color: #e0e0e0; 
+          }
+          .badge-footer a:hover { 
+            color: #ffffff; 
+          }
+        `;
+      } else if (theme === 'light') {
+        return baseStyles + `
+          .gitrecap-badge { 
+            background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%); 
+            border: 4px solid #4a4a4a; 
+            box-shadow: 8px 8px 0 rgba(74, 74, 74, 0.3); 
+            color: #2a2a2a; 
+          }
+          .badge-logo { 
+            border: 2px solid #4a4a4a; 
+          }
+          .badge-title { 
+            color: #2a2a2a; 
+            text-shadow: 2px 2px 0 rgba(42, 42, 42, 0.2); 
+          }
+          .badge-meta-header { 
+            color: #2a2a2a; 
+          }
+          .badge-content { 
+            background: rgba(208, 208, 208, 0.4); 
+          }
+          .badge-summary { 
+            color: #2a2a2a; 
+          }
+          .badge-summary h1, .badge-summary h2, .badge-summary h3 { 
+            color: #2a2a2a; 
+          }
+          .badge-footer { 
+            color: #2a2a2a; 
+          }
+          .badge-footer a { 
+            color: #2a2a2a; 
+          }
+          .badge-footer a:hover { 
+            color: #000000; 
+          }
+        `;
+      } else {
+        return baseStyles + `
+          .gitrecap-badge { 
+            background: linear-gradient(135deg, #e8dcc8 0%, #c9b896 100%); 
+            border: 4px solid #4a3728; 
+            box-shadow: 8px 8px 0 rgba(74, 55, 40, 0.3); 
+            color: #4a3728; 
+          }
+          .badge-logo { 
+            border: 2px solid #4a3728; 
+          }
+          .badge-title { 
+            color: #4a3728; 
+            text-shadow: 2px 2px 0 rgba(74, 55, 40, 0.2); 
+          }
+          .badge-meta-header { 
+            color: #4a3728; 
+          }
+          .badge-content { 
+            background: rgba(201, 184, 150, 0.4); 
+          }
+          .badge-summary { 
+            color: #4a3728; 
+          }
+          .badge-summary h1, .badge-summary h2, .badge-summary h3 { 
+            color: #4a3728; 
+          }
+          .badge-footer { 
+            color: #4a3728; 
+          }
+          .badge-footer a { 
+            color: #4a3728; 
+          }
+          .badge-footer a:hover { 
+            color: #2d1f15; 
+          }
+        `;
+      }
+    };
+
     const htmlBadge = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -808,15 +1002,7 @@ function App() {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GitRecap Badge</title>
   <style>
-    .gitrecap-badge { font-family: 'Courier New', monospace; max-width: 600px; min-height: auto; height: auto; background: linear-gradient(135deg, #f9f4e8 0%, #e0cda9 100%); border: 4px solid #5c4033; border-radius: 8px; padding: 24px; box-shadow: 8px 8px 0 rgba(92, 64, 51, 0.3); color: #5c4033; display: flex; flex-direction: column; justify-content: space-between; }
-    .badge-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    .badge-logo { width: 48px; height: 48px; border: 2px solid #5c4033; border-radius: 4px; }
-    .badge-title { font-size: 28px; font-weight: bold; text-shadow: 2px 2px 0 rgba(92, 64, 51, 0.2); color: #5c4033; }
-    .badge-content { flex: 1; height: auto; min-height: auto; background: rgba(224, 205, 169, 0.3); padding: 16px; border-radius: 4px; margin-bottom: 16px; }
-    .badge-summary { font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #5c4033; }
-    .badge-meta { font-size: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(92, 64, 51, 0.3); color: #5c4033; }
-    .badge-footer { font-size: 11px; text-align: center; opacity: 0.8; color: #5c4033; }
-    .badge-footer a { color: #5c4033; text-decoration: underline; }
+    ${getThemeStyles(badgeTheme)}
   </style>
 </head>
 <body>
@@ -824,13 +1010,13 @@ function App() {
     <div class="badge-header">
       <img src="${badgeData.logo}" alt="GitRecap Logo" class="badge-logo" />
       <div class="badge-title">${badgeData.title}</div>
-    </div>
-    <div class="badge-content">
-      <div class="badge-summary">${badgeData.summary}</div>
-      <div class="badge-meta">
+      <div class="badge-meta-header">
         <strong>User:</strong> ${badgeData.username}<br/>
         <strong>Repositories:</strong> ${badgeData.repositories}
       </div>
+    </div>
+    <div class="badge-content">
+      <div class="badge-summary">${badgeData.summary}</div>
     </div>
     <div class="badge-footer">
       Grab your recap at <a href="https://brunov21.github.io/GitRecap/" target="_blank" rel="noopener noreferrer">${badgeData.footer}</a>
@@ -847,7 +1033,7 @@ function App() {
     link.click();
     URL.revokeObjectURL(url);
     setExportModalOpen(false);
-  }, [githubUsername, generateBadgeContent]);
+  }, [githubUsername, badgeTheme, generateBadgeContent]);
 
   return (
     <div className="App">      
@@ -1380,6 +1566,20 @@ function App() {
         <div className="export-modal-overlay" onClick={() => setExportModalOpen(false)}>
           <div className="export-modal" onClick={(e) => e.stopPropagation()}>
             <h2>Export Your Recap</h2>
+            <div className="theme-selector" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Theme:</label>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                <button className={`theme-option ${badgeTheme === 'default' ? 'active' : ''}`} onClick={() => setBadgeTheme('default')}>
+                  Default
+                </button>
+                <button className={`theme-option ${badgeTheme === 'dark' ? 'active' : ''}`} onClick={() => setBadgeTheme('dark')}>
+                  Dark
+                </button>
+                <button className={`theme-option ${badgeTheme === 'light' ? 'active' : ''}`} onClick={() => setBadgeTheme('light')}>
+                  Light
+                </button>
+              </div>
+            </div>
             <div className="export-options">
               <button className="export-option-btn" onClick={handleExportPNG}>
                 <span className="option-icon">🖼️</span>
@@ -1400,17 +1600,17 @@ function App() {
       )}
 
       <div ref={badgeRef} className="badge-preview" style={{ position: 'absolute', left: '-9999px' }}>
-        <div className="gitrecap-badge">
+        <div className={`gitrecap-badge theme-${badgeTheme}`}>
           <div className="badge-header">
             <img src="https://brunov21.github.io/GitRecap/favicon.ico" alt="GitRecap Logo" className="badge-logo" />
             <div className="badge-title">GitRecap</div>
-          </div>
-          <div className="badge-content">
-            <ReactMarkdown className="badge-summary">{dummyOutput}</ReactMarkdown>
-            <div className="badge-meta">
+            <div className="badge-meta-header">
               <strong>User:</strong> {githubUsername}<br/>
               <strong>Repositories:</strong> {selectedRepos.join(', ')}
             </div>
+          </div>
+          <div className="badge-content">
+            <ReactMarkdown className="badge-summary">{dummyOutput}</ReactMarkdown>
           </div>
           <div className="badge-footer">
             Grab your recap at <a href="https://brunov21.github.io/GitRecap/" target="_blank" rel="noopener noreferrer">github.io/GitRecap</a>
