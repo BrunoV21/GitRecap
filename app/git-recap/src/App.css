@@ -1981,3 +1981,301 @@ a {
     max-width: 600px;
   }
 }
+
+/* Export Button Container */
+.export-button-container {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 1000;
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Export Button */
+.export-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: 3px solid #000;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.export-button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.3);
+}
+
+.export-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.export-icon {
+  font-size: 20px;
+}
+
+/* Export Modal Overlay */
+.export-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Export Modal */
+.export-modal {
+  background: #fff;
+  border: 4px solid #000;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3);
+  animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.export-modal h2 {
+  font-family: 'Courier New', monospace;
+  font-size: 24px;
+  margin-bottom: 24px;
+  text-align: center;
+  color: #333;
+}
+
+/* Export Options */
+.export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.export-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border: 3px solid #000;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Courier New', monospace;
+}
+
+.export-option-btn:hover {
+  background: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+.export-option-btn:active {
+  transform: translateY(0);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.option-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.option-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.option-desc {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Close Modal Button */
+.close-modal-btn {
+  width: 100%;
+  padding: 12px;
+  background: #6c757d;
+  color: white;
+  border: 3px solid #000;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-modal-btn:hover {
+  background: #5a6268;
+}
+
+/* Badge Preview (Hidden for PNG Generation) */
+.badge-preview {
+  width: 600px;
+  position: absolute;
+  left: -9999px;
+}
+
+.gitrecap-badge {
+  font-family: 'Courier New', monospace;
+  width: 600px;
+  aspect-ratio: 4/3;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 4px solid #000;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.badge-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.badge-logo {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.badge-title {
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.badge-content {
+  flex: 1;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.badge-summary {
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.badge-summary h1,
+.badge-summary h2,
+.badge-summary h3 {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.badge-summary p {
+  margin-bottom: 8px;
+}
+
+.badge-summary ul,
+.badge-summary ol {
+  margin-left: 20px;
+  margin-bottom: 8px;
+}
+
+.badge-meta {
+  font-size: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.badge-meta strong {
+  font-weight: bold;
+}
+
+.badge-footer {
+  font-size: 11px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+/* Responsive Design for Export Features */
+@media (max-width: 768px) {
+  .export-button-container {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .export-button {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .export-modal {
+    padding: 24px;
+    width: 95%;
+  }
+
+  .badge-preview {
+    width: 400px;
+  }
+
+  .gitrecap-badge {
+    width: 400px;
+  }
+}
+
+/* 1:1 Aspect Ratio Variant (Optional) */
+.gitrecap-badge.square {
+  aspect-ratio: 1/1;
+}

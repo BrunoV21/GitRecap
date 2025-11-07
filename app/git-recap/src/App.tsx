@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Github, Hammer, BookText, Plus, Minus } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
+import { toPng } from 'html-to-image';
+import ReactMarkdown from 'react-markdown';
 import './App.css';
 
 import { Info } from "lucide-react";
@@ -60,7 +62,7 @@ function App() {
   const [isCreatingPR, setIsCreatingPR] = useState(false);
   const [prCreationSuccess, setPrCreationSuccess] = useState(false);
   const [prUrl, setPrUrl] = useState('');
-  const [prGenerated, setPrGenerated] = useState(false); // New state to track if PR was generated
+  const [prGenerated, setPrGenerated] = useState(false);
 
   // Auth states
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
@@ -79,16 +81,27 @@ function App() {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [selectedN, setSelectedN] = useState(5);
+  const [showExportButton, setShowExportButton] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [githubUsername, setGithubUsername] = useState('');
   const [recapDone, setRecapDone] = useState(true);
   const [isReposLoading, setIsReposLoading] = useState(true);
   const [repoProgress, setRepoProgress] = useState(0);
-  // UI mode for recap/release/pr
   const [showReleaseMode, setShowReleaseMode] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const actionsLogRef = useRef<HTMLDivElement>(null);
   const summaryLogRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [currentWebSocket, setCurrentWebSocket] = useState<WebSocket | null>(null);
+
+  // Track when recap is complete and show export button
+  useEffect(() => {
+    if (!showReleaseMode && !showPRMode && progressWs === 100 && dummyOutput) {
+      setShowExportButton(true);
+    }
+  }, [showReleaseMode, showPRMode, progressWs, dummyOutput]);
 
   const handleCloneRepo = useCallback(async () => {
     if (!repoUrl) return;
@@ -138,6 +151,7 @@ function App() {
       .then((data) => {
         setAvailableRepos(data.repos);
         clearInterval(progressInterval);
+        setGithubUsername(data.username || 'user');
         setRepoProgress(100);
         setIsReposLoading(false);
       })
@@ -164,6 +178,7 @@ function App() {
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
+    setShowExportButton(false);
     setRecapDone(true);
     handleRecap();
   };
@@ -175,6 +190,7 @@ function App() {
     }
     setProgressWs(0);
     setDummyOutput('');
+    setShowExportButton(false);
     if (commitsOutput) {
       recallWebSocket(commitsOutput, n);
     }
@@ -241,14 +257,12 @@ function App() {
   };
 
   const handleReleaseNotes = async () => {
-    // Validation for GitHub provider
     if (codeHost !== 'github') {
       setPopupMessage('Release Notes generation is only supported for GitHub repositories. Please select GitHub as your provider.');
       setIsPopupOpen(true);
       return;
     }
 
-    // Validation for single repo selection
     if (selectedRepos.length === 0) {
       setPopupMessage('Please select exactly one repository to generate release notes.');
       setIsPopupOpen(true);
@@ -269,6 +283,7 @@ function App() {
     setProgressActions(0);
     setProgressWs(0);
     setIsExecutingReleaseNotes(true);
+    setShowExportButton(false);
     setRecapDone(false);
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -330,6 +345,7 @@ function App() {
     setProgressActions(0);
     setProgressWs(0);
     setIsExecuting(true);
+    setShowExportButton(false);
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -372,23 +388,19 @@ function App() {
     }
   };
 
-  // PR Mode Navigation Handlers
   const handleShowPRMode = useCallback(() => {
-    // Validation: single repository selection
     if (selectedRepos.length !== 1) {
       setPopupMessage('Please select exactly one repository to create a pull request.');
       setIsPopupOpen(true);
       return;
     }
     
-    // Validation: GitHub provider only
     if (codeHost !== 'github') {
       setPopupMessage('Pull request creation is only supported for GitHub repositories.');
       setIsPopupOpen(true);
       return;
     }
     
-    // Reset PR mode state
     setSourceBranch('');
     setTargetBranch('');
     setTargetBranches([]);
@@ -397,11 +409,11 @@ function App() {
     setPrValidationMessage('');
     setPrCreationSuccess(false);
     setPrUrl('');
-    setPrGenerated(false); // Reset PR generated state
+    setPrGenerated(false);
     
+    setShowExportButton(false);
     setShowPRMode(true);
     
-    // Fetch available branches
     fetchAvailableBranches();
   }, [selectedRepos, codeHost, sessionId]);
 
@@ -411,9 +423,9 @@ function App() {
       setCurrentWebSocket(null);
     }
     setShowPRMode(false);
+    setShowExportButton(false);
   }, [currentWebSocket]);
 
-  // Fetch available branches when entering PR mode
   const fetchAvailableBranches = useCallback(async () => {
     if (!sessionId || selectedRepos.length !== 1) return;
     
@@ -443,7 +455,6 @@ function App() {
     }
   }, [sessionId, selectedRepos]);
 
-  // Handle source branch selection
   const handleSourceBranchChange = useCallback(async (branch: string) => {
     setSourceBranch(branch);
     setTargetBranch('');
@@ -451,11 +462,10 @@ function App() {
     setPrDiff('');
     setPrDescription('');
     setPrValidationMessage('');
-    setPrGenerated(false); // Reset PR generated state when branch changes
+    setPrGenerated(false);
     
     if (!branch) return;
     
-    // Fetch valid target branches
     setIsLoadingTargets(true);
     
     try {
@@ -486,18 +496,16 @@ function App() {
     }
   }, [sessionId, selectedRepos]);
 
-  // Handle target branch selection and fetch diff
   const handleTargetBranchChange = useCallback(async (branch: string) => {
     setTargetBranch(branch);
     setPrDiff('');
     setPrDescription('');
     setPrValidationMessage('');
     setProgressActions(0);
-    setPrGenerated(false); // Reset PR generated state when branch changes
+    setPrGenerated(false);
     
     if (!branch || !sourceBranch) return;
     
-    // Fetch PR diff
     setIsLoadingDiff(true);
     
     const progressActionsInterval = setInterval(() => {
@@ -529,7 +537,6 @@ function App() {
         return;
       }
       
-      // Format commits as readable log
       const formattedDiff = data.actions;
       
       setPrDiff(formattedDiff);
@@ -545,7 +552,6 @@ function App() {
     }
   }, [sessionId, selectedRepos, sourceBranch]);
 
-  // Generate PR description
   const handleGeneratePRDescription = useCallback(async () => {
     if (!sourceBranch || !targetBranch || !prDiff) {
       setPrValidationMessage('Please select both branches and ensure there are changes to summarize.');
@@ -561,7 +567,6 @@ function App() {
     setPrValidationMessage('');
     setProgressWs(0);
     
-    // Scroll to summary section when starting generation
     setTimeout(() => {
       summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -586,7 +591,7 @@ function App() {
         clearInterval(progressWsInterval);
         setProgressWs(100);
         setIsGeneratingPR(false);
-        setPrGenerated(true); // Mark PR as generated
+        setPrGenerated(true);
         ws.close();
         setCurrentWebSocket(null);
       } else {
@@ -614,7 +619,6 @@ function App() {
     };
   }, [sessionId, sourceBranch, targetBranch, prDiff, currentWebSocket]);
 
-  // Create PR on GitHub
   const handleCreatePR = useCallback(async () => {
     if (!prDescription.trim()) {
       setPrValidationMessage('Please generate a PR description first.');
@@ -662,12 +666,9 @@ function App() {
     }
   }, [sessionId, sourceBranch, targetBranch, prDescription, selectedRepos]);
 
-  // 1. Add this to your state declarations (around line 60):
-  const [showMenu, setShowMenu] = useState(false);
-
-  // 2. Add these handlers after handleShowPRMode (around line 280):
   const handleShowReleaseMode = useCallback(() => {
     setShowMenu(false);
+    setShowExportButton(false);
     setShowReleaseMode(true);
     setShowPRMode(false);
   }, []);
@@ -677,7 +678,6 @@ function App() {
     handleShowPRMode();
   }, [handleShowPRMode]);
 
-  // Handle GitHub OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
@@ -707,6 +707,7 @@ function App() {
       .then(data => {
         setIsGithubAuthorized(true);
         setSessionId(data.session_id);
+        setGithubUsername(data.username || 'user');
         sessionStorage.setItem('githubSessionId', data.session_id);
         
         if (window.history.replaceState) {
@@ -762,6 +763,89 @@ function App() {
       setIsAuthorizing(false);
     }
   };
+
+  const generateBadgeContent = useCallback(() => {
+    return {
+      logo: '/GitRecap/favicon.ico',
+      title: 'GitRecap',
+      link: 'https://brunov21.github.io/GitRecap/',
+      summary: dummyOutput,
+      username: githubUsername,
+      repositories: selectedRepos.join(', '),
+      footer: 'Grab your recap at https://brunov21.github.io/GitRecap/'
+    };
+  }, [dummyOutput, githubUsername, selectedRepos]);
+
+  const handleExportPNG = useCallback(() => {
+    if (badgeRef.current === null) {
+      return;
+    }
+
+    toPng(badgeRef.current, { 
+      cacheBust: true,
+      backgroundColor: '#ffffff',
+      pixelRatio: 2
+    })
+      .then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = `gitrecap-${githubUsername}-${Date.now()}.png`;
+        link.href = dataUrl;
+        link.click();
+        setExportModalOpen(false);
+      })
+      .catch((err) => {
+        console.error('Error exporting PNG:', err);
+      });
+  }, [badgeRef, githubUsername]);
+
+  const handleExportHTML = useCallback(() => {
+    const badgeData = generateBadgeContent();
+    
+    const htmlBadge = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitRecap Badge</title>
+  <style>
+    .gitrecap-badge { font-family: 'Courier New', monospace; max-width: 600px; aspect-ratio: 4/3; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: 4px solid #000; border-radius: 8px; padding: 24px; box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3); color: #fff; display: flex; flex-direction: column; justify-content: space-between; }
+    .badge-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .badge-logo { width: 48px; height: 48px; border: 2px solid #fff; border-radius: 4px; }
+    .badge-title { font-size: 28px; font-weight: bold; text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3); }
+    .badge-content { flex: 1; overflow-y: auto; background: rgba(0, 0, 0, 0.2); padding: 16px; border-radius: 4px; margin-bottom: 16px; }
+    .badge-summary { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+    .badge-meta { font-size: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.3); }
+    .badge-footer { font-size: 11px; text-align: center; opacity: 0.8; }
+    .badge-footer a { color: #fff; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="gitrecap-badge">
+    <div class="badge-header">
+      <img src="${badgeData.logo}" alt="GitRecap Logo" class="badge-logo" />
+      <div class="badge-title">${badgeData.title}</div>
+    </div>
+    <div class="badge-content">
+      <div class="badge-summary">${badgeData.summary}</div>
+      <div class="badge-meta">
+        <strong>User:</strong> ${badgeData.username}<br/>
+        <strong>Repositories:</strong> ${badgeData.repositories}
+      </div>
+    </div>
+    <div class="badge-footer">${badgeData.footer}</div>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlBadge], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `gitrecap-badge-${githubUsername}-${Date.now()}.html`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+    setExportModalOpen(false);
+  }, [githubUsername, generateBadgeContent]);
 
   return (
     <div className="App">      
@@ -989,7 +1073,6 @@ function App() {
       </Card>
 
       <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}${showPRMode ? ' show-pr' : ''}`}>
-        {/* Recap Mode */}
         <div className={`recap-main-btn-area${showReleaseMode || showPRMode ? ' slide-left-out' : ' slide-in'}`}>
           <Button
             onClick={handleFullRecap}
@@ -1065,7 +1148,6 @@ function App() {
           </div>
         </div>
 
-        {/* Release Notes Mode */}
         <div className={`release-main-btn-area${showReleaseMode && !showPRMode ? ' slide-in' : ' slide-right-out'}`}>
           <Button
             className="release-back-rect-btn"
@@ -1108,7 +1190,6 @@ function App() {
           </div>
         </div>
         
-        {/* PR Mode */}
         <div 
           className={`pr-main-area${showPRMode ? ' slide-in' : ' slide-right-out'}`}
         >
@@ -1260,7 +1341,6 @@ function App() {
             </div>
           )}
           
-          {/* New PR Creation Button or Message */}
           {showPRMode && prDescription && (
             <div className="pr-creation-section mt-4">
               {isPATAuthorized ? (
@@ -1280,6 +1360,58 @@ function App() {
             </div>
           )}
         </Card>
+      </div>
+
+      {showExportButton && !showReleaseMode && !showPRMode && (
+        <div className="export-button-container">
+          <button 
+            className="export-button"
+            onClick={() => setExportModalOpen(true)}
+          >
+            <span className="export-icon">📥</span>
+            Export Recap
+          </button>
+        </div>
+      )}
+
+      {exportModalOpen && (
+        <div className="export-modal-overlay" onClick={() => setExportModalOpen(false)}>
+          <div className="export-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Export Your Recap</h2>
+            <div className="export-options">
+              <button className="export-option-btn" onClick={handleExportPNG}>
+                <span className="option-icon">🖼️</span>
+                <span className="option-title">PNG Image</span>
+                <span className="option-desc">Download as image file</span>
+              </button>
+              <button className="export-option-btn" onClick={handleExportHTML}>
+                <span className="option-icon">🌐</span>
+                <span className="option-title">HTML Badge</span>
+                <span className="option-desc">Embeddable HTML file</span>
+              </button>
+            </div>
+            <button className="close-modal-btn" onClick={() => setExportModalOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div ref={badgeRef} className="badge-preview" style={{ position: 'absolute', left: '-9999px' }}>
+        <div className="gitrecap-badge">
+          <div className="badge-header">
+            <img src="/GitRecap/favicon.ico" alt="GitRecap Logo" className="badge-logo" />
+            <div className="badge-title">GitRecap</div>
+          </div>
+          <div className="badge-content">
+            <ReactMarkdown className="badge-summary">{dummyOutput}</ReactMarkdown>
+            <div className="badge-meta">
+              <strong>User:</strong> {githubUsername}<br/>
+              <strong>Repositories:</strong> {selectedRepos.join(', ')}
+            </div>
+          </div>
+          <div className="badge-footer">Grab your recap at https://brunov21.github.io/GitRecap/</div>
+        </div>
       </div>
 
       <Popup
