@@ -44,6 +44,24 @@ function App() {
   const [numOldReleases, setNumOldReleases] = useState(1);
   const [isExecutingReleaseNotes, setIsExecutingReleaseNotes] = useState(false);
 
+  // PR Mode states
+  const [showPRMode, setShowPRMode] = useState(false);
+  const [availableBranches, setAvailableBranches] = useState<string[]>([]);
+  const [sourceBranch, setSourceBranch] = useState('');
+  const [targetBranches, setTargetBranches] = useState<string[]>([]);
+  const [targetBranch, setTargetBranch] = useState('');
+  const [prDiff, setPrDiff] = useState('');
+  const [prDescription, setPrDescription] = useState('');
+  const [isGeneratingPR, setIsGeneratingPR] = useState(false);
+  const [prValidationMessage, setPrValidationMessage] = useState('');
+  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
+  const [isLoadingTargets, setIsLoadingTargets] = useState(false);
+  const [isLoadingDiff, setIsLoadingDiff] = useState(false);
+  const [isCreatingPR, setIsCreatingPR] = useState(false);
+  const [prCreationSuccess, setPrCreationSuccess] = useState(false);
+  const [prUrl, setPrUrl] = useState('');
+  const [prGenerated, setPrGenerated] = useState(false); // New state to track if PR was generated
+
   // Auth states
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
@@ -64,7 +82,7 @@ function App() {
   const [recapDone, setRecapDone] = useState(true);
   const [isReposLoading, setIsReposLoading] = useState(true);
   const [repoProgress, setRepoProgress] = useState(0);
-  // UI mode for recap/release
+  // UI mode for recap/release/pr
   const [showReleaseMode, setShowReleaseMode] = useState(false);
 
   const actionsLogRef = useRef<HTMLDivElement>(null);
@@ -354,6 +372,311 @@ function App() {
     }
   };
 
+  // PR Mode Navigation Handlers
+  const handleShowPRMode = useCallback(() => {
+    // Validation: single repository selection
+    if (selectedRepos.length !== 1) {
+      setPopupMessage('Please select exactly one repository to create a pull request.');
+      setIsPopupOpen(true);
+      return;
+    }
+    
+    // Validation: GitHub provider only
+    if (codeHost !== 'github') {
+      setPopupMessage('Pull request creation is only supported for GitHub repositories.');
+      setIsPopupOpen(true);
+      return;
+    }
+    
+    // Reset PR mode state
+    setSourceBranch('');
+    setTargetBranch('');
+    setTargetBranches([]);
+    setPrDiff('');
+    setPrDescription('');
+    setPrValidationMessage('');
+    setPrCreationSuccess(false);
+    setPrUrl('');
+    setPrGenerated(false); // Reset PR generated state
+    
+    setShowPRMode(true);
+    
+    // Fetch available branches
+    fetchAvailableBranches();
+  }, [selectedRepos, codeHost, sessionId]);
+
+  const handleBackFromPR = useCallback(() => {
+    if (currentWebSocket) {
+      currentWebSocket.close();
+      setCurrentWebSocket(null);
+    }
+    setShowPRMode(false);
+  }, [currentWebSocket]);
+
+  // Fetch available branches when entering PR mode
+  const fetchAvailableBranches = useCallback(async () => {
+    if (!sessionId || selectedRepos.length !== 1) return;
+    
+    setIsLoadingBranches(true);
+    setPrValidationMessage('');
+    
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(
+        `${backendUrl}/branches?session_id=${sessionId}&repo=${encodeURIComponent(selectedRepos[0])}`,
+        { method: 'GET' }
+      );
+      
+      if (!response.ok) throw new Error('Failed to fetch branches');
+      
+      const data = await response.json();
+      setAvailableBranches(data.branches || []);
+      
+      if (!data.branches || data.branches.length === 0) {
+        setPrValidationMessage('No branches found in this repository.');
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+      setPrValidationMessage('Failed to fetch branches. Please try again.');
+    } finally {
+      setIsLoadingBranches(false);
+    }
+  }, [sessionId, selectedRepos]);
+
+  // Handle source branch selection
+  const handleSourceBranchChange = useCallback(async (branch: string) => {
+    setSourceBranch(branch);
+    setTargetBranch('');
+    setTargetBranches([]);
+    setPrDiff('');
+    setPrDescription('');
+    setPrValidationMessage('');
+    setPrGenerated(false); // Reset PR generated state when branch changes
+    
+    if (!branch) return;
+    
+    // Fetch valid target branches
+    setIsLoadingTargets(true);
+    
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(`${backendUrl}/valid-target-branches`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          repo: selectedRepos[0],
+          source_branch: branch
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch valid target branches');
+      
+      const data = await response.json();
+      setTargetBranches(data.valid_target_branches || []);
+      
+      if (!data.valid_target_branches || data.valid_target_branches.length === 0) {
+        setPrValidationMessage('No valid target branches available for the selected source branch.');
+      }
+    } catch (error) {
+      console.error('Error fetching target branches:', error);
+      setPrValidationMessage('Failed to fetch valid target branches. Please try again.');
+    } finally {
+      setIsLoadingTargets(false);
+    }
+  }, [sessionId, selectedRepos]);
+
+  // Handle target branch selection and fetch diff
+  const handleTargetBranchChange = useCallback(async (branch: string) => {
+    setTargetBranch(branch);
+    setPrDiff('');
+    setPrDescription('');
+    setPrValidationMessage('');
+    setProgressActions(0);
+    setPrGenerated(false); // Reset PR generated state when branch changes
+    
+    if (!branch || !sourceBranch) return;
+    
+    // Fetch PR diff
+    setIsLoadingDiff(true);
+    
+    const progressActionsInterval = setInterval(() => {
+      setProgressActions((prev) => (prev < 95 ? prev + 5 : prev));
+    }, 300);
+    
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(`${backendUrl}/get-pull-request-diff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          repo: selectedRepos[0],
+          source_branch: sourceBranch,
+          target_branch: branch
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch pull request diff');
+      
+      const data = await response.json();
+      
+      if (!data.actions) {
+        setPrValidationMessage('No changes found between the selected branches.');
+        setPrDiff('');
+        clearInterval(progressActionsInterval);
+        setProgressActions(100);
+        return;
+      }
+      
+      // Format commits as readable log
+      const formattedDiff = data.actions;
+      
+      setPrDiff(formattedDiff);
+      clearInterval(progressActionsInterval);
+      setProgressActions(100);
+    } catch (error) {
+      console.error('Error fetching PR diff:', error);
+      setPrValidationMessage('Failed to fetch pull request diff. Please try again.');
+      clearInterval(progressActionsInterval);
+      setProgressActions(100);
+    } finally {
+      setIsLoadingDiff(false);
+    }
+  }, [sessionId, selectedRepos, sourceBranch]);
+
+  // Generate PR description
+  const handleGeneratePRDescription = useCallback(async () => {
+    if (!sourceBranch || !targetBranch || !prDiff) {
+      setPrValidationMessage('Please select both branches and ensure there are changes to summarize.');
+      return;
+    }
+    
+    if (currentWebSocket) {
+      currentWebSocket.close();
+    }
+    
+    setPrDescription('');
+    setIsGeneratingPR(true);
+    setPrValidationMessage('');
+    setProgressWs(0);
+    
+    // Scroll to summary section when starting generation
+    setTimeout(() => {
+      summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+    
+    const backendUrl = import.meta.env.VITE_AICORE_API;
+    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws/${sessionId}/pull_request`;
+    const ws = new WebSocket(wsUrl);
+    
+    setCurrentWebSocket(ws);
+    
+    const progressWsInterval = setInterval(() => {
+      setProgressWs((prev) => (prev < 95 ? prev + 5 : prev));
+    }, 500);
+    
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ actions: prDiff }));
+    };
+    
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data.toString()).chunk;
+      if (message === "</end>") {
+        clearInterval(progressWsInterval);
+        setProgressWs(100);
+        setIsGeneratingPR(false);
+        setPrGenerated(true); // Mark PR as generated
+        ws.close();
+        setCurrentWebSocket(null);
+      } else {
+        setPrDescription((prev) => {
+          const newOutput = prev + message;
+          scrollToBottom();
+          return newOutput;
+        });
+      }
+    };
+    
+    ws.onerror = (event) => {
+      console.error("WebSocket error:", event);
+      clearInterval(progressWsInterval);
+      setProgressWs(100);
+      setIsGeneratingPR(false);
+      setPrValidationMessage('Failed to generate PR description. Please try again.');
+      setCurrentWebSocket(null);
+    };
+    
+    ws.onclose = () => {
+      clearInterval(progressWsInterval);
+      setIsGeneratingPR(false);
+      setCurrentWebSocket(null);
+    };
+  }, [sessionId, sourceBranch, targetBranch, prDiff, currentWebSocket]);
+
+  // Create PR on GitHub
+  const handleCreatePR = useCallback(async () => {
+    if (!prDescription.trim()) {
+      setPrValidationMessage('Please generate a PR description first.');
+      return;
+    }
+    
+    setIsCreatingPR(true);
+    setPrValidationMessage('');
+    
+    try {
+      const backendUrl = import.meta.env.VITE_AICORE_API;
+      const response = await fetch(`${backendUrl}/create-pull-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          repo: selectedRepos[0],
+          source_branch: sourceBranch,
+          target_branch: targetBranch,
+          body: prDescription
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to create pull request');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setPrCreationSuccess(true);
+        setPrUrl(data.url);
+        setPopupMessage(`Pull request created successfully on GitHub from ${sourceBranch} to ${targetBranch}!`);
+        setIsPopupOpen(true);
+      } else {
+        throw new Error('Pull request creation was not successful');
+      }
+    } catch (error: any) {
+      console.error('Error creating pull request:', error);
+      setPopupMessage(error.message || 'Failed to create pull request. Please try again.');
+      setIsPopupOpen(true);
+    } finally {
+      setIsCreatingPR(false);
+    }
+  }, [sessionId, sourceBranch, targetBranch, prDescription, selectedRepos]);
+
+  // 1. Add this to your state declarations (around line 60):
+  const [showMenu, setShowMenu] = useState(false);
+
+  // 2. Add these handlers after handleShowPRMode (around line 280):
+  const handleShowReleaseMode = useCallback(() => {
+    setShowMenu(false);
+    setShowReleaseMode(true);
+    setShowPRMode(false);
+  }, []);
+
+  const handleShowPRModeFromMenu = useCallback(() => {
+    setShowMenu(false);
+    handleShowPRMode();
+  }, [handleShowPRMode]);
+
   // Handle GitHub OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -457,8 +780,8 @@ function App() {
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
                   placeholder="Enter Git repository URL"
-                  className="flex-grow min-w-0"  // Takes remaining space
-                  style={{ flex: '2 1 0%' }}     // Explicit 2:1 ratio
+                  className="flex-grow min-w-0"
+                  style={{ flex: '2 1 0%' }}
                 />
                 <Button
                   onClick={handleCloneRepo}
@@ -466,9 +789,9 @@ function App() {
                   color="accent"
                   className="flex-shrink-0"
                   style={{ 
-                    width: '33.333%',           // Force 1/3 width
-                    flex: '1 1 0%',             // Flex basis 0%
-                    minWidth: 'fit-content'     // Prevent squeezing
+                    width: '33.333%',
+                    flex: '1 1 0%',
+                    minWidth: 'fit-content'
                   }}
                 >
                   {isCloning ? 'Cloning...' : 'Clone'}
@@ -665,90 +988,198 @@ function App() {
         </Accordion>
       </Card>
 
-      <div className="recap-release-switcher-container mt-8">
-        <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}`}>
-          {/* Recap Mode */}
-          <div className={`recap-main-btn-area${showReleaseMode ? ' slide-left-out' : ' slide-in'}`}>
+      <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}${showPRMode ? ' show-pr' : ''}`}>
+        {/* Recap Mode */}
+        <div className={`recap-main-btn-area${showReleaseMode || showPRMode ? ' slide-left-out' : ' slide-in'}`}>
+          <Button
+            onClick={handleFullRecap}
+            disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+            color="accent"
+            className="recap-main-btn"
+          >
+            {isExecuting ? 'Processing...' : 'Recap'}
+          </Button>
+          <div className="button-with-tooltip">
             <Button
-              onClick={handleFullRecap}
+              className="recap-3dots-rect-btn"
+              onClick={() => setShowMenu(!showMenu)}
+              aria-label="Show options menu"
               disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
-              color="accent"
-              className="recap-main-btn"
+              type="button"
             >
-              {isExecuting ? 'Processing...' : 'Recap'}
+              <span className="recap-3dots-rect-inner">
+                <span className="recap-dot"></span>
+                <span className="recap-dot"></span>
+                <span className="recap-dot"></span>
+              </span>
+              <span className="recap-3dots-badge">
+                New
+              </span>
             </Button>
-            <div className="button-with-tooltip">
-              <Button
-                className="recap-3dots-rect-btn"
-                onClick={() => setShowReleaseMode(true)}
-                aria-label="Show release notes options"
-                disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
-                type="button"
-              >
-                <span className="recap-3dots-rect-inner">
-                  <span className="recap-dot"></span>
-                  <span className="recap-dot"></span>
-                  <span className="recap-dot"></span>
-                </span>
-                <span className="recap-3dots-badge">
-                  New
-                </span>
-              </Button>
-              <div className="tooltip-text">
-                You can now generate releases - only supported for GitHub repos (requires sign in or PAT authorization) and select one repo from a dropdown from above!
+            <div className="tooltip-text">
+              Generate release notes or create a PR - only supported for GitHub repos (requires sign in or PAT authorization)
+            </div>
+            
+            <div className={`options-menu${showMenu ? ' slide-in-menu' : ' slide-out-menu'}`}>
+              <div className="menu-button-with-tooltip">
+                <Button
+                  className="menu-option-btn"
+                  onClick={handleShowReleaseMode}
+                  disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
+                  color="accent"
+                  style={{ minWidth: '180px', maxWidth: '180px' }}
+                >
+                  Generate Release Notes
+                </Button>
+                {(selectedRepos.length !== 1 || codeHost !== 'github') && (
+                  <div className="menu-tooltip-text">
+                    {codeHost !== 'github' 
+                      ? 'Only available for GitHub repositories' 
+                      : selectedRepos.length === 0 
+                      ? 'Please select exactly one repository' 
+                      : 'Please select only one repository'}
+                  </div>
+                )}
+              </div>
+              <div className="menu-button-with-tooltip">
+                <Button
+                  className="menu-option-btn"
+                  onClick={handleShowPRModeFromMenu}
+                  disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized || selectedRepos.length !== 1 || codeHost !== 'github'}
+                  color="accent"
+                  style={{ minWidth: '120px', maxWidth: '120px' }}
+                >
+                  Create PR
+                </Button>
+                {(selectedRepos.length !== 1 || codeHost !== 'github') && (
+                  <div className="menu-tooltip-text">
+                    {codeHost !== 'github' 
+                      ? 'Only available for GitHub repositories' 
+                      : selectedRepos.length === 0 
+                      ? 'Please select exactly one repository' 
+                      : 'Please select only one repository'}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          {/* Release Notes Mode */}
-          <div className={`release-main-btn-area${showReleaseMode ? ' slide-in' : ' slide-right-out'}`}>
-            <Button
-              className="release-back-rect-btn"
-              onClick={() => setShowReleaseMode(false)}
-              disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
-              type="button"
+        </div>
+
+        {/* Release Notes Mode */}
+        <div className={`release-main-btn-area${showReleaseMode && !showPRMode ? ' slide-in' : ' slide-right-out'}`}>
+          <Button
+            className="release-back-rect-btn"
+            onClick={() => setShowReleaseMode(false)}
+            disabled={isExecuting || isExecutingReleaseNotes || !isAuthorized}
+            type="button"
+            style={{ minWidth: '32px', height: '32px' }}
+          >
+            <span className="release-back-arrow">&#8592;</span>
+            <span className="release-back-label">Back</span>
+          </Button>
+          <Button
+            onClick={handleReleaseNotes}
+            disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized}
+            color="accent"
+            className="release-main-btn"
+          >
+            {isExecutingReleaseNotes ? 'Processing...' : 'Generate Release Notes'}
+          </Button>
+          <div className="release-counter-rect">
+            <button
+              onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
+              disabled={numOldReleases <= 1 || isExecutingReleaseNotes || isExecuting}
+              className="counter-btn-rect"
               style={{ minWidth: '32px', height: '32px' }}
             >
-              <span className="release-back-arrow">&#8592;</span>
-              <span className="release-back-label">Back</span>
-            </Button>
-            <Button
-              onClick={handleReleaseNotes}
-              disabled={isExecutingReleaseNotes || isExecuting || !isAuthorized}
-              color="accent"
-              className="release-main-btn"
+              <Minus className="h-3 w-3" />
+            </button>
+            <span className="counter-value-rect">
+              {numOldReleases}
+            </span>
+            <button
+              onClick={() => setNumOldReleases(numOldReleases + 1)}
+              disabled={isExecutingReleaseNotes || isExecuting}
+              className="counter-btn-rect"
+              style={{ minWidth: '32px', height: '32px' }}
             >
-              {isExecutingReleaseNotes ? 'Processing...' : 'Generate Release Notes'}
-            </Button>
-            <div className="release-counter-rect">
-              <button
-                onClick={() => setNumOldReleases(Math.max(1, numOldReleases - 1))}
-                disabled={numOldReleases <= 1 || isExecutingReleaseNotes || isExecuting}
-                className="counter-btn-rect"
-                style={{ minWidth: '32px', height: '32px' }}
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="counter-value-rect">
-                {numOldReleases}
-              </span>
-              <button
-                onClick={() => setNumOldReleases(numOldReleases + 1)}
-                disabled={isExecutingReleaseNotes || isExecuting}
-                className="counter-btn-rect"
-                style={{ minWidth: '32px', height: '32px' }}
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
+              <Plus className="h-3 w-3" />
+            </button>
           </div>
         </div>
+        
+        {/* PR Mode */}
+        <div 
+          className={`pr-main-area${showPRMode ? ' slide-in' : ' slide-right-out'}`}
+        >
+          <Button
+            className="pr-back-rect-btn"
+            onClick={handleBackFromPR}
+            disabled={isGeneratingPR || isCreatingPR}
+            type="button"
+            style={{ width: '32px', height: '32px', flexShrink: 0 }}
+          >
+            <span className="pr-back-arrow">&#8592;</span>
+            <span className="pr-back-label">Back</span>
+          </Button>
+          
+          <div className="pr-branch-group-inline" style={{ flex: 1 }}>
+            <select
+              className="pr-branch-dropdown"
+              value={sourceBranch}
+              onChange={(e) => handleSourceBranchChange(e.target.value)}
+              disabled={isLoadingBranches || isGeneratingPR || isCreatingPR}
+            >
+              <option value="">Select source</option>
+              {availableBranches.map((branch) => (
+                <option key={branch} value={branch}>
+                  {branch}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="pr-branch-group-inline" style={{ flex: 1 }}>
+            <select
+              className="pr-branch-dropdown"
+              value={targetBranch}
+              onChange={(e) => handleTargetBranchChange(e.target.value)}
+              disabled={!sourceBranch || isLoadingTargets || isGeneratingPR || isCreatingPR}
+            >
+              <option value="">Select target</option>
+              {targetBranches.map((branch) => (
+                <option key={branch} value={branch}>
+                  {branch}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <Button
+            onClick={handleGeneratePRDescription}
+            disabled={!sourceBranch || !targetBranch || !prDiff || isGeneratingPR || isCreatingPR || prGenerated}
+            color="accent"
+            className="pr-generate-btn"
+            style={{ width: '120px', height: '32px', flexShrink: 0 }}
+          >
+            {isGeneratingPR ? 'Generating...' : 'Generate PR'}
+          </Button>
+          
+          {prValidationMessage && (
+            <div className="pr-validation-message-inline">
+              {prValidationMessage}
+            </div>
+          )}
+        </div>
       </div>
-      
-      <div className="output-section mt-8" ref={actionsLogRef}>
+
+      <div className={`output-section mt-8 ${showMenu ? 'menu-open' : ''}`} ref={actionsLogRef}>
         <Card className="output-box p-6">
-          <h2 className="text-xl font-bold mb-4">Actions Log</h2>
+          <h2 className="text-xl font-bold mb-4">
+            {showPRMode ? 'Commit Diff' : 'Actions Log'}
+          </h2>
           <ProgressBar
-            progress={progressActions}
+            progress={showPRMode && isLoadingDiff ? 50 : progressActions}
             size="md"
             color="orange"
             borderColor="black"
@@ -756,51 +1187,64 @@ function App() {
           />
           <TextArea 
             readOnly 
-            value={commitsOutput} 
+            value={showPRMode ? prDiff : commitsOutput} 
             rows={10}
+            placeholder={showPRMode ? "Select source and target branches to view commit diff..." : ""}
           />
         </Card>
       </div>
+
       <div className="output-section mt-8" ref={summaryLogRef}>
         <Card className="output-box p-6">
           <div className="summary-header">
-            <h2>Summary (by `{import.meta.env.VITE_LLM_MODEL}`)</h2>
-            <div className="n-selector">
-              <Button
-                onClick={() => handleNSelection(5)}
-                className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
-                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
-              >
-                5
-              </Button>
-              <Button
-                onClick={() => handleNSelection(10)}
-                className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
-                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
-              >
-                10
-              </Button>
-              <Button
-                onClick={() => handleNSelection(15)}
-                className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
-                disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
-              >
-                15
-              </Button>
-            </div>
+            <h2>
+              {showPRMode 
+                ? 'Pull Request Description' 
+                : showReleaseMode 
+                ? 'Release Notes' 
+                : `Summary (by \`${import.meta.env.VITE_LLM_MODEL}\`)`
+              }
+            </h2>
+            {!showPRMode && !showReleaseMode && (
+              <div className="n-selector">
+                <Button
+                  onClick={() => handleNSelection(5)}
+                  className={`summary-n-btn ${selectedN === 5 ? 'active-btn' : ''}`}
+                  disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+                >
+                  5
+                </Button>
+                <Button
+                  onClick={() => handleNSelection(10)}
+                  className={`summary-n-btn ${selectedN === 10 ? 'active-btn' : ''}`}
+                  disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+                >
+                  10
+                </Button>
+                <Button
+                  onClick={() => handleNSelection(15)}
+                  className={`summary-n-btn ${selectedN === 15 ? 'active-btn' : ''}`}
+                  disabled={!recapDone || isExecutingReleaseNotes || isExecuting}
+                >
+                  15
+                </Button>
+              </div>
+            )}
           </div>
           <ProgressBar
-            progress={progressWs}
+            progress={showPRMode && isGeneratingPR ? 50 : progressWs}
             size="md"
             color="orange"
             borderColor="black"
             className="w-full mb-4"
           />
           <TextArea
-            readOnly
-            value={dummyOutput}
+            readOnly={!showPRMode}
+            value={showPRMode ? prDescription : dummyOutput}
+            onChange={showPRMode ? (e) => setPrDescription(e.target.value) : undefined}
             rows={10}
             ref={textAreaRef}
+            placeholder={showPRMode ? "Click 'Generate PR Description' to create a description..." : ""}
             style={{
               height: '500px',
               overflowY: 'auto',
@@ -809,6 +1253,32 @@ function App() {
               fontFamily: 'monospace'
             }}
           />
+          
+          {showPRMode && prCreationSuccess && prUrl && (
+            <div className="pr-success-message mt-4">
+              Pull request created successfully! <a href={prUrl} target="_blank" rel="noopener noreferrer">View PR</a>
+            </div>
+          )}
+          
+          {/* New PR Creation Button or Message */}
+          {showPRMode && prDescription && (
+            <div className="pr-creation-section mt-4">
+              {isPATAuthorized ? (
+                <Button
+                  onClick={handleCreatePR}
+                  disabled={isCreatingPR || !prDescription.trim()}
+                  color="accent"
+                  className="pr-create-btn"
+                >
+                  {isCreatingPR ? 'Creating PR...' : 'Create Pull Request on GitHub'}
+                </Button>
+              ) : (
+                <div className="pr-auth-message">
+                  Automatic creation into GitHub is only available via Personal Access Token (PAT) authentication.
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
 

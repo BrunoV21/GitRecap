@@ -1,6 +1,7 @@
 import pytest
 from datetime import datetime
 from unittest.mock import Mock, patch
+from github import GithubException
 from git_recap.utils import parse_entries_to_txt
 
 def test_parse_entries_to_txt():
@@ -235,3 +236,395 @@ def test_fetch_releases_not_implemented_providers():
     except Exception:
         # If URLFetcher can't be instantiated with dummy data, that's fine
         pass
+
+
+class TestGitHubFetcherBranchOperations:
+    """
+    Unit tests for GitHub branch management and pull request creation functionality.
+    """
+
+    @patch('git_recap.providers.github_fetcher.Github')
+    def test_get_branches_returns_branch_list(self, mock_github_class):
+        """
+        Test that get_branches() returns a list of branch names from the repository.
+        """
+        from git_recap.providers.github_fetcher import GitHubFetcher
+        
+        # Create mock objects
+        mock_github = Mock()
+        mock_user = Mock()
+        mock_repo = Mock()
+        mock_branch1 = Mock()
+        mock_branch2 = Mock()
+        mock_branch3 = Mock()
+        
+        # Configure the mock hierarchy
+        mock_github_class.return_value = mock_github
+        mock_github.get_user.return_value = mock_user
+        mock_user.login = "testuser"
+        mock_user.get_repos.return_value = [mock_repo]
+        
+        # Configure mock branches
+        mock_branch1.name = "main"
+        mock_branch2.name = "develop"
+        mock_branch3.name = "feature/new-ui"
+        mock_repo.get_branches.return_value = [mock_branch1, mock_branch2, mock_branch3]
+        mock_repo.name = "test-repo"
+        
+        # Create GitHubFetcher instance and test
+        fetcher = GitHubFetcher(pat="dummy_token")
+        branches = fetcher.get_branches()
+        
+        # Assertions
+        assert isinstance(branches, list)
+        assert len(branches) == 3
+        assert "main" in branches
+        assert "develop" in branches
+        assert "feature/new-ui" in branches
+
+    @patch('git_recap.providers.github_fetcher.Github')
+    def test_get_valid_target_branches_filters_correctly(self, mock_github_class):
+        """
+        Test that get_valid_target_branches() correctly filters branches.
+        """
+        from git_recap.providers.github_fetcher import GitHubFetcher
+        
+        # Create mock objects
+        mock_github = Mock()
+        mock_user = Mock()
+        mock_repo = Mock()
+        
+        # Configure the mock hierarchy
+        mock_github_class.return_value = mock_github
+        mock_github.get_user.return_value = mock_user
+        mock_user.login = "testuser"
+        mock_user.get_repos.return_value = [mock_repo]
+        mock_repo.name = "test-repo"
+        
+        # Configure mock branches
+        mock_branch1 = Mock()
+        mock_branch1.name = "main"
+        mock_branch2 = Mock()
+        mock_branch2.name = "develop"
+        mock_branch3 = Mock()
+        mock_branch3.name = "feature-branch"
+        mock_branch4 = Mock()
+        mock_branch4.name = "hotfix"
+        
+        mock_repo.get_branches.return_value = [mock_branch1, mock_branch2, mock_branch3, mock_branch4]
+        
+        # Mock existing PR from feature-branch to develop
+        mock_pr = Mock()
+        mock_pr.head.ref = "feature-branch"
+        mock_pr.base.ref = "develop"
+        mock_repo.get_pulls.return_value = [mock_pr]
+        
+        # Create GitHubFetcher instance and test
+        fetcher = GitHubFetcher(pat="dummy_token")
+        valid_targets = fetcher.get_valid_target_branches("feature-branch")
+        
+        # Assertions
+        assert isinstance(valid_targets, list)
+        # Should exclude source branch (feature-branch) and branch with existing PR (develop)
+        assert "feature-branch" not in valid_targets
+        assert "develop" not in valid_targets
+        assert "main" in valid_targets
+        assert "hotfix" in valid_targets
+
+    @patch('git_recap.providers.github_fetcher.Github')
+    def test_get_valid_target_branches_raises_on_invalid_source(self, mock_github_class):
+        """
+        Test that get_valid_target_branches() raises ValueError for non-existent source branch.
+        """
+        from git_recap.providers.github_fetcher import GitHubFetcher
+        
+        # Create mock objects
+        mock_github = Mock()
+        mock_user = Mock()
+        mock_repo = Mock()
+        
+        # Configure the mock hierarchy
+        mock_github_class.return_value = mock_github
+        mock_github.get_user.return_value = mock_user
+        mock_user.login = "testuser"
+        mock_user.get_repos.return_value = [mock_repo]
+        mock_repo.name = "test-repo"
+        
+        # Configure mock branches (without the source branch)
+        mock_branch1 = Mock()
+        mock_branch1.name = "main"
+        mock_branch2 = Mock()
+        mock_branch2.name = "develop"
+        
+        mock_repo.get_branches.return_value = [mock_branch1, mock_branch2]
+        
+        # Create GitHubFetcher instance and test
+        fetcher = GitHubFetcher(pat="dummy_token")
+        
+        # Should raise ValueError for non-existent source branch
+        with pytest.raises(ValueError) as exc_info:
+            fetcher.get_valid_target_branches("non-existent-branch")
+        
+        assert "does not exist" in str(exc_info.value)
+
+    @patch('git_recap.providers.github_fetcher.Github')
+    def test_create_pull_request_success(self, mock_github_class):
+        """
+        Test successful pull request creation with all metadata.
+        """
+        from git_recap.providers.github_fetcher import GitHubFetcher
+        
+        # Create mock objects
+        mock_github = Mock()
+        mock_user = Mock()
+        mock_repo = Mock()
+        mock_pr = Mock()
+        
+        # Configure the mock hierarchy
+        mock_github_class.return_value = mock_github
+        mock_github.get_user.return_value = mock_user
+        mock_user.login = "testuser"
+        mock_user.get_repos.return_value = [mock_repo]
+        mock_repo.name = "test-repo"
+        
+        # Configure mock branches
+        mock_branch1 = Mock()
+        mock_branch1.name = "main"
+        mock_branch2 = Mock()
+        mock_branch2.name = "feature-branch"
+        mock_repo.get_branches.return_value = [mock_branch1, mock_branch2]
+        
+        # Mock no existing PRs
+        mock_repo.get_pulls.return_value = []
+        
+        # Configure mock PR creation
+        mock_pr.html_url = "https://github.com/test/test-repo/pull/1"
+        mock_pr.number = 1
+        mock_pr.state = "open"
+        mock_repo.create_pull.return_value = mock_pr
+        
+        # Mock reviewer/assignee/label methods
+        mock_pr.create_review_request = Mock()
+        mock_pr.add_to_assignees = Mock()
+        mock_pr.add_to_labels = Mock()
+        
+        # Create GitHubFetcher instance and test
+        fetcher = GitHubFetcher(pat="dummy_token")
+        result = fetcher.create_pull_request(
+            head_branch="feature-branch",
+            base_branch="main",
+            title="New Feature",
+            body="Description of new feature",
+            reviewers=["reviewer1"],
+            assignees=["assignee1"],
+            labels=["enhancement"]
+        )
+        
+        # Assertions
+        assert result["success"] is True
+        assert result["url"] == "https://github.com/test/test-repo/pull/1"
+        assert result["number"] == 1
+        assert result["state"] == "open"
+        
+        # Verify methods were called
+        mock_repo.create_pull.assert_called_once()
+        mock_pr.create_review_request.assert_called_once_with(reviewers=["reviewer1"])
+        mock_pr.add_to_assignees.assert_called_once_with("assignee1")
+        mock_pr.add_to_labels.assert_called_once_with("enhancement")
+
+    @patch('git_recap.providers.github_fetcher.Github')
+    def test_create_pull_request_handles_branch_not_found(self, mock_github_class):
+        """
+        Test that create_pull_request() handles branch not found errors.
+        """
+        from git_recap.providers.github_fetcher import GitHubFetcher
+        
+        # Create mock objects
+        mock_github = Mock()
+        mock_user = Mock()
+        mock_repo = Mock()
+        
+        # Configure the mock hierarchy
+        mock_github_class.return_value = mock_github
+        mock_github.get_user.return_value = mock_user
+        mock_user.login = "testuser"
+        mock_user.get_repos.return_value = [mock_repo]
+        mock_repo.name = "test-repo"
+        
+        # Configure mock branches (only main exists)
+        mock_branch1 = Mock()
+        mock_branch1.name = "main"
+        mock_repo.get_branches.return_value = [mock_branch1]
+        
+        # Create GitHubFetcher instance and test
+        fetcher = GitHubFetcher(pat="dummy_token")
+        
+        # Should raise ValueError for non-existent branch
+        with pytest.raises(ValueError) as exc_info:
+            fetcher.create_pull_request(
+                head_branch="non-existent",
+                base_branch="main",
+                title="Test PR",
+                body="Test"
+            )
+        
+        assert "does not exist" in str(exc_info.value)
+
+    @patch('git_recap.providers.github_fetcher.Github')
+    def test_create_pull_request_handles_existing_pr(self, mock_github_class):
+        """
+        Test that create_pull_request() handles existing PR scenario.
+        """
+        from git_recap.providers.github_fetcher import GitHubFetcher
+        
+        # Create mock objects
+        mock_github = Mock()
+        mock_user = Mock()
+        mock_repo = Mock()
+        
+        # Configure the mock hierarchy
+        mock_github_class.return_value = mock_github
+        mock_github.get_user.return_value = mock_user
+        mock_user.login = "testuser"
+        mock_user.get_repos.return_value = [mock_repo]
+        mock_repo.name = "test-repo"
+        
+        # Configure mock branches
+        mock_branch1 = Mock()
+        mock_branch1.name = "main"
+        mock_branch2 = Mock()
+        mock_branch2.name = "feature-branch"
+        mock_repo.get_branches.return_value = [mock_branch1, mock_branch2]
+        
+        # Mock existing PR
+        mock_pr = Mock()
+        mock_pr.head.ref = "feature-branch"
+        mock_pr.base.ref = "main"
+        mock_repo.get_pulls.return_value = [mock_pr]
+        
+        # Create GitHubFetcher instance and test
+        fetcher = GitHubFetcher(pat="dummy_token")
+        
+        # Should raise ValueError for existing PR
+        with pytest.raises(ValueError) as exc_info:
+            fetcher.create_pull_request(
+                head_branch="feature-branch",
+                base_branch="main",
+                title="Test PR",
+                body="Test"
+            )
+        
+        assert "already exists" in str(exc_info.value)
+
+    @patch('git_recap.providers.github_fetcher.Github')
+    def test_create_pull_request_handles_github_exception(self, mock_github_class):
+        """
+        Test that create_pull_request() handles GithubException errors appropriately.
+        """
+        from git_recap.providers.github_fetcher import GitHubFetcher
+        
+        # Create mock objects
+        mock_github = Mock()
+        mock_user = Mock()
+        mock_repo = Mock()
+        
+        # Configure the mock hierarchy
+        mock_github_class.return_value = mock_github
+        mock_github.get_user.return_value = mock_user
+        mock_user.login = "testuser"
+        mock_user.get_repos.return_value = [mock_repo]
+        mock_repo.name = "test-repo"
+        
+        # Configure mock branches
+        mock_branch1 = Mock()
+        mock_branch1.name = "main"
+        mock_branch2 = Mock()
+        mock_branch2.name = "feature-branch"
+        mock_repo.get_branches.return_value = [mock_branch1, mock_branch2]
+        
+        # Mock no existing PRs
+        mock_repo.get_pulls.return_value = []
+        
+        # Mock create_pull to raise GithubException
+        mock_repo.create_pull.side_effect = GithubException(403, "Permission denied", None)
+        
+        # Create GitHubFetcher instance and test
+        fetcher = GitHubFetcher(pat="dummy_token")
+        
+        # Should raise GithubException
+        with pytest.raises(GithubException):
+            fetcher.create_pull_request(
+                head_branch="feature-branch",
+                base_branch="main",
+                title="Test PR",
+                body="Test"
+            )
+
+    @patch('git_recap.providers.github_fetcher.Github')
+    def test_get_branches_handles_api_errors(self, mock_github_class):
+        """
+        Test that get_branches() handles API errors gracefully.
+        """
+        from git_recap.providers.github_fetcher import GitHubFetcher
+        
+        # Create mock objects
+        mock_github = Mock()
+        mock_user = Mock()
+        mock_repo = Mock()
+        
+        # Configure the mock hierarchy
+        mock_github_class.return_value = mock_github
+        mock_github.get_user.return_value = mock_user
+        mock_user.login = "testuser"
+        mock_user.get_repos.return_value = [mock_repo]
+        mock_repo.name = "test-repo"
+        
+        # Mock get_branches to raise GithubException
+        mock_repo.get_branches.side_effect = GithubException(403, "Rate limit exceeded", None)
+        
+        # Create GitHubFetcher instance and test
+        fetcher = GitHubFetcher(pat="dummy_token")
+        
+        # Should raise Exception with descriptive message
+        with pytest.raises(Exception) as exc_info:
+            fetcher.get_branches()
+        
+        assert "Failed to fetch branches" in str(exc_info.value)
+
+    @patch('git_recap.providers.github_fetcher.Github')
+    def test_get_valid_target_branches_handles_api_errors(self, mock_github_class):
+        """
+        Test that get_valid_target_branches() handles API errors gracefully.
+        """
+        from git_recap.providers.github_fetcher import GitHubFetcher
+        
+        # Create mock objects
+        mock_github = Mock()
+        mock_user = Mock()
+        mock_repo = Mock()
+        
+        # Configure the mock hierarchy
+        mock_github_class.return_value = mock_github
+        mock_github.get_user.return_value = mock_user
+        mock_user.login = "testuser"
+        mock_user.get_repos.return_value = [mock_repo]
+        mock_repo.name = "test-repo"
+        
+        # Configure mock branches
+        mock_branch1 = Mock()
+        mock_branch1.name = "main"
+        mock_branch2 = Mock()
+        mock_branch2.name = "feature-branch"
+        mock_repo.get_branches.return_value = [mock_branch1, mock_branch2]
+        
+        # Mock get_pulls to raise GithubException
+        mock_repo.get_pulls.side_effect = GithubException(500, "Internal server error", None)
+        
+        # Create GitHubFetcher instance and test
+        fetcher = GitHubFetcher(pat="dummy_token")
+        
+        # Should raise Exception with descriptive message
+        with pytest.raises(Exception) as exc_info:
+            fetcher.get_valid_target_branches("feature-branch")
+        
+        assert "Failed to validate target branches" in str(exc_info.value)

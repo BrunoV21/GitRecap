@@ -42,7 +42,16 @@ class DummyFetcher(BaseFetcher):
             if isinstance(entry["timestamp"], datetime):
                 entry["timestamp"] = entry["timestamp"].isoformat()
         return entries
-    
+
+    def get_branches(self):
+        ...
+
+    def get_valid_target_branches(self):
+        ...
+
+    def create_pull_request(self):
+        ...
+
     @property
     def repos_names(self):
         ...

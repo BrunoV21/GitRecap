@@ -1,6 +1,15 @@
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel
 
+from models.schemas import (
+    BranchListResponse,
+    ValidTargetBranchesRequest,
+    ValidTargetBranchesResponse,
+    CreatePullRequestRequest,
+    CreatePullRequestResponse,
+)
+
+from models.schemas import GetPullRequestDiffRequest, GetPullRequestDiffResponse
 from services.llm_service import set_llm, get_llm, trim_messages
 from services.fetcher_service import store_fetcher, get_fetcher
 from git_recap.utils import parse_entries_to_txt, parse_releases_to_txt
@@ -214,7 +223,7 @@ async def get_release_notes(
     # Get fetcher for session
     try:
         fetcher = get_fetcher(session_id)
-    except HTTPException as e:
+    except HTTPException:
         raise
 
     # Check if fetcher supports fetch_releases
@@ -273,13 +282,88 @@ async def get_release_notes(
 
     return {"actions": "\n\n".join([actions_txt, releases_txt])}
 
-# @router.post("/chat")
-# async def chat(
-#     chat_request: ChatRequest
-# ):
-#     try:
-#         llm = await initialize_llm_session(chat_request.session_id)
-#         response = await llm.acomplete(chat_request.message)
-#         return {"response": response}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+# --- Branch and Pull Request Management Endpoints ---
+@router.get("/branches", response_model=BranchListResponse)
+async def get_branches(
+    session_id: str,
+    repo: str
+):
+    """
+    Get all branches for a given repository in the current session.
+    """
+    fetcher = get_fetcher(session_id)
+    try:
+        fetcher.repo_filter = [repo]
+        branches = fetcher.get_branches()
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="Branch listing is not supported for this provider.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch branches: {str(e)}")
+    return BranchListResponse(branches=branches)
+
+@router.post("/valid-target-branches", response_model=ValidTargetBranchesResponse)
+async def get_valid_target_branches(
+    req: ValidTargetBranchesRequest
+):
+    """
+    Get all valid target branches for a given source branch in a repository.
+    """
+    fetcher = get_fetcher(req.session_id)
+    try:
+        fetcher.repo_filter = [req.repo]
+        valid_targets = fetcher.get_valid_target_branches(req.source_branch)
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="Target branch validation is not supported for this provider.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to validate target branches: {str(e)}")
+    return ValidTargetBranchesResponse(valid_target_branches=valid_targets)
+
+@router.post("/create-pull-request", response_model=CreatePullRequestResponse)
+async def create_pull_request(
+    req: CreatePullRequestRequest
+):
+    fetcher = get_fetcher(req.session_id)
+    fetcher.repo_filter = [req.repo]
+    if not req.description or not req.description.strip():
+        raise HTTPException(status_code=400, detail="Description is required for pull request creation.")
+    try:
+        result = fetcher.create_pull_request(
+            head_branch=req.source_branch,
+            base_branch=req.target_branch,
+            title=req.title or f"Merge {req.source_branch} into {req.target_branch}",
+            body=req.description,
+            draft=req.draft or False,
+            reviewers=req.reviewers,
+            assignees=req.assignees,
+            labels=req.labels,
+        )
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="Pull request creation is not supported for this provider.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create pull request: {str(e)}")
+    return CreatePullRequestResponse(
+        url=result.get("url"),
+        number=result.get("number"),
+        state=result.get("state"),
+        success=result.get("success", False),
+        generated_description=None
+    )
+
+@router.post("/get-pull-request-diff")
+async def get_pull_request_diff(req: GetPullRequestDiffRequest):
+    fetcher = get_fetcher(req.session_id)
+    fetcher.repo_filter = [req.repo]
+    provider = type(fetcher).__name__.lower()
+    if "github" not in provider:
+        raise HTTPException(status_code=400, detail="Pull request diff is only supported for GitHub provider.")
+    try:
+        commits = fetcher.fetch_branch_diff_commits(req.source_branch, req.target_branch)
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="Branch diff is not supported for this provider.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch pull request diff: {str(e)}")
+    return {"actions": parse_entries_to_txt(commits)}
