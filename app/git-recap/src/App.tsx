@@ -1608,7 +1608,9 @@ function App() {
             </div>
           </div>
           <div className="badge-content">
-            <ReactMarkdown className="badge-summary">{dummyOutput}</ReactMarkdown>
+            <div className="badge-summary">
+              <ReactMarkdown>{dummyOutput}</ReactMarkdown>
+            </div>
           </div>
           <div className="badge-footer">
             Grab your recap at <a href="https://brunov21.github.io/GitRecap/" target="_blank" rel="noopener noreferrer">github.io/GitRecap</a>
