@@ -2008,9 +2008,9 @@ a {
   align-items: center;
   gap: 8px;
   padding: 16px 24px;
-  background-color: #ff7f50;
-  color: #fff;
-  border: 3px solid #5c4033;
+  background-color: #cccccc;
+  color: #000;
+  border: 3px solid #000;
   border-radius: 8px;
   font-family: 'Courier New', monospace;
   font-size: 16px;
@@ -2023,7 +2023,7 @@ a {
 .export-button:hover {
   transform: translate(-2px, -2px);
   box-shadow: 6px 6px 0 rgba(92, 64, 51, 0.3);
-  background-color: #e06e42;
+  border-color: #000;
 }
 
 .export-button:active {
@@ -2105,9 +2105,10 @@ a {
 
 .theme-option {
   padding: 8px 16px;
-  background: #f8f9fa;
+  background: #cccccc;
   border: 3px solid #333;
   border-radius: 6px;
+  color: #000;
   cursor: pointer;
   font-family: 'Courier New', monospace;
   font-size: 14px;
@@ -2116,14 +2117,15 @@ a {
 }
 
 .theme-option:hover {
-  background: #e9ecef;
+  background: #ff7f50;
   transform: translateY(-1px);
+  border-color: #000;
 }
 
 .theme-option.active {
-  background: #d4b896;
-  border-color: #5c4033;
-  color: #3d2a1f;
+  background: #ff7f50;
+  border-color: #000;
+  color: #000;
   box-shadow: 2px 2px 0 rgba(92, 64, 51, 0.3);
 }
 
@@ -2140,7 +2142,7 @@ a {
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  background-color: #ff7f50;
+  background-color: #ccc;
   border: 3px solid #000;
   border-radius: 8px;
   cursor: pointer;
@@ -2150,9 +2152,10 @@ a {
 }
 
 .export-option-btn:hover {
-  background-color: #e06e42;
+  background-color: #ff7f50;
   transform: translateY(-2px);
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+  border-color: #000;
 }
 
 .export-option-btn:active {
@@ -2168,20 +2171,20 @@ a {
 .option-title {
   font-size: 18px;
   font-weight: bold;
-  color: #fff;
+  color: #000;
   margin-bottom: 4px;
 }
 
 .option-desc {
   font-size: 12px;
-  color: #fff;
+  color: #000;
 }
 
 /* Close Modal Button */
 .close-modal-btn {
   width: 100%;
   padding: 12px;
-  background-color: #ff7f50;
+  background-color: #cccccc;
   color: white;
   border: 3px solid #000;
   border-radius: 8px;
@@ -2194,6 +2197,7 @@ a {
 
 .close-modal-btn:hover {
   background-color: #e06e42;
+  border-color: #000;
 }
 
 /* Badge Preview (Hidden for PNG Generation) */
