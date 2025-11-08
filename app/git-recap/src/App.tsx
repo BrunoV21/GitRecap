@@ -956,7 +956,7 @@ function App() {
       } else {
         return baseStyles + `
           .gitrecap-badge { 
-            background: linear-gradient(135deg, #e8dcc8 0%, #c9b896 100%); 
+            background: linear-gradient(135deg, #f9f4e8 0%, #f9f4e8 100%); 
             border: 4px solid #4a3728; 
             box-shadow: 8px 8px 0 rgba(74, 55, 40, 0.3); 
             color: #4a3728; 
@@ -972,7 +972,7 @@ function App() {
             color: #4a3728; 
           }
           .badge-content { 
-            background: rgba(201, 184, 150, 0.4); 
+            background: #fff8e1; 
           }
           .badge-summary { 
             color: #4a3728; 
