@@ -2035,7 +2035,6 @@ a {
   font-size: 20px;
 }
 
-/* Export Modal Overlay */
 .export-modal-overlay {
   position: fixed;
   top: 0;
@@ -2048,6 +2047,8 @@ a {
   justify-content: center;
   z-index: 2000;
   animation: fadeIn 0.2s ease-out;
+  padding: 16px;
+  overflow-y: auto; /* Allow scrolling within overlay */
 }
 
 @keyframes fadeIn {
@@ -2061,6 +2062,8 @@ a {
 
 /* Export Modal */
 .export-modal {
+  max-width: 500px;
+  margin: auto; 
   background: #fff;
   border: 4px solid #000;
   border-radius: 12px;
@@ -2069,6 +2072,19 @@ a {
   width: 90%;
   box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3);
   animation: scaleIn 0.3s ease-out;
+}
+
+/* Prevent horizontal overflow on body */
+body, html {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* When modal is open */
+body.modal-open {
+  overflow: hidden;
+  position: fixed; /* Prevents background scroll and maintains viewport */
+  width: 100%;
 }
 
 @keyframes scaleIn {
@@ -2426,35 +2442,70 @@ a {
 /* Responsive Design for Export Features */
 @media (max-width: 768px) {
   .export-button-container {
-    bottom: 16px;
+    bottom: 150px;
     right: 16px;
+    left: 255px
   }
 
   .export-button {
     padding: 12px 20px;
     font-size: 14px;
+    max-width: 90px;
   }
 
   .export-modal {
     padding: 24px;
     width: 95%;
+    max-width: 300px;
+    left: 1;
   }
 
-  .badge-preview {
-    width: 640px;
-  }
-
-  .gitrecap-badge {
-    width: 640px;
-  }
-  
-  .badge-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .badge-meta-header {
-    margin-left: 0;
-    text-align: left;
-  }
+   .export-modal h2 {
+     font-size: 20px;
+     margin-bottom: 16px;
+   }
+ 
+   .theme-selector {
+     margin-bottom: 16px;
+   }
+   
+   .theme-selector > div {
+     flex-direction: column;
+     align-items: stretch;
+   }
+ 
+   .theme-option {
+     padding: 6px 12px;
+     font-size: 12px;
+     width: 100%;
+   }
+ 
+   .export-options {
+     gap: 12px;
+     margin-bottom: 16px;
+   }
+ 
+   .export-option-btn {
+     padding: 16px;
+     width: 100%;
+   }
+ 
+   .option-icon {
+     font-size: 24px;
+     margin-bottom: 6px;
+   }
+ 
+   .option-title {
+     font-size: 16px;
+   }
+ 
+   .option-desc {
+     font-size: 11px;
+   }
+ 
+   .close-modal-btn {
+     padding: 10px;
+     font-size: 13px;
+     width: 100%;
+   }
 }
