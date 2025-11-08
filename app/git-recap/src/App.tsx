@@ -831,8 +831,8 @@ function App() {
           flex-shrink: 0; 
         }
         .badge-title { 
-          font-size: 28px; 
-          font-family: 'Minecraft-Maus', 'Courier New', monospace; 
+          font-size: 40px; 
+          font-family: 'Maus', monospace; 
           font-weight: bold; 
           flex-grow: 1; 
         }
@@ -999,6 +999,7 @@ function App() {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GitRecap Badge</title>
+  <link href="https://fonts.cdnfonts.com/css/maus" rel="stylesheet">
   <style>
     ${getThemeStyles(badgeTheme)}
   </style>
