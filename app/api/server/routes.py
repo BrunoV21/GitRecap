@@ -81,9 +81,7 @@ async def external_signup(app: str, accessToken: str, provider: str):
     response = await create_llm_session()
     response["token"] = token
     response["provider"] = provider
-    final_response = await store_fetcher_endpoint(response)
-    session_id = final_response.get("session_id")    
-    return {"session_id": session_id}
+    return await store_fetcher_endpoint(response)
 
 @router.post("/pat")
 async def store_fetcher_endpoint(request: Request):
@@ -111,8 +109,8 @@ async def store_fetcher_endpoint(request: Request):
     
     response = await create_llm_session()  
     session_id = response.get("session_id")
-    store_fetcher(session_id, token, provider)
-    return {"session_id": session_id}
+    username = store_fetcher(session_id, token, provider)
+    return {"session_id": session_id, "username": username}
 
 async def create_llm_session(
     request: Optional[LlmConfig] = None
