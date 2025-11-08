@@ -1568,32 +1568,32 @@ function App() {
             <div className="theme-selector" style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Theme:</label>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                <button className={`theme-option ${badgeTheme === 'default' ? 'active' : ''}`} onClick={() => setBadgeTheme('default')}>
+                <Button className={`theme-option ${badgeTheme === 'default' ? 'active' : ''}`} onClick={() => setBadgeTheme('default')}>
                   Default
-                </button>
-                <button className={`theme-option ${badgeTheme === 'dark' ? 'active' : ''}`} onClick={() => setBadgeTheme('dark')}>
+                </Button>
+                <Button className={`theme-option ${badgeTheme === 'dark' ? 'active' : ''}`} onClick={() => setBadgeTheme('dark')}>
                   Dark
-                </button>
-                <button className={`theme-option ${badgeTheme === 'light' ? 'active' : ''}`} onClick={() => setBadgeTheme('light')}>
+                </Button>
+                <Button className={`theme-option ${badgeTheme === 'light' ? 'active' : ''}`} onClick={() => setBadgeTheme('light')}>
                   Light
-                </button>
+                </Button>
               </div>
             </div>
             <div className="export-options">
-              <button className="export-option-btn" onClick={handleExportPNG}>
+              <Button className="export-option-btn" onClick={handleExportPNG}>
                 <span className="option-icon">🖼️</span>
                 <span className="option-title">PNG Image</span>
                 <span className="option-desc">Download as image file</span>
-              </button>
-              <button className="export-option-btn" onClick={handleExportHTML}>
+              </Button>
+              <Button className="export-option-btn" onClick={handleExportHTML}>
                 <span className="option-icon">🌐</span>
                 <span className="option-title">HTML Badge</span>
                 <span className="option-desc">Embeddable HTML file</span>
-              </button>
+              </Button>
             </div>
-            <button className="close-modal-btn" onClick={() => setExportModalOpen(false)}>
+            <Button className="close-modal-btn" onClick={() => setExportModalOpen(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
