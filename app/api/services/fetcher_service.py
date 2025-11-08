@@ -7,7 +7,7 @@ import ulid
 # In-memory store mapping session_id to its respective fetcher instance
 fetchers: Dict[str, BaseFetcher] = {}
 
-def store_fetcher(session_id: str, pat: str, provider: Optional[str] = "GitHub") -> None:
+def store_fetcher(session_id: str, pat: str, provider: Optional[str] = "GitHub") -> str:
     """
     Store the provided PAT associated with the given session_id.
     
@@ -34,6 +34,7 @@ def store_fetcher(session_id: str, pat: str, provider: Optional[str] = "GitHub")
             fetchers[session_id] = URLFetcher(url=pat)
         else:
             raise HTTPException(status_code=400, detail="Unsupported provider")
+        return fetchers[session_id].user.login
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

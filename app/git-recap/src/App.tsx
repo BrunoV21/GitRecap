@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Github, Hammer, BookText, Plus, Minus } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
+import { toPng } from 'html-to-image';
+import ReactMarkdown from 'react-markdown';
 import './App.css';
 
 import { Info } from "lucide-react";
@@ -41,6 +43,7 @@ function App() {
   const [isExecuting, setIsExecuting] = useState(false);
 
   // Release Notes states
+  const [badgeTheme, setBadgeTheme] = useState<'default' | 'dark' | 'light'>('default');
   const [numOldReleases, setNumOldReleases] = useState(1);
   const [isExecutingReleaseNotes, setIsExecutingReleaseNotes] = useState(false);
 
@@ -60,7 +63,7 @@ function App() {
   const [isCreatingPR, setIsCreatingPR] = useState(false);
   const [prCreationSuccess, setPrCreationSuccess] = useState(false);
   const [prUrl, setPrUrl] = useState('');
-  const [prGenerated, setPrGenerated] = useState(false); // New state to track if PR was generated
+  const [prGenerated, setPrGenerated] = useState(false);
 
   // Auth states
   const [isPATAuthorized, setIsPATAuthorized] = useState(false);
@@ -79,16 +82,27 @@ function App() {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [selectedN, setSelectedN] = useState(5);
+  const [showExportButton, setShowExportButton] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [githubUsername, setGithubUsername] = useState('');
   const [recapDone, setRecapDone] = useState(true);
   const [isReposLoading, setIsReposLoading] = useState(true);
   const [repoProgress, setRepoProgress] = useState(0);
-  // UI mode for recap/release/pr
   const [showReleaseMode, setShowReleaseMode] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const actionsLogRef = useRef<HTMLDivElement>(null);
   const summaryLogRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [currentWebSocket, setCurrentWebSocket] = useState<WebSocket | null>(null);
+
+  // Track when recap is complete and show export button
+  useEffect(() => {
+    if (!showReleaseMode && !showPRMode && progressWs === 100 && dummyOutput && recapDone) {
+      setShowExportButton(true);
+    }
+  }, [showReleaseMode, showPRMode, progressWs, dummyOutput, recapDone]);
 
   const handleCloneRepo = useCallback(async () => {
     if (!repoUrl) return;
@@ -164,6 +178,7 @@ function App() {
     setDummyOutput('');
     setProgressActions(0);
     setProgressWs(0);
+    setShowExportButton(false);
     setRecapDone(true);
     handleRecap();
   };
@@ -175,6 +190,7 @@ function App() {
     }
     setProgressWs(0);
     setDummyOutput('');
+    setShowExportButton(false);
     if (commitsOutput) {
       recallWebSocket(commitsOutput, n);
     }
@@ -241,14 +257,12 @@ function App() {
   };
 
   const handleReleaseNotes = async () => {
-    // Validation for GitHub provider
     if (codeHost !== 'github') {
       setPopupMessage('Release Notes generation is only supported for GitHub repositories. Please select GitHub as your provider.');
       setIsPopupOpen(true);
       return;
     }
 
-    // Validation for single repo selection
     if (selectedRepos.length === 0) {
       setPopupMessage('Please select exactly one repository to generate release notes.');
       setIsPopupOpen(true);
@@ -269,6 +283,7 @@ function App() {
     setProgressActions(0);
     setProgressWs(0);
     setIsExecutingReleaseNotes(true);
+    setShowExportButton(false);
     setRecapDone(false);
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -330,6 +345,7 @@ function App() {
     setProgressActions(0);
     setProgressWs(0);
     setIsExecuting(true);
+    setShowExportButton(false);
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -372,23 +388,19 @@ function App() {
     }
   };
 
-  // PR Mode Navigation Handlers
   const handleShowPRMode = useCallback(() => {
-    // Validation: single repository selection
     if (selectedRepos.length !== 1) {
       setPopupMessage('Please select exactly one repository to create a pull request.');
       setIsPopupOpen(true);
       return;
     }
     
-    // Validation: GitHub provider only
     if (codeHost !== 'github') {
       setPopupMessage('Pull request creation is only supported for GitHub repositories.');
       setIsPopupOpen(true);
       return;
     }
     
-    // Reset PR mode state
     setSourceBranch('');
     setTargetBranch('');
     setTargetBranches([]);
@@ -397,11 +409,11 @@ function App() {
     setPrValidationMessage('');
     setPrCreationSuccess(false);
     setPrUrl('');
-    setPrGenerated(false); // Reset PR generated state
+    setPrGenerated(false);
     
+    setShowExportButton(false);
     setShowPRMode(true);
     
-    // Fetch available branches
     fetchAvailableBranches();
   }, [selectedRepos, codeHost, sessionId]);
 
@@ -411,9 +423,9 @@ function App() {
       setCurrentWebSocket(null);
     }
     setShowPRMode(false);
+    setShowExportButton(false);
   }, [currentWebSocket]);
 
-  // Fetch available branches when entering PR mode
   const fetchAvailableBranches = useCallback(async () => {
     if (!sessionId || selectedRepos.length !== 1) return;
     
@@ -443,7 +455,6 @@ function App() {
     }
   }, [sessionId, selectedRepos]);
 
-  // Handle source branch selection
   const handleSourceBranchChange = useCallback(async (branch: string) => {
     setSourceBranch(branch);
     setTargetBranch('');
@@ -451,11 +462,10 @@ function App() {
     setPrDiff('');
     setPrDescription('');
     setPrValidationMessage('');
-    setPrGenerated(false); // Reset PR generated state when branch changes
+    setPrGenerated(false);
     
     if (!branch) return;
     
-    // Fetch valid target branches
     setIsLoadingTargets(true);
     
     try {
@@ -486,18 +496,16 @@ function App() {
     }
   }, [sessionId, selectedRepos]);
 
-  // Handle target branch selection and fetch diff
   const handleTargetBranchChange = useCallback(async (branch: string) => {
     setTargetBranch(branch);
     setPrDiff('');
     setPrDescription('');
     setPrValidationMessage('');
     setProgressActions(0);
-    setPrGenerated(false); // Reset PR generated state when branch changes
+    setPrGenerated(false);
     
     if (!branch || !sourceBranch) return;
     
-    // Fetch PR diff
     setIsLoadingDiff(true);
     
     const progressActionsInterval = setInterval(() => {
@@ -529,7 +537,6 @@ function App() {
         return;
       }
       
-      // Format commits as readable log
       const formattedDiff = data.actions;
       
       setPrDiff(formattedDiff);
@@ -545,7 +552,6 @@ function App() {
     }
   }, [sessionId, selectedRepos, sourceBranch]);
 
-  // Generate PR description
   const handleGeneratePRDescription = useCallback(async () => {
     if (!sourceBranch || !targetBranch || !prDiff) {
       setPrValidationMessage('Please select both branches and ensure there are changes to summarize.');
@@ -561,7 +567,6 @@ function App() {
     setPrValidationMessage('');
     setProgressWs(0);
     
-    // Scroll to summary section when starting generation
     setTimeout(() => {
       summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -577,7 +582,7 @@ function App() {
     }, 500);
     
     ws.onopen = () => {
-      ws.send(JSON.stringify({ actions: prDiff }));
+      ws.send(JSON.stringify({ actions: prDiff, src: sourceBranch, target: targetBranch}));
     };
     
     ws.onmessage = (event) => {
@@ -586,7 +591,7 @@ function App() {
         clearInterval(progressWsInterval);
         setProgressWs(100);
         setIsGeneratingPR(false);
-        setPrGenerated(true); // Mark PR as generated
+        setPrGenerated(true);
         ws.close();
         setCurrentWebSocket(null);
       } else {
@@ -614,7 +619,6 @@ function App() {
     };
   }, [sessionId, sourceBranch, targetBranch, prDiff, currentWebSocket]);
 
-  // Create PR on GitHub
   const handleCreatePR = useCallback(async () => {
     if (!prDescription.trim()) {
       setPrValidationMessage('Please generate a PR description first.');
@@ -662,12 +666,9 @@ function App() {
     }
   }, [sessionId, sourceBranch, targetBranch, prDescription, selectedRepos]);
 
-  // 1. Add this to your state declarations (around line 60):
-  const [showMenu, setShowMenu] = useState(false);
-
-  // 2. Add these handlers after handleShowPRMode (around line 280):
   const handleShowReleaseMode = useCallback(() => {
     setShowMenu(false);
+    setShowExportButton(false);
     setShowReleaseMode(true);
     setShowPRMode(false);
   }, []);
@@ -677,7 +678,6 @@ function App() {
     handleShowPRMode();
   }, [handleShowPRMode]);
 
-  // Handle GitHub OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
@@ -707,6 +707,7 @@ function App() {
       .then(data => {
         setIsGithubAuthorized(true);
         setSessionId(data.session_id);
+        setGithubUsername(data.username || 'user');
         sessionStorage.setItem('githubSessionId', data.session_id);
         
         if (window.history.replaceState) {
@@ -750,6 +751,7 @@ function App() {
   
       const data = await response.json();
       setSessionId(data.session_id);
+      setGithubUsername(data.username || 'user');
       setIsPATAuthorized(true);
     } catch (error) {
       console.error('Error authorizing PAT:', error);
@@ -762,6 +764,275 @@ function App() {
       setIsAuthorizing(false);
     }
   };
+
+  const generateBadgeContent = useCallback((theme: 'default' | 'dark' | 'light' = 'default') => {
+    return {
+      logo: 'https://brunov21.github.io/GitRecap/favicon.ico',
+      title: 'GitRecap',
+      link: 'https://brunov21.github.io/GitRecap/',
+      summary: dummyOutput,
+      theme: theme,
+      username: githubUsername,
+      repositories: selectedRepos.join(', '),
+      footer: 'github.io/GitRecap'
+    };
+  }, [dummyOutput, githubUsername, selectedRepos]);
+
+  const handleExportPNG = useCallback(() => {
+    if (!badgeRef.current) {
+      return;
+    }
+
+    toPng(badgeRef.current, { 
+      cacheBust: true,
+      backgroundColor: '#ffffff',
+      pixelRatio: 2
+    })
+      .then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = `gitrecap-${githubUsername}-${Date.now()}.png`;
+        link.href = dataUrl;
+        link.click();
+        setExportModalOpen(false);
+      })
+      .catch((err) => {
+        console.error('Error exporting PNG:', err);
+      });
+  }, [badgeRef, githubUsername]);
+
+  const handleExportHTML = useCallback(() => {
+    const badgeData = generateBadgeContent(badgeTheme);
+    
+    const getThemeStyles = (theme: 'default' | 'dark' | 'light') => {
+      const baseStyles = `
+        .gitrecap-badge { 
+          font-family: 'Courier New', monospace; 
+          width: 800px; 
+          aspect-ratio: 16/10; 
+          height: auto; 
+          border-radius: 8px; 
+          padding: 24px; 
+          display: flex; 
+          flex-direction: column; 
+          justify-content: space-between; 
+        }
+        .badge-header { 
+          display: flex; 
+          align-items: flex-start; 
+          gap: 12px; 
+          margin-bottom: 12px; 
+          flex-wrap: wrap; 
+        }
+        .badge-logo { 
+          width: 48px; 
+          height: 48px; 
+          border-radius: 4px; 
+          background: #fff; 
+          flex-shrink: 0; 
+        }
+        .badge-title { 
+          font-size: 40px; 
+          font-family: 'Maus', monospace; 
+          font-weight: bold; 
+          flex-grow: 1; 
+        }
+        .badge-meta-header { 
+          font-size: 11px; 
+          margin-left: auto; 
+          text-align: right; 
+          line-height: 1.4; 
+        }
+        .badge-meta-header strong { 
+          font-weight: bold; 
+        }
+        .badge-content { 
+          flex: 1; 
+          height: auto; 
+          min-height: auto; 
+          padding: 16px; 
+          border-radius: 4px; 
+          margin-bottom: 16px; 
+        }
+        .badge-summary { 
+          font-size: 14px; 
+          line-height: 1.8; 
+          white-space: pre-wrap; 
+        }
+        .badge-summary h1, .badge-summary h2, .badge-summary h3 { 
+          margin-top: 12px; 
+          margin-bottom: 8px; 
+        }
+        .badge-summary p { 
+          margin-bottom: 8px; 
+        }
+        .badge-summary ul, .badge-summary ol { 
+          margin-left: 20px; 
+          margin-bottom: 8px; 
+        }
+        .badge-footer { 
+          font-size: 11px; 
+          text-align: center; 
+          opacity: 0.8; 
+        }
+        .badge-footer a { 
+          text-decoration: underline; 
+        }
+      `;
+
+      if (theme === 'dark') {
+        return baseStyles + `
+          .gitrecap-badge { 
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%); 
+            border: 4px solid #000000; 
+            box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.5); 
+            color: #e0e0e0; 
+          }
+          .badge-logo { 
+            border: 2px solid #e0e0e0; 
+          }
+          .badge-title { 
+            color: #e0e0e0; 
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5); 
+          }
+          .badge-meta-header { 
+            color: #e0e0e0; 
+          }
+          .badge-content { 
+            background: rgba(0, 0, 0, 0.3); 
+          }
+          .badge-summary { 
+            color: #e0e0e0; 
+          }
+          .badge-summary h1, .badge-summary h2, .badge-summary h3 { 
+            color: #e0e0e0; 
+          }
+          .badge-footer { 
+            color: #e0e0e0; 
+          }
+          .badge-footer a { 
+            color: #e0e0e0; 
+          }
+          .badge-footer a:hover { 
+            color: #ffffff; 
+          }
+        `;
+      } else if (theme === 'light') {
+        return baseStyles + `
+          .gitrecap-badge { 
+            background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%); 
+            border: 4px solid #4a4a4a; 
+            box-shadow: 8px 8px 0 rgba(74, 74, 74, 0.3); 
+            color: #2a2a2a; 
+          }
+          .badge-logo { 
+            border: 2px solid #4a4a4a; 
+          }
+          .badge-title { 
+            color: #2a2a2a; 
+            text-shadow: 2px 2px 0 rgba(42, 42, 42, 0.2); 
+          }
+          .badge-meta-header { 
+            color: #2a2a2a; 
+          }
+          .badge-content { 
+            background: rgba(208, 208, 208, 0.4); 
+          }
+          .badge-summary { 
+            color: #2a2a2a; 
+          }
+          .badge-summary h1, .badge-summary h2, .badge-summary h3 { 
+            color: #2a2a2a; 
+          }
+          .badge-footer { 
+            color: #2a2a2a; 
+          }
+          .badge-footer a { 
+            color: #2a2a2a; 
+          }
+          .badge-footer a:hover { 
+            color: #000000; 
+          }
+        `;
+      } else {
+        return baseStyles + `
+          .gitrecap-badge { 
+            background: linear-gradient(135deg, #f9f4e8 0%, #f9f4e8 100%); 
+            border: 4px solid #4a3728; 
+            box-shadow: 8px 8px 0 rgba(74, 55, 40, 0.3); 
+            color: #4a3728; 
+          }
+          .badge-logo { 
+            border: 2px solid #4a3728; 
+          }
+          .badge-title { 
+            color: #4a3728; 
+            text-shadow: 2px 2px 0 rgba(74, 55, 40, 0.2); 
+          }
+          .badge-meta-header { 
+            color: #4a3728; 
+          }
+          .badge-content { 
+            background: #fff8e1; 
+          }
+          .badge-summary { 
+            color: #4a3728; 
+          }
+          .badge-summary h1, .badge-summary h2, .badge-summary h3 { 
+            color: #4a3728; 
+          }
+          .badge-footer { 
+            color: #4a3728; 
+          }
+          .badge-footer a { 
+            color: #4a3728; 
+          }
+          .badge-footer a:hover { 
+            color: #2d1f15; 
+          }
+        `;
+      }
+    };
+
+    const htmlBadge = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitRecap Badge</title>
+  <link href="https://fonts.cdnfonts.com/css/maus" rel="stylesheet">
+  <style>
+    ${getThemeStyles(badgeTheme)}
+  </style>
+</head>
+<body>
+  <div class="gitrecap-badge">
+    <div class="badge-header">
+      <img src="${badgeData.logo}" alt="GitRecap Logo" class="badge-logo" />
+      <div class="badge-title">${badgeData.title}</div>
+      <div class="badge-meta-header">
+        <strong>User:</strong> ${badgeData.username}<br/>
+        <strong>Repositories:</strong> ${badgeData.repositories}
+      </div>
+    </div>
+    <div class="badge-content">
+      <div class="badge-summary">${badgeData.summary}</div>
+    </div>
+    <div class="badge-footer">
+      Grab your recap at <a href="https://brunov21.github.io/GitRecap/" target="_blank" rel="noopener noreferrer">${badgeData.footer}</a>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlBadge], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `gitrecap-badge-${githubUsername}-${Date.now()}.html`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+    setExportModalOpen(false);
+  }, [githubUsername, badgeTheme, generateBadgeContent]);
 
   return (
     <div className="App">      
@@ -989,7 +1260,6 @@ function App() {
       </Card>
 
       <div className={`recap-release-switcher${showReleaseMode ? ' show-release' : ''}${showPRMode ? ' show-pr' : ''}`}>
-        {/* Recap Mode */}
         <div className={`recap-main-btn-area${showReleaseMode || showPRMode ? ' slide-left-out' : ' slide-in'}`}>
           <Button
             onClick={handleFullRecap}
@@ -1065,7 +1335,6 @@ function App() {
           </div>
         </div>
 
-        {/* Release Notes Mode */}
         <div className={`release-main-btn-area${showReleaseMode && !showPRMode ? ' slide-in' : ' slide-right-out'}`}>
           <Button
             className="release-back-rect-btn"
@@ -1108,7 +1377,6 @@ function App() {
           </div>
         </div>
         
-        {/* PR Mode */}
         <div 
           className={`pr-main-area${showPRMode ? ' slide-in' : ' slide-right-out'}`}
         >
@@ -1260,7 +1528,6 @@ function App() {
             </div>
           )}
           
-          {/* New PR Creation Button or Message */}
           {showPRMode && prDescription && (
             <div className="pr-creation-section mt-4">
               {isPATAuthorized ? (
@@ -1280,6 +1547,76 @@ function App() {
             </div>
           )}
         </Card>
+      </div>
+
+      {showExportButton && !showReleaseMode && !showPRMode && (
+        <div className="export-button-container">
+          <Button 
+            className="export-button"
+            onClick={() => setExportModalOpen(true)}
+          >
+            <span className="export-icon">📥</span>
+            Export Recap
+          </Button>
+        </div>
+      )}
+
+      {exportModalOpen && (
+        <div className="export-modal-overlay" onClick={() => setExportModalOpen(false)}>
+          <div className="export-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Export Your Recap</h2>
+            <div className="theme-selector" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Theme:</label>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                <Button className={`theme-option ${badgeTheme === 'default' ? 'active' : ''}`} onClick={() => setBadgeTheme('default')}>
+                  Default
+                </Button>
+                <Button className={`theme-option ${badgeTheme === 'dark' ? 'active' : ''}`} onClick={() => setBadgeTheme('dark')}>
+                  Dark
+                </Button>
+                <Button className={`theme-option ${badgeTheme === 'light' ? 'active' : ''}`} onClick={() => setBadgeTheme('light')}>
+                  Light
+                </Button>
+              </div>
+            </div>
+            <div className="export-options">
+              <Button className="export-option-btn" onClick={handleExportPNG}>
+                <span className="option-icon">🖼️</span>
+                <span className="option-title">PNG Image</span>
+                <span className="option-desc">Download as image file</span>
+              </Button>
+              <Button className="export-option-btn" onClick={handleExportHTML}>
+                <span className="option-icon">🌐</span>
+                <span className="option-title">HTML Badge</span>
+                <span className="option-desc">Embeddable HTML file</span>
+              </Button>
+            </div>
+            <Button className="close-modal-btn" onClick={() => setExportModalOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div ref={badgeRef} className="badge-preview" style={{ position: 'absolute', left: '-9999px', aspectRatio: '16/10' }}>
+        <div className={`gitrecap-badge theme-${badgeTheme}`}>
+          <div className="badge-header">
+            <img src="https://brunov21.github.io/GitRecap/favicon.ico" alt="GitRecap Logo" className="badge-logo" />
+            <div className="badge-title">GitRecap</div>
+            <div className="badge-meta-header">
+              <strong>User:</strong> {githubUsername}<br/>
+              <strong>Repositories:</strong> {selectedRepos.join(', ')}
+            </div>
+          </div>
+          <div className="badge-content">
+            <div className="badge-summary">
+              <ReactMarkdown>{dummyOutput}</ReactMarkdown>
+            </div>
+          </div>
+          <div className="badge-footer">
+            Grab your recap at <a href="https://brunov21.github.io/GitRecap/" target="_blank" rel="noopener noreferrer">github.io/GitRecap</a>
+          </div>
+        </div>
       </div>
 
       <Popup

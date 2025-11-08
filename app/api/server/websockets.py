@@ -37,8 +37,8 @@ Generate me the next Release Notes based on the new Git Actionables matching the
 """
 
 TRIGGER_PULL_REQUEST_PROMPT = """
-You will now receive a list of commit messages between two branches.  
-Using the system instructions provided above, generate a clear, concise, and professional **Pull Request Description** summarizing all changes.
+You will now receive a list of commit messages between two branches.
+Using the system instructions provided above, generate a clear, concise, and professional **Pull Request Description** summarizing all changes from branch `{SRC}` to be merged into `{TARGET}`.
 
 Commits:
 {COMMITS}
@@ -103,7 +103,9 @@ async def websocket_endpoint(
             msg_json = json.loads(message)
             message_content = msg_json.get("actions")
             N = msg_json.get("n", 5)
-            
+            src_branch = msg_json.get("src")
+            target_branch = msg_json.get("target")
+
             # Validate inputs
             assert int(N) <= 15, "N must be <= 15"
             assert message_content, "Message content is required"
@@ -122,7 +124,10 @@ async def websocket_endpoint(
                 ]
             elif action_type == "pull_request":
                 history = [
-                    TRIGGER_PULL_REQUEST_PROMPT.format(COMMITS=message_content)
+                    TRIGGER_PULL_REQUEST_PROMPT.format(
+                        SRC=src_branch,
+                        TARGET=target_branch,
+                        COMMITS=message_content)
                 ]
 
             # Stream LLM response back to client
