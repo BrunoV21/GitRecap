@@ -582,7 +582,7 @@ function App() {
     }, 500);
     
     ws.onopen = () => {
-      ws.send(JSON.stringify({ actions: prDiff }));
+      ws.send(JSON.stringify({ actions: prDiff, src: sourceBranch, target: targetBranch}));
     };
     
     ws.onmessage = (event) => {
