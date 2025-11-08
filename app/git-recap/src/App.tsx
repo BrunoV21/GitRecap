@@ -1551,13 +1551,13 @@ function App() {
 
       {showExportButton && !showReleaseMode && !showPRMode && (
         <div className="export-button-container">
-          <button 
+          <Button 
             className="export-button"
             onClick={() => setExportModalOpen(true)}
           >
             <span className="export-icon">📥</span>
             Export Recap
-          </button>
+          </Button>
         </div>
       )}
 
