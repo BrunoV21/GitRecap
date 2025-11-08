@@ -152,7 +152,6 @@ function App() {
       .then((data) => {
         setAvailableRepos(data.repos);
         clearInterval(progressInterval);
-        setGithubUsername(data.username || 'user');
         setRepoProgress(100);
         setIsReposLoading(false);
       })
@@ -752,6 +751,7 @@ function App() {
   
       const data = await response.json();
       setSessionId(data.session_id);
+      setGithubUsername(data.username || 'user');
       setIsPATAuthorized(true);
     } catch (error) {
       console.error('Error authorizing PAT:', error);
