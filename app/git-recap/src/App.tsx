@@ -783,21 +783,57 @@ function App() {
       return;
     }
 
-    toPng(badgeRef.current, { 
-      cacheBust: true,
-      backgroundColor: '#ffffff',
-      pixelRatio: 2
-    })
-      .then((dataUrl) => {
-        const link = document.createElement('a');
-        link.download = `gitrecap-${githubUsername}-${Date.now()}.png`;
-        link.href = dataUrl;
-        link.click();
-        setExportModalOpen(false);
+    const badge = badgeRef.current;
+    const originalPosition = badge.style.position;
+    const originalLeft = badge.style.left;
+    const originalTop = badge.style.top;
+    
+    badge.style.position = 'fixed';
+    badge.style.left = '0';
+    badge.style.top = '0';
+    badge.style.zIndex = '9999';
+    badge.style.width = '800px';
+    badge.style.height = 'auto';
+    badge.style.aspectRatio = 'unset';
+    badge.style.minHeight = 'auto';
+    badge.style.maxHeight = 'none';
+    
+    setTimeout(() => {
+      const actualHeight = badge.scrollHeight;
+      
+      toPng(badge, {
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+        width: 800,
+        height: actualHeight
       })
-      .catch((err) => {
-        console.error('Error exporting PNG:', err);
-      });
+        .then((dataUrl) => {
+          badge.style.position = originalPosition;
+          badge.style.left = originalLeft;
+          badge.style.top = originalTop;
+          badge.style.zIndex = '';
+         badge.style.width = '';
+         badge.style.height = '';
+         badge.style.aspectRatio = '';
+          
+          const link = document.createElement('a');
+          link.download = `gitrecap-${githubUsername}-${Date.now()}.png`;
+          link.href = dataUrl;
+          link.click();
+          setExportModalOpen(false);
+        })
+        .catch((err) => {
+          console.error('Error exporting PNG:', err);
+          badge.style.position = originalPosition;
+          badge.style.left = originalLeft;
+          badge.style.top = originalTop;
+          badge.style.zIndex = '';
+         badge.style.width = '';
+         badge.style.height = '';
+         badge.style.aspectRatio = '';
+        });
+    }, 100);
   }, [badgeRef, githubUsername]);
 
   const handleExportHTML = useCallback(() => {
@@ -1599,7 +1635,7 @@ function App() {
       )}
 
       <div ref={badgeRef} className="badge-preview" style={{ position: 'absolute', left: '-9999px', aspectRatio: '16/10' }}>
-        <div className={`gitrecap-badge theme-${badgeTheme}`}>
+        <div className={`gitrecap-badge theme-${badgeTheme}`} style={{ width: '800px', minHeight: '500px', height: 'auto', aspectRatio: 'unset' }}>
           <div className="badge-header">
             <img src="https://brunov21.github.io/GitRecap/favicon.ico" alt="GitRecap Logo" className="badge-logo" />
             <div className="badge-title">GitRecap</div>
