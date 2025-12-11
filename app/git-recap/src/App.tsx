@@ -22,7 +22,9 @@ import {
 
 function App() {
   const [pat, setPat] = useState('');
-  const [codeHost, setCodeHost] = useState('url');
+  const [codeHost, setCodeHost] = useState(() => {
+    return localStorage.getItem('codeHost') || 'url';
+  });
 
   // Date states
   const today = new Date().toISOString().split('T')[0];
@@ -394,7 +396,7 @@ function App() {
       setIsPopupOpen(true);
       return;
     }
-    
+
     if (selectedRepos.length !== 1) {
       setPopupMessage('Please select exactly one repository to create a pull request.');
       setIsPopupOpen(true);
@@ -725,6 +727,7 @@ function App() {
     const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
     const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI;
     const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=read:user`;
+    localStorage.setItem('codeHost', 'github');
     window.location.href = githubAuthUrl;
   };
 
