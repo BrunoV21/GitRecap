@@ -22,7 +22,7 @@ import {
 
 function App() {
   const [pat, setPat] = useState('');
-  const [codeHost, setCodeHost] = useState('github');
+  const [codeHost, setCodeHost] = useState('url');
 
   // Date states
   const today = new Date().toISOString().split('T')[0];
@@ -389,14 +389,14 @@ function App() {
   };
 
   const handleShowPRMode = useCallback(() => {
-    if (selectedRepos.length !== 1) {
-      setPopupMessage('Please select exactly one repository to create a pull request.');
+    if (codeHost !== 'github') {
+      setPopupMessage('Pull request creation is only supported for GitHub repositories.');
       setIsPopupOpen(true);
       return;
     }
     
-    if (codeHost !== 'github') {
-      setPopupMessage('Pull request creation is only supported for GitHub repositories.');
+    if (selectedRepos.length !== 1) {
+      setPopupMessage('Please select exactly one repository to create a pull request.');
       setIsPopupOpen(true);
       return;
     }
@@ -1138,7 +1138,7 @@ function App() {
                         <div className="flex space-x-2">
                           <Button 
                             onClick={() => setCodeHost('github')}
-                            className={`w-full ${codeHost === 'github' ? 'active-btn' : ''} btn-same-height`}
+                            className={`w-full ${true ? 'active-btn' : ''} btn-same-height`}
                           >
                             GitHub
                           </Button>
@@ -1340,7 +1340,7 @@ function App() {
                 {(selectedRepos.length !== 1 || codeHost !== 'github') && (
                   <div className="menu-tooltip-text">
                     {codeHost !== 'github' 
-                      ? 'Only available for GitHub repositories' 
+                      ? 'Only available for connected GitHub repositories not URL based ones' 
                       : selectedRepos.length === 0 
                       ? 'Please select exactly one repository' 
                       : 'Please select only one repository'}
@@ -1360,7 +1360,7 @@ function App() {
                 {(selectedRepos.length !== 1 || codeHost !== 'github') && (
                   <div className="menu-tooltip-text">
                     {codeHost !== 'github' 
-                      ? 'Only available for GitHub repositories' 
+                      ? 'Only available for GitHub repositories not URL based ones' 
                       : selectedRepos.length === 0 
                       ? 'Please select exactly one repository' 
                       : 'Please select only one repository'}
