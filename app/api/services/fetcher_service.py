@@ -24,8 +24,10 @@ def store_fetcher(session_id: str, pat: str, provider: Optional[str] = "GitHub")
         raise HTTPException(status_code=400, detail="Invalid session_id or PAT/URL")
     
     try:
+        username = "unknown"
         if provider == "GitHub":
             fetchers[session_id] = GitHubFetcher(pat=pat)
+            username = fetchers[session_id].user.login
         elif provider == "Azure Devops":
             fetchers[session_id] = AzureFetcher(pat=pat)
         elif provider == "GitLab":
@@ -34,7 +36,7 @@ def store_fetcher(session_id: str, pat: str, provider: Optional[str] = "GitHub")
             fetchers[session_id] = URLFetcher(url=pat)
         else:
             raise HTTPException(status_code=400, detail="Unsupported provider")
-        return fetchers[session_id].user.login
+        return username
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
