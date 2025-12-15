@@ -1,4 +1,3 @@
-typescript
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Github, Hammer, BookText, Plus, Minus, AlertCircle } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
