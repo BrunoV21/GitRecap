@@ -14,6 +14,8 @@ from models.schemas import (
     GetAuthorsResponse,
     AuthorInfo,
     ActionsResponse,
+    GetCurrentAuthorResponse,
+    CloneRequest
 )
 
 from services.llm_service import set_llm, get_llm, trim_messages
@@ -25,19 +27,6 @@ import requests
 import os
 
 router = APIRouter()
-
-
-class CloneRequest(BaseModel):
-    """Request model for repository cloning endpoint."""
-    url: str
-
-
-class GetCurrentAuthorResponse(BaseModel):
-    """Response model for current author endpoint."""
-    author: Optional[Dict[str, str]] = Field(
-        None,
-        description="Current authenticated user's information (name and email), or None if not available"
-    )
 
 
 GITHUB_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token'
@@ -468,7 +457,7 @@ async def get_pull_request_diff(req: GetPullRequestDiffRequest):
     return {"actions": parse_entries_to_txt(commits)}
 
 
-@router.post("/api/authors", response_model=GetAuthorsResponse)
+@router.post("/authors", response_model=GetAuthorsResponse)
 async def get_authors(request: GetAuthorsRequest):
     """
     Retrieve list of unique authors from specified repositories.
@@ -515,7 +504,7 @@ async def get_authors(request: GetAuthorsRequest):
         )
 
 
-@router.get("/api/current-author", response_model=GetCurrentAuthorResponse)
+@router.get("/current-author", response_model=GetCurrentAuthorResponse)
 async def get_current_author(session_id: str = Query(..., description="Session identifier")):
     """
     Retrieve the current authenticated user's information from the fetcher.

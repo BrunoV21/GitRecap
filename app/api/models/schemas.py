@@ -3,6 +3,10 @@ from typing import Dict, Self, Optional, Any, List
 import ulid
 import re
 
+class CloneRequest(BaseModel):
+    """Request model for repository cloning endpoint."""
+    url: str
+
 class ChatRequest(BaseModel):
     session_id: str = ""
     message: str
