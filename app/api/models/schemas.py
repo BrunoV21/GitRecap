@@ -175,3 +175,34 @@ class GetCurrentAuthorResponse(BaseModel):
         None,
         description="Current authenticated user's information (name and email), or None if not available"
     )
+
+
+# --- Actions Response Schema ---
+class ActionsResponse(BaseModel):
+    """
+    Structured response for the actions endpoint.
+    
+    This model encapsulates the response from the actions endpoint, including
+    the list of Git actionables, an optional user-facing informational message,
+    and metadata about any trimming operations performed to satisfy token limits.
+    
+    Attributes:
+        actions: Formatted string containing Git actionables (commits, PRs, issues, etc.)
+        message: User-facing informational message (optional, present when trimming occurs)
+        trimmed_count: Number of actionables removed during trimming to satisfy token limits
+        total_count: Original number of actionables before any trimming was applied
+    """
+    actions: str = Field(..., description="Formatted string of Git actionables")
+    message: Optional[str] = Field(None, description="User-facing informational message about trimming")
+    trimmed_count: int = Field(0, description="Number of items removed during trimming")
+    total_count: int = Field(..., description="Total number of items before trimming")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "actions": "2025-03-14:\n - [Commit] in repo-frontend: Fix bug in authentication\n - [Pull Request] in repo-backend: Add new API endpoint (PR #42)\n\n2025-03-15:\n - [Commit] in repo-core: Update dependencies\n",
+                "message": "We're running the free version with a maximum token limit for contextual input. To stay within this limit, we automatically trimmed 15 older Git actionables from the context. We hope you understand!",
+                "trimmed_count": 15,
+                "total_count": 50
+            }
+        }

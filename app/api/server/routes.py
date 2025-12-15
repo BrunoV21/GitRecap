@@ -13,6 +13,7 @@ from models.schemas import (
     GetAuthorsRequest,
     GetAuthorsResponse,
     AuthorInfo,
+    ActionsResponse,
 )
 
 from services.llm_service import set_llm, get_llm, trim_messages
@@ -184,7 +185,7 @@ async def get_repos(session_id: str):
     return {"repos": fetcher.repos_names}
 
 
-@router.get("/actions")
+@router.get("/actions", response_model=ActionsResponse)
 async def get_actions(
     session_id: str,
     start_date: Optional[str] = Query(None),
@@ -195,6 +196,10 @@ async def get_actions(
     """
     Get actions for the specified session with optional filters.
     
+    Returns a structured response including the actions list, user-facing
+    informational message (if trimming occurred), and metadata about the
+    trimming operation.
+    
     Args:
         session_id: The session identifier
         start_date: Optional start date filter
@@ -203,7 +208,7 @@ async def get_actions(
         authors: Optional list of authors to filter
         
     Returns:
-        dict: Contains formatted action entries
+        ActionsResponse: Structured response with actions, message, and metadata
         
     Raises:
         HTTPException: 404 if session not found
@@ -228,10 +233,36 @@ async def get_actions(
 
     llm = get_llm(session_id)
     actions = fetcher.get_authored_messages()
-    actions = trim_messages(actions, llm.tokenizer)
-    print(f"\n\n\n{actions=}\n\n\n")
     
-    return {"actions": parse_entries_to_txt(actions)}
+    # Store original count before trimming
+    original_count = len(actions)
+    
+    # Apply token limit trimming
+    trimmed_actions = trim_messages(actions, llm.tokenizer)
+    
+    # Calculate how many items were removed
+    trimmed_count = original_count - len(trimmed_actions)
+    
+    # Generate user-facing message if trimming occurred
+    message = None
+    if trimmed_count > 0:
+        message = (
+            f"We're running the free version with a maximum token limit for contextual input. "
+            f"To stay within this limit, we automatically trimmed {trimmed_count} older Git "
+            f"actionable{'s' if trimmed_count != 1 else ''} from the context. "
+            f"We hope you understand!"
+        )
+    
+    # Parse actions to text format
+    actions_txt = parse_entries_to_txt(trimmed_actions)
+    
+    # Return structured response
+    return ActionsResponse(
+        actions=actions_txt,
+        message=message,
+        trimmed_count=trimmed_count,
+        total_count=original_count
+    )
 
 
 @router.get("/release_notes")
