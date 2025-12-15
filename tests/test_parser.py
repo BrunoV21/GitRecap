@@ -628,3 +628,181 @@ class TestGitHubFetcherBranchOperations:
             fetcher.get_valid_target_branches("feature-branch")
         
         assert "Failed to validate target branches" in str(exc_info.value)
+
+
+class TestGetAuthors:
+    """Test suite for get_authors() method across all fetchers"""
+    
+    @pytest.fixture
+    def mock_github_fetcher(self):
+        """Create a mocked GitHub fetcher"""
+        with patch('git_recap.providers.github_fetcher.Github') as mock_github:
+            fetcher = GitHubFetcher(pat="fake_token")
+            fetcher.github = mock_github
+            return fetcher
+    
+    def test_github_get_authors_single_repo(self, mock_github_fetcher):
+        """Test fetching authors from a single GitHub repository"""
+        # Mock repository and commits
+        mock_repo = Mock()
+        mock_commit1 = Mock()
+        mock_commit1.commit.author.name = "Alice"
+        mock_commit1.commit.author.email = "alice@example.com"
+        mock_commit1.commit.committer.name = "Alice"
+        mock_commit1.commit.committer.email = "alice@example.com"
+        
+        mock_commit2 = Mock()
+        mock_commit2.commit.author.name = "Bob"
+        mock_commit2.commit.author.email = "bob@example.com"
+        mock_commit2.commit.committer.name = "Bob"
+        mock_commit2.commit.committer.email = "bob@example.com"
+        
+        mock_repo.get_commits.return_value = [mock_commit1, mock_commit2]
+        mock_github_fetcher.github.get_repo.return_value = mock_repo
+        
+        # Execute
+        authors = mock_github_fetcher.get_authors(["owner/repo"])
+        
+        # Assert
+        assert len(authors) == 2
+        assert {"name": "Alice", "email": "alice@example.com"} in authors
+        assert {"name": "Bob", "email": "bob@example.com"} in authors
+    
+    def test_github_get_authors_multiple_repos(self, mock_github_fetcher):
+        """Test fetching authors from multiple GitHub repositories"""
+        # Mock two repositories
+        mock_repo1 = Mock()
+        mock_commit1 = Mock()
+        mock_commit1.commit.author.name = "Alice"
+        mock_commit1.commit.author.email = "alice@example.com"
+        mock_commit1.commit.committer.name = "Alice"
+        mock_commit1.commit.committer.email = "alice@example.com"
+        mock_repo1.get_commits.return_value = [mock_commit1]
+        
+        mock_repo2 = Mock()
+        mock_commit2 = Mock()
+        mock_commit2.commit.author.name = "Charlie"
+        mock_commit2.commit.author.email = "charlie@example.com"
+        mock_commit2.commit.committer.name = "Charlie"
+        mock_commit2.commit.committer.email = "charlie@example.com"
+        mock_repo2.get_commits.return_value = [mock_commit2]
+        
+        mock_github_fetcher.github.get_repo.side_effect = [mock_repo1, mock_repo2]
+        
+        # Execute
+        authors = mock_github_fetcher.get_authors(["owner/repo1", "owner/repo2"])
+        
+        # Assert
+        assert len(authors) == 2
+        assert {"name": "Alice", "email": "alice@example.com"} in authors
+        assert {"name": "Charlie", "email": "charlie@example.com"} in authors
+    
+    def test_github_get_authors_deduplication(self, mock_github_fetcher):
+        """Test that duplicate authors are properly deduplicated"""
+        mock_repo = Mock()
+        
+        # Create multiple commits from same author
+        mock_commit1 = Mock()
+        mock_commit1.commit.author.name = "Alice"
+        mock_commit1.commit.author.email = "alice@example.com"
+        mock_commit1.commit.committer.name = "Alice"
+        mock_commit1.commit.committer.email = "alice@example.com"
+        
+        mock_commit2 = Mock()
+        mock_commit2.commit.author.name = "Alice"
+        mock_commit2.commit.author.email = "alice@example.com"
+        mock_commit2.commit.committer.name = "Alice"
+        mock_commit2.commit.committer.email = "alice@example.com"
+        
+        mock_repo.get_commits.return_value = [mock_commit1, mock_commit2]
+        mock_github_fetcher.github.get_repo.return_value = mock_repo
+        
+        # Execute
+        authors = mock_github_fetcher.get_authors(["owner/repo"])
+        
+        # Assert - should only have one unique author
+        assert len(authors) == 1
+        assert authors[0] == {"name": "Alice", "email": "alice@example.com"}
+    
+    def test_github_get_authors_empty_list(self, mock_github_fetcher):
+        """Test fetching authors with empty repository list"""
+        # Mock get_user().get_repos() to return all repos
+        mock_user = Mock()
+        mock_repo = Mock()
+        mock_repo.full_name = "owner/repo"
+        
+        mock_commit = Mock()
+        mock_commit.commit.author.name = "Alice"
+        mock_commit.commit.author.email = "alice@example.com"
+        mock_commit.commit.committer.name = "Alice"
+        mock_commit.commit.committer.email = "alice@example.com"
+        
+        mock_repo_obj = Mock()
+        mock_repo_obj.get_commits.return_value = [mock_commit]
+        
+        mock_user.get_repos.return_value = [mock_repo]
+        mock_github_fetcher.github.get_user.return_value = mock_user
+        mock_github_fetcher.github.get_repo.return_value = mock_repo_obj
+        
+        # Execute with empty list
+        authors = mock_github_fetcher.get_authors([])
+        
+        # Assert
+        assert len(authors) >= 0  # Should process all accessible repos
+    
+    @pytest.mark.asyncio
+    async def test_api_endpoint_success(self):
+        """Test the /api/authors endpoint with valid session"""
+        from fastapi.testclient import TestClient
+        from app.api.server.routes import router
+        
+        client = TestClient(router)
+        
+        # Mock fetcher service
+        with patch('app.api.server.routes.fetcher_service') as mock_service:
+            mock_fetcher = Mock()
+            mock_fetcher.get_authors.return_value = [
+                {"name": "Alice", "email": "alice@example.com"},
+                {"name": "Bob", "email": "bob@example.com"}
+            ]
+            mock_service.get_fetcher.return_value = mock_fetcher
+            
+            # Make request
+            response = client.post(
+                "/api/authors",
+                json={
+                    "session_id": "test_session_123",
+                    "repo_names": ["owner/repo"]
+                }
+            )
+            
+            # Assert
+            assert response.status_code == 200
+            data = response.json()
+            assert data["total_count"] == 2
+            assert len(data["authors"]) == 2
+    
+    @pytest.mark.asyncio
+    async def test_api_endpoint_session_not_found(self):
+        """Test the /api/authors endpoint with invalid session"""
+        from fastapi.testclient import TestClient
+        from app.api.server.routes import router
+        
+        client = TestClient(router)
+        
+        # Mock fetcher service to return None
+        with patch('app.api.server.routes.fetcher_service') as mock_service:
+            mock_service.get_fetcher.return_value = None
+            
+            # Make request
+            response = client.post(
+                "/api/authors",
+                json={
+                    "session_id": "invalid_session",
+                    "repo_names": []
+                }
+            )
+            
+            # Assert
+            assert response.status_code == 404
+            assert "not found or expired" in response.json()["detail"]

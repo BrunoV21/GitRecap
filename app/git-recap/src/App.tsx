@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Github, Hammer, BookText, Plus, Minus } from 'lucide-react';
+import { Github, Hammer, BookText, Plus, Minus, AlertCircle } from 'lucide-react';
 import githubIcon from './assets/github-mark-white.png';
 import { toPng } from 'html-to-image';
 import ReactMarkdown from 'react-markdown';
 import './App.css';
-
-import { Info } from "lucide-react";
 
 import { 
   Button, 
@@ -19,6 +17,14 @@ import {
   AccordionContent,
   Popup
 } from 'pixel-retroui';
+
+// Type definition for the structured response from actions endpoint
+interface ActionsResponse {
+  actions: string;
+  message?: string;
+  trimmed_count: number;
+  total_count: number;
+}
 
 function App() {
   const [pat, setPat] = useState('');
@@ -93,6 +99,9 @@ function App() {
   const [repoProgress, setRepoProgress] = useState(0);
   const [showReleaseMode, setShowReleaseMode] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+
+  // Info message state for displaying backend notifications
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   const actionsLogRef = useRef<HTMLDivElement>(null);
   const summaryLogRef = useRef<HTMLDivElement>(null);
@@ -182,6 +191,7 @@ function App() {
     setProgressWs(0);
     setShowExportButton(false);
     setRecapDone(true);
+    setInfoMessage(null); // Clear any previous info message
     handleRecap();
   };
   
@@ -287,6 +297,7 @@ function App() {
     setIsExecutingReleaseNotes(true);
     setShowExportButton(false);
     setRecapDone(false);
+    setInfoMessage(null); // Clear any previous info message
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -348,6 +359,7 @@ function App() {
     setProgressWs(0);
     setIsExecuting(true);
     setShowExportButton(false);
+    setInfoMessage(null); // Clear any previous info message
     setTimeout(() => {
       actionsLogRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -367,7 +379,10 @@ function App() {
         method: 'GET'
       });
       if (!response.ok) throw new Error(`Request failed! Status: ${response.status}`);
-      const data = await response.json();
+      
+      // Parse the structured response
+      const data: ActionsResponse = await response.json();
+      
       if (!data.actions) {
         setPopupMessage('Got no actionables from Git. Please check your filters or date range. If you are signing with GitHub, you will need to install GitRecap from the Marketplace or authenticate with a PAT instead.');
         setIsPopupOpen(true);
@@ -375,7 +390,16 @@ function App() {
         setProgressActions(100);
         return;
       }
+      
+      // Set the actions output
       setCommitsOutput(data.actions);
+      
+      // Display informational message if present
+      if (data.message) {
+        setInfoMessage(data.message);
+        console.log(`Trimming info: ${data.trimmed_count} items removed out of ${data.total_count} total`);
+      }
+      
       clearInterval(progressActionsInterval);
       setProgressActions(100);
       summaryLogRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1073,6 +1097,41 @@ function App() {
     setExportModalOpen(false);
   }, [githubUsername, badgeTheme, generateBadgeContent]);
 
+  // Info banner component for displaying backend messages
+  const InfoBanner: React.FC<{ message: string; onDismiss: () => void }> = ({ 
+    message, 
+    onDismiss 
+  }) => (
+    <div className="info-banner" style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      padding: '12px 16px',
+      backgroundColor: '#e3f2fd',
+      border: '1px solid #90caf9',
+      borderRadius: '4px',
+      marginBottom: '16px',
+      color: '#1565c0'
+    }}>
+      <AlertCircle size={20} />
+      <span style={{ flex: 1, fontSize: '14px' }}>{message}</span>
+      <button
+        onClick={onDismiss}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '18px',
+          color: '#1565c0',
+          padding: '0 4px'
+        }}
+        aria-label="Dismiss"
+      >
+        ×
+      </button>
+    </div>
+  );
+
   return (
     <div className="App">      
       <link rel="icon" type="image/png" href="/favicon.ico"></link>
@@ -1081,6 +1140,14 @@ function App() {
         <h1>Git Recap</h1>
       </Card>      
       <Card className="form-container p-6">
+        {/* Display informational message if present */}
+        {infoMessage && (
+          <InfoBanner 
+            message={infoMessage} 
+            onDismiss={() => setInfoMessage(null)} 
+          />
+        )}
+        
         <div className="github-signin-container mb-6">
           {!isAuthorized ? (
             <>
@@ -1224,7 +1291,7 @@ function App() {
                 <label className="block mb-2 font-medium flex items-center justify-between">
                   Select Repositories:
                   <div className="group" style={{position: 'relative', display: 'inline-block'}}>
-                    <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
+                    <AlertCircle className="h-4 w-4 text-gray-500 cursor-pointer" />
                     <div className="tooltip-text">
                       Looking for a repo that is not here? To access private repos,{' '}
                       <a 

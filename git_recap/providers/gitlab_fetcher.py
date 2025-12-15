@@ -7,7 +7,7 @@ class GitLabFetcher(BaseFetcher):
     """
     Fetcher implementation for GitLab repositories.
 
-    Supports fetching commits, merge requests (pull requests), and issues.
+    Supports fetching commits, merge requests (pull requests), issues, and authors.
     Release fetching is not supported and will raise NotImplementedError.
     """
 
@@ -247,3 +247,68 @@ class GitLabFetcher(BaseFetcher):
             NotImplementedError: Always, since PR creation is not yet implemented for GitLabFetcher.
         """
         raise NotImplementedError("Pull request (merge request) creation is not yet implemented for GitLab (GitLabFetcher).")
+
+    def get_authors(self, repo_names: List[str]) -> List[Dict[str, str]]:
+        """
+        Retrieve unique authors from specified GitLab projects.
+        
+        Args:
+            repo_names: List of project names/IDs.
+                       Empty list fetches from all accessible projects.
+        
+        Returns:
+            List of unique author dictionaries with name and email.
+        """
+        authors_set = set()
+        
+        try:
+            # If no specific projects provided, get all accessible projects
+            if not repo_names:
+                projects = self.gl.projects.list(membership=True, all=True)
+                repo_names = [project.path_with_namespace for project in projects]
+            
+            for repo_name in repo_names:
+                try:
+                    project = self.gl.projects.get(repo_name)
+                    
+                    # Fetch commits
+                    commits = project.commits.list(all=True)
+                    
+                    for commit in commits:
+                        author_name = commit.author_name or "Unknown"
+                        author_email = commit.author_email or "unknown@example.com"
+                        authors_set.add((author_name, author_email))
+                        
+                        # Also add committer if available
+                        if hasattr(commit, 'committer_name') and commit.committer_name:
+                            committer_name = commit.committer_name
+                            committer_email = commit.committer_email or "unknown@example.com"
+                            authors_set.add((committer_name, committer_email))
+                
+                except gitlab.exceptions.GitlabGetError as e:
+                    print(f"Error fetching authors from {repo_name}: {e}")
+                    continue
+            
+            # Convert set to list of dictionaries
+            authors_list = [
+                {"name": name, "email": email}
+                for name, email in sorted(authors_set)
+            ]
+            
+            return authors_list
+        
+        except Exception as e:
+            print(f"Error in get_authors: {e}")
+            return []
+
+    def get_current_author(self) -> Optional[Dict[str, str]]:
+        """
+        Retrieve the current authenticated user's information.
+        
+        For GitLab, default author functionality is not currently implemented,
+        so this method returns None.
+        
+        Returns:
+            None: GitLab fetcher does not support default author retrieval.
+        """
+        return None

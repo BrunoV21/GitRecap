@@ -3,6 +3,10 @@ from typing import Dict, Self, Optional, Any, List
 import ulid
 import re
 
+class CloneRequest(BaseModel):
+    """Request model for repository cloning endpoint."""
+    url: str
+
 class ChatRequest(BaseModel):
     session_id: str = ""
     message: str
@@ -143,3 +147,66 @@ class CommitMessagesForPRDescriptionRequest(BaseModel):
 
 class PRDescriptionResponse(BaseModel):
     description: str = Field(..., description="LLM-generated pull request description.")
+
+
+# --- Authors Endpoint Schemas ---
+class AuthorInfo(BaseModel):
+    """Individual author information"""
+    name: str = Field(..., description="Author's name")
+    email: str = Field(..., description="Author's email address")
+
+
+class GetAuthorsRequest(BaseModel):
+    """Request model for fetching authors"""
+    session_id: str = Field(..., description="Session identifier")
+    repo_names: Optional[List[str]] = Field(
+        default=[],
+        description="List of repository names to fetch authors from. Empty list fetches from all repositories."
+    )
+
+
+class GetAuthorsResponse(BaseModel):
+    """Response model containing list of authors"""
+    authors: List[AuthorInfo] = Field(..., description="List of unique authors")
+    total_count: int = Field(..., description="Total number of unique authors")
+    repo_count: int = Field(..., description="Number of repositories processed")
+
+
+# --- Current Author Endpoint Schema ---
+class GetCurrentAuthorResponse(BaseModel):
+    """Response model for current author endpoint."""
+    author: Optional[Dict[str, str]] = Field(
+        None,
+        description="Current authenticated user's information (name and email), or None if not available"
+    )
+
+
+# --- Actions Response Schema ---
+class ActionsResponse(BaseModel):
+    """
+    Structured response for the actions endpoint.
+    
+    This model encapsulates the response from the actions endpoint, including
+    the list of Git actionables, an optional user-facing informational message,
+    and metadata about any trimming operations performed to satisfy token limits.
+    
+    Attributes:
+        actions: Formatted string containing Git actionables (commits, PRs, issues, etc.)
+        message: User-facing informational message (optional, present when trimming occurs)
+        trimmed_count: Number of actionables removed during trimming to satisfy token limits
+        total_count: Original number of actionables before any trimming was applied
+    """
+    actions: str = Field(..., description="Formatted string of Git actionables")
+    message: Optional[str] = Field(None, description="User-facing informational message about trimming")
+    trimmed_count: int = Field(0, description="Number of items removed during trimming")
+    total_count: int = Field(..., description="Total number of items before trimming")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "actions": "2025-03-14:\n - [Commit] in repo-frontend: Fix bug in authentication\n - [Pull Request] in repo-backend: Add new API endpoint (PR #42)\n\n2025-03-15:\n - [Commit] in repo-core: Update dependencies\n",
+                "message": "We're running the free version with a maximum token limit for contextual input. To stay within this limit, we automatically trimmed 15 older Git actionables from the context. We hope you understand!",
+                "trimmed_count": 15,
+                "total_count": 50
+            }
+        }
