@@ -79,11 +79,11 @@ class CreatePullRequestRequest(BaseModel):
     reviewers: Optional[List[str]] = Field(None, description="List of reviewer usernames.")
     assignees: Optional[List[str]] = Field(None, description="List of assignee usernames.")
     labels: Optional[List[str]] = Field(None, description="List of label names.")
-    description: Optional[str]=None
-    title: Optional[str]=None
+    description: Optional[str] = None
+    title: Optional[str] = None
 
     @model_validator(mode="after")
-    def get_title_description(self)->Self:
+    def get_title_description(self) -> Self:
         title, description = self.extract_title_and_description(self.body)
         if self.title is None:
             self.title = title
@@ -116,7 +116,6 @@ class CreatePullRequestRequest(BaseModel):
         return title, description
 
 
-
 # --- Pull Request Diff ---
 class GetPullRequestDiffRequest(BaseModel):
     session_id: str = Field(..., description="Session identifier.")
@@ -132,7 +131,6 @@ class CreatePullRequestResponse(BaseModel):
     number: int = Field(..., description="Pull request number.")
     state: str = Field(..., description="State of the pull request (e.g., open, closed).")
     success: bool = Field(..., description="Whether the pull request was created successfully.")
-    # Optionally, include the generated description if LLM was used
     generated_description: Optional[str] = Field(None, description="LLM-generated PR description, if applicable.")
 
 
@@ -175,3 +173,10 @@ class GetCurrentAuthorResponse(BaseModel):
         None,
         description="Current authenticated user's information (name and email), or None if not available"
     )
+
+
+# --- Actions Response Schema (Updated) ---
+class GetActionsResponse(BaseModel):
+    """Response model for the /actions endpoint."""
+    actions: str = Field(..., description="Formatted actions log as a string")
+    was_trimmed: bool = Field(..., description="Indicates whether the actions log was trimmed due to token limits")

@@ -39,6 +39,12 @@ class GetCurrentAuthorResponse(BaseModel):
     )
 
 
+class GetActionsResponse(BaseModel):
+    """Response model for the /actions endpoint."""
+    actions: str = Field(..., description="Formatted actions log as a string")
+    was_trimmed: bool = Field(..., description="Indicates whether the actions log was trimmed due to token limits")
+
+
 GITHUB_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 
 
@@ -184,7 +190,7 @@ async def get_repos(session_id: str):
     return {"repos": fetcher.repos_names}
 
 
-@router.get("/actions")
+@router.get("/actions", response_model=GetActionsResponse)
 async def get_actions(
     session_id: str,
     start_date: Optional[str] = Query(None),
@@ -203,7 +209,7 @@ async def get_actions(
         authors: Optional list of authors to filter
         
     Returns:
-        dict: Contains formatted action entries
+        GetActionsResponse: Contains formatted action entries and trimming status
         
     Raises:
         HTTPException: 404 if session not found
@@ -228,10 +234,19 @@ async def get_actions(
 
     llm = get_llm(session_id)
     actions = fetcher.get_authored_messages()
-    actions = trim_messages(actions, llm.tokenizer)
-    print(f"\n\n\n{actions=}\n\n\n")
     
-    return {"actions": parse_entries_to_txt(actions)}
+    # Track original length before trimming
+    original_length = len(actions)
+    
+    # Trim messages and get the result
+    trimmed_actions, was_trimmed = trim_messages(actions, llm.tokenizer)
+    
+    print(f"\n\n\n{trimmed_actions=}\n\n\n")
+    
+    return GetActionsResponse(
+        actions=parse_entries_to_txt(trimmed_actions),
+        was_trimmed=was_trimmed
+    )
 
 
 @router.get("/release_notes")
@@ -306,8 +321,8 @@ async def get_release_notes(
 
     llm = get_llm(session_id)
     actions = fetcher.get_authored_messages()
-    actions = trim_messages(actions, llm.tokenizer)
-    actions_txt = parse_entries_to_txt(actions)
+    trimmed_actions, _ = trim_messages(actions, llm.tokenizer)
+    actions_txt = parse_entries_to_txt(trimmed_actions)
 
     return {"actions": "\n\n".join([actions_txt, releases_txt])}
 
