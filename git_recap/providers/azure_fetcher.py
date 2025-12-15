@@ -359,3 +359,15 @@ class AzureFetcher(BaseFetcher):
         except Exception as e:
             print(f"Error in get_authors: {e}")
             return []
+
+    def get_current_author(self) -> Optional[Dict[str, str]]:
+        """
+        Retrieve the current authenticated user's information.
+        
+        For Azure DevOps, default author functionality is not currently implemented,
+        so this method returns None.
+        
+        Returns:
+            None: Azure DevOps fetcher does not support default author retrieval.
+        """
+        return None

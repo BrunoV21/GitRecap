@@ -10,6 +10,9 @@ from models.schemas import (
     CreatePullRequestResponse,
     GetPullRequestDiffRequest,
     GetPullRequestDiffResponse,
+    GetAuthorsRequest,
+    GetAuthorsResponse,
+    AuthorInfo,
 )
 
 from services.llm_service import set_llm, get_llm, trim_messages
@@ -28,26 +31,12 @@ class CloneRequest(BaseModel):
     url: str
 
 
-class GetAuthorsRequest(BaseModel):
-    """Request model for fetching authors from repositories."""
-    session_id: str = Field(..., description="Session identifier")
-    repo_names: Optional[List[str]] = Field(
-        default=[],
-        description="List of repository names to fetch authors from. Empty list fetches from all repositories."
+class GetCurrentAuthorResponse(BaseModel):
+    """Response model for current author endpoint."""
+    author: Optional[Dict[str, str]] = Field(
+        None,
+        description="Current authenticated user's information (name and email), or None if not available"
     )
-
-
-class AuthorInfo(BaseModel):
-    """Individual author information."""
-    name: str = Field(..., description="Author's name")
-    email: str = Field(..., description="Author's email address")
-
-
-class GetAuthorsResponse(BaseModel):
-    """Response model containing list of authors."""
-    authors: List[AuthorInfo] = Field(..., description="List of unique authors")
-    total_count: int = Field(..., description="Total number of unique authors")
-    repo_count: int = Field(..., description="Number of repositories processed")
 
 
 GITHUB_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token'
@@ -492,4 +481,48 @@ async def get_authors(request: GetAuthorsRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching authors: {str(e)}"
+        )
+
+
+@router.get("/api/current-author", response_model=GetCurrentAuthorResponse)
+async def get_current_author(session_id: str = Query(..., description="Session identifier")):
+    """
+    Retrieve the current authenticated user's information from the fetcher.
+    
+    Args:
+        session_id: The session identifier
+        
+    Returns:
+        GetCurrentAuthorResponse: Contains optional author information (name and email)
+        
+    Raises:
+        HTTPException: 404 if session not found, 500 for errors
+    """
+    try:
+        fetcher = get_fetcher(session_id)
+        
+        if not fetcher:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Session {session_id} not found or expired"
+            )
+        
+        try:
+            author_info = fetcher.get_current_author()
+        except NotImplementedError:
+            author_info = None
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error retrieving current author: {str(e)}"
+            )
+        
+        return GetCurrentAuthorResponse(author=author_info)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching current author: {str(e)}"
         )

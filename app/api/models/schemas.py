@@ -166,3 +166,12 @@ class GetAuthorsResponse(BaseModel):
     authors: List[AuthorInfo] = Field(..., description="List of unique authors")
     total_count: int = Field(..., description="Total number of unique authors")
     repo_count: int = Field(..., description="Number of repositories processed")
+
+
+# --- Current Author Endpoint Schema ---
+class GetCurrentAuthorResponse(BaseModel):
+    """Response model for current author endpoint."""
+    author: Optional[Dict[str, str]] = Field(
+        None,
+        description="Current authenticated user's information (name and email), or None if not available"
+    )

@@ -354,6 +354,18 @@ class URLFetcher(BaseFetcher):
             print(f"Error in get_authors: {e}")
             return []
 
+    def get_current_author(self) -> Optional[Dict[str, str]]:
+        """
+        Retrieve the current authenticated user's information.
+        
+        For URL-based cloning, there is no authenticated user context,
+        so this method always returns None.
+        
+        Returns:
+            None: URL fetcher has no default author.
+        """
+        return None
+
     def clear(self) -> None:
         """Clean up temporary directory."""
         if self.temp_dir and os.path.exists(self.temp_dir):

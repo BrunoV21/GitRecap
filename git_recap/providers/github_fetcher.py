@@ -448,3 +448,29 @@ class GitHubFetcher(BaseFetcher):
         except Exception as e:
             print(f"Error in get_authors: {e}")
             return []
+
+    def get_current_author(self) -> Optional[Dict[str, str]]:
+        """
+        Retrieve the current authenticated user's information.
+        
+        Returns the authenticated GitHub user's name and email if available.
+        
+        Returns:
+            Optional[Dict[str, str]]: Dictionary with 'name' and 'email' keys,
+                                     or None if user information is unavailable.
+        """
+        try:
+            if not self.user:
+                logger.warning("No authenticated user available")
+                return None
+            
+            user_name = self.user.name or self.user.login or "Unknown"
+            user_email = self.user.email or f"{self.user.login}@users.noreply.github.com"
+            
+            return {
+                "name": user_name,
+                "email": user_email
+            }
+        except Exception as e:
+            logger.error(f"Error retrieving current author: {str(e)}")
+            return None

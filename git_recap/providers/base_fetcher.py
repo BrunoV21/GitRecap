@@ -171,6 +171,21 @@ class BaseFetcher(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_current_author(self) -> Optional[Dict[str, str]]:
+        """
+        Retrieve the current authenticated user's information.
+        
+        Returns the default authenticated user's name and email if available
+        for the current fetcher session, or None if not applicable for the provider.
+        
+        Returns:
+            Optional[Dict[str, str]]: Dictionary with 'name' and 'email' keys,
+                                     or None if no default author is available.
+                                     Example: {"name": "John Doe", "email": "john@example.com"}
+        """
+        pass
+
     def get_authored_messages(self) -> List[Dict[str, Any]]:
         """
         Aggregates all commit, pull request, and issue entries into a single list,
