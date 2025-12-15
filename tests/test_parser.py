@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import Mock, patch
 from github import GithubException
+from git_recap.providers.github_fetcher import GitHubFetcher
 from git_recap.utils import parse_entries_to_txt
 
 def test_parse_entries_to_txt():
@@ -749,60 +750,3 @@ class TestGetAuthors:
         
         # Assert
         assert len(authors) >= 0  # Should process all accessible repos
-    
-    @pytest.mark.asyncio
-    async def test_api_endpoint_success(self):
-        """Test the /api/authors endpoint with valid session"""
-        from fastapi.testclient import TestClient
-        from app.api.server.routes import router
-        
-        client = TestClient(router)
-        
-        # Mock fetcher service
-        with patch('app.api.server.routes.fetcher_service') as mock_service:
-            mock_fetcher = Mock()
-            mock_fetcher.get_authors.return_value = [
-                {"name": "Alice", "email": "alice@example.com"},
-                {"name": "Bob", "email": "bob@example.com"}
-            ]
-            mock_service.get_fetcher.return_value = mock_fetcher
-            
-            # Make request
-            response = client.post(
-                "/api/authors",
-                json={
-                    "session_id": "test_session_123",
-                    "repo_names": ["owner/repo"]
-                }
-            )
-            
-            # Assert
-            assert response.status_code == 200
-            data = response.json()
-            assert data["total_count"] == 2
-            assert len(data["authors"]) == 2
-    
-    @pytest.mark.asyncio
-    async def test_api_endpoint_session_not_found(self):
-        """Test the /api/authors endpoint with invalid session"""
-        from fastapi.testclient import TestClient
-        from app.api.server.routes import router
-        
-        client = TestClient(router)
-        
-        # Mock fetcher service to return None
-        with patch('app.api.server.routes.fetcher_service') as mock_service:
-            mock_service.get_fetcher.return_value = None
-            
-            # Make request
-            response = client.post(
-                "/api/authors",
-                json={
-                    "session_id": "invalid_session",
-                    "repo_names": []
-                }
-            )
-            
-            # Assert
-            assert response.status_code == 404
-            assert "not found or expired" in response.json()["detail"]

@@ -59,6 +59,12 @@ class DummyFetcher(BaseFetcher):
     def fetch_releases(self):
         ...
 
+    def get_authors(self):
+        ...
+
+    def get_current_author(self):
+        ...
+
 def test_get_authored_messages():
     # Create a dummy fetcher with a date range covering March 2025.
     fetcher = DummyFetcher(
