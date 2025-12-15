@@ -36,7 +36,7 @@ class URLFetcher(BaseFetcher):
         )
         self.url = self._normalize_url(url)
         self.temp_dir = None
-        # self._validate_url()
+        self.repo_path = None
         self._clone_repo()
 
     def _normalize_url(self, url: str) -> str:
@@ -59,7 +59,7 @@ class URLFetcher(BaseFetcher):
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=10  # Add timeout to prevent hanging
+                timeout=10
             )
             if not result.stdout.strip():
                 raise ValueError(f"URL {self.url} points to an empty repository")
@@ -71,8 +71,8 @@ class URLFetcher(BaseFetcher):
     def _clone_repo(self) -> None:
         """Clone the repository to a temporary directory with all branches."""
         self.temp_dir = tempfile.mkdtemp(prefix="gitrecap_")
+        self.repo_path = self.temp_dir
         try:
-            # First clone with --no-checkout to save bandwidth
             subprocess.run(
                 ["git", "clone", "--no-checkout", self.url, self.temp_dir],
                 check=True,
@@ -81,7 +81,6 @@ class URLFetcher(BaseFetcher):
                 timeout=300
             )
 
-            # Fetch all branches
             subprocess.run(
                 ["git", "-C", self.temp_dir, "fetch", "--all"],
                 check=True,
@@ -90,7 +89,6 @@ class URLFetcher(BaseFetcher):
                 timeout=300
             )
 
-            # Verify the cloned repository has at least one commit
             verify_result = subprocess.run(
                 ["git", "-C", self.temp_dir, "rev-list", "--count", "--all"],
                 capture_output=True,
@@ -138,7 +136,6 @@ class URLFetcher(BaseFetcher):
                 check=True
             )
             branches = [b.strip() for b in result.stdout.splitlines() if b.strip()]
-            # Filter out HEAD reference if present
             return [b for b in branches if not b.endswith('/HEAD')]
         except subprocess.CalledProcessError:
             return []
@@ -154,7 +151,7 @@ class URLFetcher(BaseFetcher):
             "log",
             "--pretty=format:%H|%an|%ad|%s",
             "--date=iso",
-            "--all"  # Include all branches and tags
+            "--all"
         ]
 
         if self.start_date:
@@ -173,7 +170,7 @@ class URLFetcher(BaseFetcher):
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=120  # Increased timeout for large repositories
+                timeout=120
             )
             return self._parse_git_log(result.stdout)
         except subprocess.TimeoutExpired:
@@ -206,7 +203,7 @@ class URLFetcher(BaseFetcher):
                     "timestamp": timestamp
                 })
             except ValueError:
-                continue  # Skip malformed log entries
+                continue
 
         return entries
 
@@ -290,12 +287,80 @@ class URLFetcher(BaseFetcher):
         """
         raise NotImplementedError("Pull request creation is not supported for generic Git URLs (URLFetcher).")
 
+    def get_authors(self, repo_names: List[str]) -> List[Dict[str, str]]:
+        """
+        Retrieve unique authors from cloned repository using git log.
+        
+        Args:
+            repo_names: Not used for URL fetcher (single repo only).
+        
+        Returns:
+            List of unique author dictionaries with name and email.
+        """
+        authors_set = set()
+        
+        try:
+            if not hasattr(self, 'repo_path') or not os.path.exists(self.repo_path):
+                print("Repository not cloned yet")
+                return []
+            
+            cmd = [
+                'git', '-C', self.repo_path, 'log',
+                '--all',
+                '--format=%an|%ae'
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            for line in result.stdout.strip().split('\n'):
+                if '|' in line:
+                    name, email = line.split('|', 1)
+                    authors_set.add((name.strip(), email.strip()))
+            
+            cmd_committer = [
+                'git', '-C', self.repo_path, 'log',
+                '--all',
+                '--format=%cn|%ce'
+            ]
+            
+            result_committer = subprocess.run(
+                cmd_committer,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            for line in result_committer.stdout.strip().split('\n'):
+                if '|' in line:
+                    name, email = line.split('|', 1)
+                    authors_set.add((name.strip(), email.strip()))
+            
+            authors_list = [
+                {"name": name, "email": email}
+                for name, email in sorted(authors_set)
+            ]
+            
+            return authors_list
+        
+        except subprocess.CalledProcessError as e:
+            print(f"Git command failed: {e}")
+            return []
+        except Exception as e:
+            print(f"Error in get_authors: {e}")
+            return []
+
     def clear(self) -> None:
         """Clean up temporary directory."""
         if self.temp_dir and os.path.exists(self.temp_dir):
             try:
                 shutil.rmtree(self.temp_dir, ignore_errors=True)
             except Exception:
-                pass  # Ensure we don't raise during cleanup
+                pass
             finally:
                 self.temp_dir = None
+                self.repo_path = None

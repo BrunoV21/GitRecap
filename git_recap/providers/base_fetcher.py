@@ -156,6 +156,21 @@ class BaseFetcher(ABC):
         """
         raise NotImplementedError("Subclasses must implement create_pull_request() to create a pull request with the specified parameters")
 
+    @abstractmethod
+    def get_authors(self, repo_names: List[str]) -> List[Dict[str, str]]:
+        """
+        Retrieve unique authors from specified repositories.
+        
+        Args:
+            repo_names: List of repository names to fetch authors from.
+                       Empty list means fetch from all available repositories.
+        
+        Returns:
+            List of dictionaries containing author information:
+            [{"name": "John Doe", "email": "john@example.com"}, ...]
+        """
+        pass
+
     def get_authored_messages(self) -> List[Dict[str, Any]]:
         """
         Aggregates all commit, pull request, and issue entries into a single list,

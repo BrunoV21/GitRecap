@@ -12,7 +12,7 @@ class GitHubFetcher(BaseFetcher):
     """
     Fetcher implementation for GitHub repositories.
 
-    Supports fetching commits, pull requests, issues, and releases.
+    Supports fetching commits, pull requests, issues, releases, and authors.
     """
 
     def __init__(self, pat: str, start_date=None, end_date=None, repo_filter=None, authors=None):
@@ -92,9 +92,7 @@ class GitHubFetcher(BaseFetcher):
 
     def fetch_pull_requests(self) -> List[Dict[str, Any]]:
         entries = []
-        # Maintain a local set to skip duplicate commits already captured in a PR.
         processed_pr_commits = set()
-        # Retrieve repos where you're owner, a collaborator, or an organization member.
         for repo in self.repos:
             if self.repo_filter and repo.name not in self.repo_filter:
                 continue
@@ -102,11 +100,10 @@ class GitHubFetcher(BaseFetcher):
             for i, pr in enumerate(pulls, start=1):
                 if pr.user.login not in self.authors:
                     continue
-                pr_date = pr.updated_at  # alternatively, use pr.created_at
+                pr_date = pr.updated_at
                 if not self._filter_by_date(pr_date):
                     continue
 
-                # Add the pull request itself.
                 pr_entry = {
                     "type": "pull_request",
                     "repo": repo.name,
@@ -116,7 +113,6 @@ class GitHubFetcher(BaseFetcher):
                 }
                 entries.append(pr_entry)
 
-                # Now, add commits associated with this pull request.
                 pr_commits = pr.get_commits()
                 for pr_commit in pr_commits:
                     commit_date = pr_commit.commit.author.date
@@ -178,7 +174,6 @@ class GitHubFetcher(BaseFetcher):
                 continue
             try:
                 for rel in repo.get_releases():
-                    # Compose asset list
                     assets = []
                     for asset in rel.get_assets():
                         assets.append({
@@ -203,7 +198,6 @@ class GitHubFetcher(BaseFetcher):
                     }
                     releases.append(release_entry)
             except Exception:
-                # If fetching releases fails for a repo, skip it (could be permissions or no releases)
                 continue
         return releases
 
@@ -267,7 +261,6 @@ class GitHubFetcher(BaseFetcher):
                     continue
                 logger.debug(f"Processing repository: {repo.name}")
                 repo_branches = [branch.name for branch in repo.get_branches()]
-                # Get existing open PRs from source branch
                 try:
                     open_prs = repo.get_pulls(state='open', head=source_branch)
                 except GithubException as e:
@@ -284,7 +277,6 @@ class GitHubFetcher(BaseFetcher):
                     if branch_name in existing_pr_targets:
                         logger.debug(f"Excluding branch with existing PR: {branch_name}")
                         continue
-                    # Optionally check if source is ahead of target (performance cost)
                     valid_targets.append(branch_name)
                     logger.debug(f"Valid target branch: {branch_name}")
             logger.debug(f"Found {len(valid_targets)} valid target branches")
@@ -406,3 +398,53 @@ class GitHubFetcher(BaseFetcher):
         except Exception as e:
             logger.error(f"Unexpected error while creating pull request: {str(e)}")
             raise Exception(f"Failed to create pull request: {str(e)}")
+
+    def get_authors(self, repo_names: List[str]) -> List[Dict[str, str]]:
+        """
+        Retrieve unique authors from specified GitHub repositories.
+        
+        Args:
+            repo_names: List of repository names (format: "owner/repo").
+                       Empty list fetches from all accessible repositories.
+        
+        Returns:
+            List of unique author dictionaries with name and email.
+        """
+        authors_set = set()
+        
+        try:
+            if not repo_names:
+                repos = self.github.get_user().get_repos()
+                repo_names = [repo.full_name for repo in repos]
+            
+            for repo_name in repo_names:
+                try:
+                    repo = self.github.get_repo(repo_name)
+                    
+                    commits = repo.get_commits()
+                    
+                    for commit in commits:
+                        if commit.commit.author:
+                            author_name = commit.commit.author.name or "Unknown"
+                            author_email = commit.commit.author.email or "unknown@example.com"
+                            authors_set.add((author_name, author_email))
+                        
+                        if commit.commit.committer:
+                            committer_name = commit.commit.committer.name or "Unknown"
+                            committer_email = commit.commit.committer.email or "unknown@example.com"
+                            authors_set.add((committer_name, committer_email))
+                
+                except GithubException as e:
+                    print(f"Error fetching authors from {repo_name}: {e}")
+                    continue
+            
+            authors_list = [
+                {"name": name, "email": email}
+                for name, email in sorted(authors_set)
+            ]
+            
+            return authors_list
+        
+        except Exception as e:
+            print(f"Error in get_authors: {e}")
+            return []

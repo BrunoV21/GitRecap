@@ -1,14 +1,16 @@
 from azure.devops.connection import Connection
 from msrest.authentication import BasicAuthentication
+from azure.devops.exceptions import AzureDevOpsServiceError
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from git_recap.providers.base_fetcher import BaseFetcher
+
 
 class AzureFetcher(BaseFetcher):
     """
     Fetcher implementation for Azure DevOps repositories.
 
-    Supports fetching commits, pull requests, and issues.
+    Supports fetching commits, pull requests, issues, and authors.
     Release fetching is not supported and will raise NotImplementedError.
     """
 
@@ -30,9 +32,12 @@ class AzureFetcher(BaseFetcher):
         self.connection = Connection(base_url=self.organization_url, creds=credentials)
         self.core_client = self.connection.clients.get_core_client()
         self.git_client = self.connection.clients.get_git_client()
+        
+        # Extract project name from organization URL or use first project
+        projects = self.core_client.get_projects().value
+        self.project_name = projects[0].name if projects else None
+        
         self.repos = self.get_repos()
-        # Azure DevOps doesn't provide an affiliation filter;
-        # we'll iterate over all repos in each project.
         if authors is None:
             self.authors = []
 
@@ -43,8 +48,10 @@ class AzureFetcher(BaseFetcher):
             List of repository objects.
         """
         projects = self.core_client.get_projects().value
-        # Get all repositories in each project
-        repos = [self.git_client.get_repositories(project.id) for project in projects]
+        repos = []
+        for project in projects:
+            project_repos = self.git_client.get_repositories(project.id)
+            repos.extend(project_repos)
         return repos
 
     @property
@@ -55,8 +62,7 @@ class AzureFetcher(BaseFetcher):
         Returns:
             List[str]: List of repository names.
         """
-        # To be implemented if needed for UI or listing.
-        ...
+        return [repo.name for repo in self.repos]
 
     def _filter_by_date(self, date_obj: datetime) -> bool:
         """
@@ -103,15 +109,14 @@ class AzureFetcher(BaseFetcher):
             for author in self.authors:
                 try:
                     commits = self.git_client.get_commits(
-                        project=repo.id,
+                        project=repo.project.id,
                         repository_id=repo.id,
                         search_criteria={"author": author}
                     )
                 except Exception:
                     continue
                 for commit in commits:
-                    # Azure DevOps returns a commit with an 'author' property.
-                    commit_date = commit.author.date  # assumed datetime
+                    commit_date = commit.author.date
                     if self._filter_by_date(commit_date):
                         sha = commit.commit_id
                         if sha not in processed_commits:
@@ -151,10 +156,9 @@ class AzureFetcher(BaseFetcher):
                 except Exception:
                     continue
                 for pr in pull_requests:
-                    # Check that the PR creator is one of our authors.
                     if pr.created_by.unique_name not in self.authors:
                         continue
-                    pr_date = pr.creation_date  # type: datetime
+                    pr_date = pr.creation_date
                     if not self._filter_by_date(pr_date):
                         continue
 
@@ -204,7 +208,6 @@ class AzureFetcher(BaseFetcher):
         """
         entries = []
         wit_client = self.connection.clients.get_work_item_tracking_client()
-        # Query work items for each author using a simplified WIQL query.
         for author in self.authors:
             wiql = f"SELECT [System.Id], [System.Title], [System.CreatedDate] FROM WorkItems WHERE [System.AssignedTo] CONTAINS '{author}'"
             try:
@@ -235,7 +238,6 @@ class AzureFetcher(BaseFetcher):
         Raises:
             NotImplementedError: Always, since release fetching is not supported for AzureFetcher.
         """
-        # If Azure DevOps release fetching is supported in the future, implement logic here.
         raise NotImplementedError("Release fetching is not supported for Azure DevOps (AzureFetcher).")
 
     def get_branches(self) -> List[str]:
@@ -248,9 +250,6 @@ class AzureFetcher(BaseFetcher):
         Raises:
             NotImplementedError: Always, since branch listing is not yet implemented for AzureFetcher.
         """
-        # TODO: Implement get_branches() for Azure DevOps support
-        # This would use: git_client.get_branches(repository_id, project)
-        # and extract branch names from the returned objects
         raise NotImplementedError("Branch listing is not yet implemented for Azure DevOps (AzureFetcher).")
 
     def get_valid_target_branches(self, source_branch: str) -> List[str]:
@@ -270,14 +269,6 @@ class AzureFetcher(BaseFetcher):
         Raises:
             NotImplementedError: Always, since PR target validation is not yet implemented for AzureFetcher.
         """
-        # TODO: Implement get_valid_target_branches() for Azure DevOps support
-        # This would require:
-        # 1. Verify source_branch exists using git_client.get_branch()
-        # 2. Get all branches using get_branches()
-        # 3. Filter out source branch
-        # 4. Check for existing pull requests using git_client.get_pull_requests()
-        # 5. Filter out branches with existing open PRs from source
-        # 6. Optionally check branch policies and protection rules
         raise NotImplementedError("Pull request target branch validation is not yet implemented for Azure DevOps (AzureFetcher).")
 
     def create_pull_request(
@@ -310,7 +301,61 @@ class AzureFetcher(BaseFetcher):
         Raises:
             NotImplementedError: Always, since PR creation is not yet implemented for AzureFetcher.
         """
-        # TODO: Implement create_pull_request() for Azure DevOps support
-        # This would use: git_client.create_pull_request() with appropriate parameters
-        # Would need to handle reviewers, work item links (assignees), labels, and draft status
         raise NotImplementedError("Pull request creation is not yet implemented for Azure DevOps (AzureFetcher).")
+
+    def get_authors(self, repo_names: List[str]) -> List[Dict[str, str]]:
+        """
+        Retrieve unique authors from specified Azure DevOps repositories.
+        
+        Args:
+            repo_names: List of repository names.
+                       Empty list fetches from all accessible repositories.
+        
+        Returns:
+            List of unique author dictionaries with name and email.
+        """
+        authors_set = set()
+        
+        try:
+            git_client = self.connection.clients.get_git_client()
+            
+            if not repo_names:
+                repos = self.repos
+            else:
+                repos = [repo for repo in self.repos if repo.name in repo_names]
+            
+            for repo in repos:
+                if self.repo_filter and repo.name not in self.repo_filter:
+                    continue
+                
+                try:
+                    commits = git_client.get_commits(
+                        repository_id=repo.id,
+                        search_criteria={'$top': 1000}
+                    )
+                    
+                    for commit in commits:
+                        if commit.author:
+                            author_name = commit.author.name or "Unknown"
+                            author_email = commit.author.email or "unknown@example.com"
+                            authors_set.add((author_name, author_email))
+                        
+                        if commit.committer:
+                            committer_name = commit.committer.name or "Unknown"
+                            committer_email = commit.committer.email or "unknown@example.com"
+                            authors_set.add((committer_name, committer_email))
+                
+                except AzureDevOpsServiceError as e:
+                    print(f"Error fetching authors from {repo.name}: {e}")
+                    continue
+            
+            authors_list = [
+                {"name": name, "email": email}
+                for name, email in sorted(authors_set)
+            ]
+            
+            return authors_list
+        
+        except Exception as e:
+            print(f"Error in get_authors: {e}")
+            return []

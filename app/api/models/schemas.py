@@ -143,3 +143,26 @@ class CommitMessagesForPRDescriptionRequest(BaseModel):
 
 class PRDescriptionResponse(BaseModel):
     description: str = Field(..., description="LLM-generated pull request description.")
+
+
+# --- Authors Endpoint Schemas ---
+class AuthorInfo(BaseModel):
+    """Individual author information"""
+    name: str = Field(..., description="Author's name")
+    email: str = Field(..., description="Author's email address")
+
+
+class GetAuthorsRequest(BaseModel):
+    """Request model for fetching authors"""
+    session_id: str = Field(..., description="Session identifier")
+    repo_names: Optional[List[str]] = Field(
+        default=[],
+        description="List of repository names to fetch authors from. Empty list fetches from all repositories."
+    )
+
+
+class GetAuthorsResponse(BaseModel):
+    """Response model containing list of authors"""
+    authors: List[AuthorInfo] = Field(..., description="List of unique authors")
+    total_count: int = Field(..., description="Total number of unique authors")
+    repo_count: int = Field(..., description="Number of repositories processed")
