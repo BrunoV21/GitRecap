@@ -25,7 +25,7 @@ COPY . /app
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install git-recap==0.1.5 && \
-    pip install git+https://github.com/BrunoV21/AiCore.git#egg=core-for-ai[all]
+    pip install "core-for-ai[all] @ git+https://github.com/BrunoV21/AiCore.git"
 
 EXPOSE 7860
 
