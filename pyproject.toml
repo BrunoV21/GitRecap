@@ -40,7 +40,7 @@ Repository = "https://github.com/BrunoV21/GitRecap.git"
 Issues = "https://github.com/BrunoV21/GitRecap/issues"
 
 [project.scripts]
-git-recap = "git_recap.fetcher:main"
+git-recap = "git_recap.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -221,9 +221,183 @@ Potential improvements for the `LocalFetcher`:
 5. **Branch Comparison**: Add support for comparing branches
 6. **Merge Detection**: Detect merge commits and handle them differently
 
+## CLI Usage
+
+The GitRecap CLI provides an LLM-friendly command-line interface for fetching and summarizing git commits from local repositories. It's designed to be easily used by LLMs and automated tools.
+
+### Installation
+
+After installing the package, the CLI is available as `git-recap`:
+
+```bash
+pip install git-recap
+```
+
+### Basic Usage
+
+```bash
+# Get commits from current directory (last 7 days)
+git-recap .
+
+# Get commits from multiple repositories
+git-recap /path/to/repo1 /path/to/repo2
+```
+
+### Command-Line Arguments
+
+#### Positional Arguments
+
+- **`paths`** (required, one or more)
+  - One or more paths to local git repositories
+  - Each path must be a valid git repository (contains .git directory)
+  - Can be absolute or relative paths
+  - Multiple paths can be provided
+
+#### Optional Arguments
+
+- **`--author AUTHOR`**
+  - Filter commits by author name
+  - Partial matching is supported (e.g., "John" matches "John Doe")
+  - If not specified, commits from all authors are included
+
+- **`--start-date START_DATE`**
+  - Start date for filtering commits (inclusive)
+  - Format: `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM:SS`
+  - If not specified, defaults to 7 days before current date
+
+- **`--end-date END_DATE`**
+  - End date for filtering commits (inclusive)
+  - Format: `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM:SS`
+  - If not specified, defaults to current date and time
+
+- **`--output OUTPUT, -o OUTPUT`**
+  - Output file path to save the summary
+  - If not specified, results are printed to stdout
+  - The file will be created or overwritten if it exists
+
+- **`--help, -h`**
+  - Show help message and exit
+
+### Usage Examples
+
+#### Filter by Author
+
+```bash
+# Get commits by a specific author
+git-recap . --author "John Doe"
+
+# Partial matching works too
+git-recap /path/to/repo --author "Jane"
+```
+
+#### Filter by Date Range
+
+```bash
+# Get commits from a specific date range
+git-recap . --start-date "2025-01-01" --end-date "2025-01-31"
+
+# Get commits from a specific date onwards
+git-recap . --start-date "2025-01-01"
+
+# Get commits up to a specific date
+git-recap . --end-date "2025-01-31"
+```
+
+#### Save to File
+
+```bash
+# Save summary to a file
+git-recap . --output summary.txt
+
+# Combine filters and save to file
+git-recap /path/to/repo1 /path/to/repo2 --author "Jane" --start-date "2025-01-01" --output commits.txt
+```
+
+#### Multiple Repositories
+
+```bash
+# Fetch from multiple repositories
+git-recap /path/to/repo1 /path/to/repo2 /path/to/repo3
+
+# Combine with filters
+git-recap /path/to/repo1 /path/to/repo2 --author "John" --start-date "2025-01-01" --end-date "2025-01-31"
+```
+
+### Output Format
+
+The CLI outputs commits grouped by date in the following format:
+
+```
+2025-01-15:
+ - [Commit] in my-repo: Added new feature for user authentication
+ - [Commit] in my-repo: Fixed bug in login flow
+
+2025-01-14:
+ - [Commit] in my-repo: Updated documentation
+ - [Commit] in my-repo: Refactored database queries
+```
+
+Each entry includes:
+- **Date**: The date of the commits (YYYY-MM-DD)
+- **Type**: The entry type (e.g., "Commit")
+- **Repository**: The repository name
+- **Message**: The commit message
+
+### LLM-Friendly Features
+
+The CLI is designed to be easily used by LLMs and automated tools:
+
+1. **Clear Help Text**: The `--help` output provides comprehensive information about all arguments and usage examples
+2. **Structured Output**: The output format is consistent and easy to parse
+3. **Error Messages**: Clear error messages are printed to stderr for debugging
+4. **Exit Codes**: Returns 0 for success, 1 for errors
+5. **Flexible Input**: Supports multiple repository paths and various filtering options
+
+### Error Handling
+
+The CLI provides helpful error messages for common issues:
+
+- **Invalid repository path**: "Error: Path does not exist: /path/to/repo"
+- **Not a git repository**: "Error: Not a git repository: /path/to/repo"
+- **Invalid date format**: "Invalid date format: 'invalid-date'. Use ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"
+- **No commits found**: "No commits found matching the specified criteria."
+
+### Running the CLI
+
+After installation, you can run the CLI in two ways:
+
+```bash
+# Using the installed command
+git-recap . --author "John Doe"
+
+# Or using Python module
+python -m git_recap.cli . --author "John Doe"
+```
+
+### Integration with LLMs
+
+The CLI is particularly useful for LLM integration:
+
+1. **Predictable Output**: The structured output format is easy for LLMs to parse and understand
+2. **Flexible Filtering**: Multiple filtering options allow LLMs to request specific data
+3. **File Output**: The `--output` flag allows LLMs to save results to files for further processing
+4. **Help Documentation**: The comprehensive help text enables LLMs to understand available options
+
+Example LLM prompt:
+```
+Please fetch all commits from the current directory made by "John Doe" in January 2025 and save the results to a file called "january_commits.txt".
+```
+
+The LLM can translate this to:
+```bash
+git-recap . --author "John Doe" --start-date "2025-01-01" --end-date "2025-01-31" --output january_commits.txt
+```
+
 ## Conclusion
 
 The `LocalFetcher` implementation successfully extends GitRecap to work with local git repositories, providing a comprehensive set of features for fetching commits, authors, and branch information. The implementation follows the existing patterns in the codebase and integrates seamlessly with the API, CLI, and service layer.
+
+The new CLI tool provides an LLM-friendly interface that makes it easy for automated tools and AI assistants to interact with git repositories and extract structured commit information.
 
 ---
 Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)
