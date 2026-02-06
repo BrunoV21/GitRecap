@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "git-recap"
-version = "0.1.5"
+version = "0.1.6"
 description = "A modular Python tool that aggregates and formats user-authored messages from repositories."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "Bruno V.", email = "bruno.vitorino@tecnico.ulisboa.pt"}
