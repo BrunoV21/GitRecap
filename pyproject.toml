@@ -34,10 +34,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/git-recap"
-Documentation = "https://github.com/yourusername/git-recap#readme"
-Repository = "https://github.com/yourusername/git-recap.git"
-Issues = "https://github.com/yourusername/git-recap/issues"
+Homepage = "https://github.com/BrunoV21/GitRecap"
+Documentation = "https://github.com/BrunoV21/GitRecap#readme"
+Repository = "https://github.com/BrunoV21/GitRecap.git"
+Issues = "https://github.com/BrunoV21/GitRecap/issues"
 
 [project.scripts]
 git-recap = "git_recap.fetcher:main"
