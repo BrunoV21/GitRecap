@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from git_recap.providers.github_fetcher import GitHubFetcher
 from git_recap.providers.azure_fetcher import AzureFetcher
 from git_recap.providers.gitlab_fetcher import GitLabFetcher
+from git_recap.providers.local_fetcher import LocalFetcher
 
 def main():
     parser = argparse.ArgumentParser(
@@ -11,10 +12,14 @@ def main():
     parser.add_argument(
         '--provider',
         required=True,
-        choices=['github', 'azure', 'gitlab'],
-        help='Platform name (github, azure, or gitlab)'
+        choices=['github', 'azure', 'gitlab', 'local'],
+        help='Platform name (github, azure, gitlab, or local)'
     )
-    parser.add_argument('--pat', required=True, help='Personal Access Token')
+    parser.add_argument('--pat', help='Personal Access Token (not required for local provider)')
+    parser.add_argument(
+        '--repo-path',
+        help='Path to local git repository (required for local provider)'
+    )
     parser.add_argument(
         '--organization-url',
         help='Organization URL for Azure DevOps'
@@ -51,6 +56,9 @@ def main():
     
     fetcher = None
     if args.provider == 'github':
+        if not args.pat:
+            print("PAT is required for GitHub provider")
+            exit(1)
         fetcher = GitHubFetcher(
             pat=args.pat,
             start_date=args.start_date,
@@ -58,6 +66,9 @@ def main():
             repo_filter=args.repos
         )
     elif args.provider == 'azure':
+        if not args.pat:
+            print("PAT is required for Azure DevOps provider")
+            exit(1)
         if not args.organization_url:
             print("Organization URL is required for Azure DevOps")
             exit(1)
@@ -69,10 +80,23 @@ def main():
             repo_filter=args.repos
         )
     elif args.provider == 'gitlab':
+        if not args.pat:
+            print("PAT is required for GitLab provider")
+            exit(1)
         gitlab_url = args.gitlab_url if args.gitlab_url else 'https://gitlab.com'
         fetcher = GitLabFetcher(
             pat=args.pat,
             url=gitlab_url,
+            start_date=args.start_date,
+            end_date=args.end_date,
+            repo_filter=args.repos
+        )
+    elif args.provider == 'local':
+        if not args.repo_path:
+            print("--repo-path is required for local provider")
+            exit(1)
+        fetcher = LocalFetcher(
+            repo_path=args.repo_path,
             start_date=args.start_date,
             end_date=args.end_date,
             repo_filter=args.repos

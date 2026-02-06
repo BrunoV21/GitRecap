@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "git-recap"
+version = "0.1.5"
+description = "A modular Python tool that aggregates and formats user-authored messages from repositories."
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "MIT"}
+authors = [
+    {name = "Bruno V.", email = "bruno.vitorino@tecnico.ulisboa.pt"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+keywords = ["git", "github", "gitlab", "azure-devops", "version-control", "repository"]
+dependencies = [
+    "PyGithub==2.6.1",
+    "azure-devops==7.1.0b4",
+    "python-gitlab==5.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=0.990",
+]
+
+[project.urls]
+Homepage = "https://github.com/BrunoV21/GitRecap"
+Documentation = "https://github.com/BrunoV21/GitRecap#readme"
+Repository = "https://github.com/BrunoV21/GitRecap.git"
+Issues = "https://github.com/BrunoV21/GitRecap/issues"
+
+[project.scripts]
+git-recap = "git_recap.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["git_recap*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py37', 'py38', 'py39', 'py310', 'py311']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.mypy]
+python_version = "3.7"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

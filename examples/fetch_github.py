@@ -2,7 +2,6 @@ from git_recap.providers import GitHubFetcher
 from git_recap.utils import parse_entries_to_txt
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-import json
 import os
 
 load_dotenv()

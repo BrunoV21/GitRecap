@@ -175,3 +175,5 @@ cython_debug/
 
 observability_data/*
 storage/
+
+.compass/*
