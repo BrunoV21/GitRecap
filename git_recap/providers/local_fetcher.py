@@ -1,6 +1,5 @@
 import os
 import subprocess
-from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from git_recap.providers.base_fetcher import BaseFetcher
@@ -58,7 +57,7 @@ class LocalFetcher(BaseFetcher):
         
         # Verify it's a valid git repo by running a simple command
         try:
-            result = subprocess.run(
+            _result = subprocess.run(
                 ["git", "-C", self.repo_path, "rev-parse", "--git-dir"],
                 capture_output=True,
                 text=True,

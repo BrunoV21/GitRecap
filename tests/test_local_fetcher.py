@@ -5,8 +5,8 @@ Tests the functionality of fetching commits and other information from local git
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock, patch, MagicMock
+from datetime import datetime, timezone
+from unittest.mock import Mock, patch
 from git_recap.providers.local_fetcher import LocalFetcher
 
 
